@@ -1,0 +1,380 @@
+# letapis-mcp
+
+MCP server for letapis - semantic code search and knowledge graph.
+
+Proxies MCP tool calls to letapis-core via HTTP API.
+
+## Requirements
+
+- Python 3.11+
+- Running letapis-core server
+- uv (recommended) or pip
+
+## Installation
+
+```bash
+# Clone and install locally
+cd letapis-mcp
+uv sync
+
+# Or install as tool
+uv tool install .
+```
+
+## Quick Start
+
+```bash
+# Set environment and run
+export LETAPIS_SERVER_URL=http://localhost:3131
+export LETAPIS_API_KEY=your-api-key
+uv run letapis-mcp
+
+# Or with config file
+uv run letapis-mcp --config ~/.config/letapis-mcp/config.yaml
+```
+
+## Usage with Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "letapis": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project", "/path/to/letapis-mcp",
+        "letapis-mcp",
+        "--config", "/path/to/config.yaml"
+      ],
+      "env": {
+        "LETAPIS_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+Or without explicit config (uses env vars):
+
+```json
+{
+  "mcpServers": {
+    "letapis": {
+      "command": "uv",
+      "args": ["run", "--project", "/path/to/letapis-mcp", "letapis-mcp"],
+      "env": {
+        "LETAPIS_SERVER_URL": "http://localhost:3131",
+        "LETAPIS_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+## Usage with OpenCode
+
+Add to `opencode.json` in your project root (or `~/.config/opencode/opencode.json` for global):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "letapis": {
+      "type": "local",
+      "command": [
+        "uv",
+        "run",
+        "--project",
+        "/path/to/letapis-mcp",
+        "letapis-mcp"
+      ],
+      "environment": {
+        "LETAPIS_SERVER_URL": "http://localhost:3131",
+        "LETAPIS_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+## Usage with Cursor
+
+Add to Cursor settings (`Preferences` > `MCP Servers`):
+
+```json
+{
+  "letapis": {
+    "command": "uv",
+    "args": [
+      "run",
+      "--project", "/path/to/letapis-mcp",
+      "letapis-mcp"
+    ],
+    "env": {
+      "LETAPIS_SERVER_URL": "http://localhost:3131",
+      "LETAPIS_API_KEY": "your-api-key"
+    }
+  }
+}
+```
+
+## Usage with Windsurf
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "letapis": {
+      "command": "uv",
+      "args": ["run", "--project", "/path/to/letapis-mcp", "letapis-mcp"],
+      "env": {
+        "LETAPIS_SERVER_URL": "http://localhost:3131",
+        "LETAPIS_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+## Deployment Scenarios
+
+### Scenario 1: Local (Same Machine)
+
+letapis-core и Claude/OpenCode на одной машине. Файлы доступны напрямую.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Same Machine                           │
+│                                                             │
+│  Claude Desktop → letapis-mcp → localhost:3131 → letapis-core  │
+│       ↓                                             ↓       │
+│  Read files directly                             Neo4j      │
+│  (no fetch needed)                              Embeddings  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Config:**
+```yaml
+server:
+  url: http://localhost:3131
+  api_key: ${LETAPIS_API_KEY}
+
+paths:
+  # No mapping needed - paths are already local
+  mapping: []
+  fetch:
+    enabled: false  # Not needed
+```
+
+Claude может использовать Read tool напрямую для файлов из результатов поиска.
+
+### Scenario 2: Remote Server
+
+letapis-core на удалённом сервере. Нужен path mapping или fetch.
+
+```
+┌──────────────────────┐          ┌──────────────────────────┐
+│      Local Mac       │   HTTP   │     Remote Server        │
+│                      │          │                          │
+│  Claude Desktop      │────────→ │  letapis-core              │
+│       ↓              │          │    ↓                     │
+│  letapis-mcp (stdio)   │          │  Neo4j + Embeddings      │
+│       ↓              │          │    ↓                     │
+│  ~/.letapis_cache/     │          │  /workspace/project/     │
+│  (fetched files)     │          │                          │
+└──────────────────────┘          └──────────────────────────┘
+```
+
+**Option A: Path Mapping (if you have local copies)**
+```yaml
+server:
+  url: http://192.168.1.100:3000
+
+paths:
+  mapping:
+    - remote: /workspace/project
+      local: /Users/you/project  # Local git clone
+    - remote: /workspace/libs
+      local: /Users/you/libs
+  fetch:
+    enabled: false
+```
+
+**Option B: Fetch on Demand (no local copies)**
+```yaml
+server:
+  url: http://192.168.1.100:3000
+
+paths:
+  mapping: []
+  fetch:
+    enabled: true
+    cache_dir: ~/.letapis_cache
+    clear_on_start: true  # Fresh cache each session
+```
+
+Claude использует `fetch_file` tool для скачивания файлов.
+
+**Option C: Both (mapping + fetch fallback)**
+```yaml
+server:
+  url: http://192.168.1.100:3000
+
+paths:
+  mapping:
+    - remote: /workspace/main-project
+      local: /Users/you/main-project
+  fetch:
+    enabled: true  # For files not in mapping
+    cache_dir: ~/.letapis_cache
+```
+
+### Scenario 3: Docker (letapis-core in container)
+
+letapis-core в Docker с volume mount.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Host                                 │
+│                                                             │
+│  Claude Desktop → letapis-mcp → localhost:3131                │
+│       ↓                            ↓                        │
+│  /Users/you/project/       ┌───────────────┐                │
+│        ↓ (volume)          │    Docker     │                │
+│                            │  letapis-core   │                │
+│                            │       ↓       │                │
+│                            │  /workspace/  │                │
+│                            └───────────────┘                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Config:**
+```yaml
+server:
+  url: http://localhost:3131
+
+paths:
+  mapping:
+    - remote: /workspace
+      local: /Users/you/project  # Host path mounted to container
+```
+
+## Configuration
+
+### CLI Arguments
+
+```
+letapis-mcp [OPTIONS]
+
+Options:
+  -c, --config PATH    Path to config file (YAML)
+  -h, --help           Show help message
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LETAPIS_SERVER_URL` | letapis-core server URL | `http://localhost:3131` |
+| `LETAPIS_API_KEY` | API key for authentication | None |
+| `LETAPIS_TIMEOUT` | Request timeout in seconds | `60` |
+| `LETAPIS_CONFIG` | Path to config file | None |
+| `LETAPIS_CACHE_DIR` | Cache directory for fetched files | `~/.letapis_cache` |
+| `LETAPIS_FETCH_ENABLED` | Enable file fetching | `false` |
+
+### Config File
+
+Default locations (checked in order):
+1. `--config` CLI argument
+2. `LETAPIS_CONFIG` environment variable
+3. `~/.config/letapis-mcp/config.yaml`
+4. `~/.config/letapis-mcp/config.yml`
+5. `.letapis-mcp.yaml` (current directory)
+6. `.letapis-mcp.yml` (current directory)
+
+Example config:
+
+```yaml
+server:
+  url: http://localhost:3131
+  api_key: ${LETAPIS_API_KEY}  # Expands env var
+  timeout: 60
+
+paths:
+  # Map remote paths to local paths
+  mapping:
+    - remote: /workspace/project
+      local: /Users/you/project
+    - remote: /remote/libs
+      local: /Users/you/libs
+
+  # Fetch files not found locally
+  fetch:
+    enabled: true
+    cache_dir: ~/.letapis_cache
+    clear_on_start: true  # Clean cache on startup
+```
+
+### Path Handling
+
+When letapis-core returns file paths in search results:
+
+1. **Path Mapping** - If path matches a mapping, returns local path
+2. **Cache Lookup** - If file was fetched before, returns cached path
+3. **Original Path** - Returns as-is (use `fetch_file` tool to download)
+
+Example: letapis-core returns `/workspace/project/src/main.py`
+- With mapping `/workspace/project` -> `/Users/you/project`
+- Returns `/Users/you/project/src/main.py`
+
+## Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `search` | Semantic search across all indexed content |
+| `vector_search_nodes` | Full-featured semantic search with filters |
+| `memory_node` | CRUD operations for knowledge nodes |
+| `memory_edge` | Manage relationships between nodes |
+| `index_folder` | Index a folder and watch for changes |
+| `list_folders` | List all watched folders |
+| `get_indexing_progress` | Get indexing progress |
+| `ena_get_context` | Get episodic memories and context |
+| `fetch_file` | Download file from letapis-core to local cache |
+
+## Architecture
+
+```
+┌─────────────┐     stdio      ┌─────────────┐     HTTP      ┌─────────────┐
+│   Claude    │ ◄────────────► │  letapis-mcp  │ ◄───────────► │ letapis-core  │
+│  Desktop    │      MCP       │  (this pkg) │   REST API    │   server    │
+└─────────────┘                └─────────────┘               └─────────────┘
+                                     │                             │
+                                     │                             ▼
+                                     │                       ┌───────────┐
+                                     │                       │   Neo4j   │
+                                     ▼                       │ Embeddings│
+                               ┌───────────┐                 └───────────┘
+                               │ Local FS  │
+                               │ (cache)   │
+                               └───────────┘
+```
+
+## Development
+
+```bash
+# Install with dev dependencies
+uv sync --group dev
+
+# Run tests
+uv run pytest tests/ -v
+
+# Run single test
+uv run pytest tests/test_config.py -v
+```
+
+## License
+
+MIT

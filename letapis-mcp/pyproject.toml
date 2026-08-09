@@ -1,0 +1,41 @@
+[project]
+name = "letapis-mcp"
+version = "0.1.0"
+description = "MCP client for letapis - semantic code search and knowledge graph"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    { name = "Dev" }
+]
+keywords = ["mcp", "letapis", "semantic-search", "code-search", "knowledge-graph"]
+
+dependencies = [
+    "mcp>=1.0.0",           # Official MCP SDK
+    "httpx>=0.28.0",        # HTTP client for letapis-core API
+    "pyyaml>=6.0.0",        # Config file support
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[project.scripts]
+letapis-mcp = "letapis_mcp:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/letapis_mcp"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
