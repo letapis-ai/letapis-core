@@ -52,9 +52,9 @@ material with nothing to do with your work says so in its location long before a
 
 ## `structural_context` — how good it is depends entirely on the material
 
-Each hit carries the section it sits in, the path of parent headings, and an outline of the file.
-At its best this is a map: you learn what else is in the file and where, and decide whether the
-rest matters without reading it.
+Each hit carries the section it sits in, the path of parent headings down to it, and the sibling
+headings standing beside it. At its best this is a map: you learn where the hit sits in the
+document and what neighbours it, and decide whether the rest matters without reading the file.
 
 At its worst it is noise you pay for in every hit. The shape it takes:
 
@@ -66,15 +66,15 @@ At its worst it is noise you pay for in every hit. The shape it takes:
 | shell and similar | first words of lines as section names, repeated once per occurrence |
 | data files | the field may be absent altogether |
 
-**Judge it per hit rather than trusting it per corpus.** When the outline reads like fragments of
-source, it is the parser talking; fall back to reading. When the field is missing entirely, that
+**Judge it per hit rather than trusting it per corpus.** When the section names read like fragments
+of source, it is the parser talking; fall back to reading. When the field is missing entirely, that
 is a third outcome and not an error.
 
-**One genre where it costs more than it saves:** a document whose whole body is a single heading —
-some memory episodes are written this way — puts that same block in the section, the heading path
-and the outline at once. A handful of such hits is mostly the same text repeated, and neither a
-smaller `limit` nor fewer neighbouring chunks helps, because the bulk is in the context field
-rather than in the excerpt.
+**One genre where it costs more than it saves:** a document whose whole body sits under a single
+heading — some memory episodes are written this way — puts that same block into both the section
+and the heading path. A handful of such hits carries the same text twice, and neither a smaller
+`limit` nor fewer neighbouring chunks helps, because the bulk is in the context field rather than
+in the excerpt.
 
 ## `blast_radius` — the fields that say what a zero means
 
