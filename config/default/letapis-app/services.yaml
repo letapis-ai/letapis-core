@@ -1,0 +1,16 @@
+# The index the panel reads: which services exist and in what order they start.
+#
+# Order matters — the database comes before the models and the models before the engine.
+# `boot_stack: true` means the panel brings the whole stack up when it launches; set it false
+# and the rows stay grey until you press Start.
+#
+# Paths may use `~`; the panel expands it. It writes this file with absolute paths when it
+# seeds a fresh install, which is the same thing spelled the long way.
+autostart:
+  boot_stack: true
+services:
+- conf: ~/.config/letapis-app/services/docker.yaml
+- conf: ~/.config/letapis-app/services/qdrant.yaml
+- conf: ~/.config/letapis-app/services/embedder.yaml
+- conf: ~/.config/letapis-app/services/reranker.yaml
+- conf: ~/.config/letapis-app/services/letapis-bin.yaml

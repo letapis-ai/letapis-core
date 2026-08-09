@@ -1,0 +1,87 @@
+# letapis engine — a working configuration, not a minimal one.
+#
+# This is the file a running machine actually uses, copied here so you can see real values
+# rather than guess them. Take it as it is, or take the parts you need: the engine falls back
+# to its own defaults for anything you leave out.
+#
+# The addresses must agree with the panel's service cards — those are what start the programs.
+# Change a port there and change it here to match.
+#
+# Loopback is spelled 127.0.0.1 throughout, deliberately. On macOS `localhost` resolves to ::1
+# first, and llama-server listens on IPv4 only — a client that says `localhost` can miss it.
+
+server:
+  host: "127.0.0.1"
+  port: 3131                    # the panel's engine card checks this port
+  name: "letapis"
+  api_keys: []                  # empty = no key required; see ONBOARDING §8 before changing
+  cors_origins: ["*"]           # any origin may call in — same section explains the trade
+
+qdrant:
+  url: "http://127.0.0.1:6333"
+  prefer_grpc: true             # gRPC for the data path; the URL above stays the REST address
+  grpc_port: 6334
+  hnsw_ef: 256                  # search-time graph exploration: higher = better recall, slower
+
+embeddings:
+  provider: openai              # llama-server speaks the OpenAI shape (/v1/embeddings)
+  api_url: http://127.0.0.1:12436
+  model: harrier-0.6b           # the alias the embedder was started with, not a file path
+  dimensions: 1024              # must match the model; changing it means reindexing everything
+  token_batch_size: 512         # matches --batch-size on the embedder, which clamps to 512
+  chars_per_token: 2            # how text length is estimated before tokenising
+  chunk_size: 1024              # characters per chunk — with the ratio above, ~512 tokens
+  chunk_overlap: 128
+  delay_ms: 0                   # pause between requests; raise only to spare a shared GPU
+  idle_timeout_ms: 2000
+  timeout_seconds: 300          # a large batch on a cold model can take minutes
+  sender_workers: 1             # one sender: the embedder runs a single slot (--parallel 1)
+
+reranker:
+  url: "http://127.0.0.1:8086"
+  model: "qwen3-reranker-0.6b"
+  top_k: 10                     # how many hits are re-scored before the answer is cut
+  timeout: 8.0
+  batch_size: 8
+  max_doc_chars: 4096           # longer documents are truncated for scoring, not skipped
+
+search:
+  default_limit: 3              # results returned when a request does not ask for a number
+  rrf_k: 60                     # rank-fusion constant — how sharply top ranks outweigh the tail
+
+indexing:
+  max_active_folders: 3         # folders indexed at once; each one loads the embedder
+  scan_max_files: 50
+  index_max_files: 10
+  exclude_patterns:             # what never earns a place in the index
+    - "*.lock"
+    - "migrations/"
+    - "*.min.js"
+    - "*.min.css"
+    - ".venv/"
+    - ".pytest_cache/"
+    - "*.tmp*"
+    - "dist/assets/"
+    - "build/assets/"
+    - "static/assets/"
+    - "data/"
+    - "qdrant/"
+    - "*.db"
+    - "*.db-shm"
+    - "*.db-wal"
+    - "__pycache__/"
+    - "__snapshots__/"
+    - "*.pyc"
+    - ".mypy_cache/"
+    - ".ruff_cache/"
+    - ".trash/"
+    - "*.svg"
+    - "*.gz"
+    - "*.tgz"
+    - "*.zip"
+    - "*.tar"
+    - "*.xz"
+    - "*.bz2"
+    - "*.7z"
+    - "*.gguf"
+    - "*.bin"

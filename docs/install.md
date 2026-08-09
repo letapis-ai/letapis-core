@@ -85,7 +85,7 @@ qdrant:
 
 embeddings:
   provider: openai
-  api_url: http://localhost:8085
+  api_url: http://localhost:12436
   model: harrier-0.6b
 
 reranker:

@@ -1,0 +1,25 @@
+# The reranker: a second, smaller model that re-scores the first pass of search results.
+# Optional in principle — drop the `reranker:` block from the engine's config.yaml and the
+# engine stops calling it — but the quality difference on ambiguous queries is why it is here.
+id: reranker
+name: Reranker
+health:
+  kind: http
+  url: http://127.0.0.1:8086/health
+start: nohup bash ~/.config/letapis-app/services/reranker.sh &
+restart_policy: manual
+stop:
+  kind: port
+  port: 8086
+logs:
+  kind: file
+  path: /tmp/letapis-reranker.log
+config:
+  file: ~/.config/letapis-app/services/reranker.yaml
+  params:
+    alias: qwen3-reranker-0.6b
+    ctx: '4096'
+    engine: llama-cpp
+    host: 127.0.0.1
+    model: ~/models/Qwen3-Reranker-0.6B.Q8_0.gguf
+    port: '8086'

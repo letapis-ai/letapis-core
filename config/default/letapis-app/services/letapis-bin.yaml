@@ -1,0 +1,30 @@
+# The engine itself. Two fields here appear on no other card:
+#
+# `owner_exe_roots` is the identity check — a process counts as this card's engine only when it
+# runs from one of these directories. A name alone is not enough: a shell wrapper can carry it.
+#
+# `health.kind: letapis` is a typed probe: the reply is read as an engine health payload, which
+# is where the version and the update line on this row come from.
+#
+# The start line points LETAPIS_CONFIG_FILE at the engine's own config, and runs the binary
+# through the `letapis-current` link rather than a slot directly — that link is what an update
+# moves.
+id: letapis-bin
+name: letapis-core
+health:
+  kind: letapis
+  url: http://127.0.0.1:3131/api/v1/health
+start: nohup env LETAPIS_CONFIG_FILE="$HOME/.config/letapis/config.yaml" "$HOME/.local/letapis-core/letapis-current/Contents/MacOS/letapis" serve > /tmp/letapis-core.log 2>&1 &
+restart_policy: manual
+stop:
+  kind: port
+  port: 3131
+logs:
+  kind: file
+  path: /tmp/letapis-core.log
+config:
+  file: ~/.config/letapis/config.yaml
+owner_hint: letapis
+owner_exe_roots:
+- ~/.local/letapis-core
+- ~/.cache/letapis

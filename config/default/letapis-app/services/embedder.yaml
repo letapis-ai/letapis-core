@@ -1,0 +1,30 @@
+# The embedder: llama-server in embedding mode, turning text into vectors.
+#
+# `params` are handed to the script as LETAPIS_SVC_* environment variables — the panel does not
+# know what any of them mean. The script decides which flag each becomes, which is why a
+# different model runtime is an edit to embedder.sh and never to the panel.
+#
+# `ctx` is here as well as in the script because it is the one number worth changing: it decides
+# how much memory the server reserves per slot.
+id: embedder
+name: Embedder
+health:
+  kind: http
+  url: http://127.0.0.1:12436/v1/models
+start: nohup bash ~/.config/letapis-app/services/embedder.sh &
+restart_policy: manual
+stop:
+  kind: port
+  port: 12436
+logs:
+  kind: file
+  path: /tmp/letapis-embedder.log
+config:
+  file: ~/.config/letapis-app/services/embedder.yaml
+  params:
+    alias: harrier-0.6b
+    ctx: '8192'
+    engine: llama-cpp
+    host: 127.0.0.1
+    model: ~/models/harrier-oss-v1-0.6b-Q8_0.gguf
+    port: '12436'

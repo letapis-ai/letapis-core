@@ -28,7 +28,7 @@ environment, and it uses the GPU through Metal without any further setup.
 | File the card expects | `~/models/harrier-oss-v1-0.6b-Q8_0.gguf` | `~/models/Qwen3-Reranker-0.6B.Q8_0.gguf` |
 | Weights on disk | ~610 MiB | ~610 MiB |
 | Resident memory, idle | **~4.2 GB** | **1.3–1.5 GB** |
-| Listens on | `127.0.0.1:8085` | `127.0.0.1:8086` |
+| Listens on | `127.0.0.1:12436` | `127.0.0.1:8086` |
 | Health endpoint | `/v1/models` | `/health` |
 | Output dimensions | **1024** | — (returns scores) |
 | Context window | the model's own, 32768 | 4096 |

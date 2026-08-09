@@ -1,0 +1,16 @@
+# Qdrant — the vector database. The panel starts the container if it exists and creates it
+# if it does not; the named volume is what keeps your index across restarts.
+# Removing that volume deletes the index — reindexing is the only way back.
+id: qdrant
+name: Qdrant
+health:
+  kind: http
+  url: http://127.0.0.1:6333/healthz
+start: docker start letapis-qdrant || docker run -d --name letapis-qdrant -p 6333:6333 -p 6334:6334 -v letapis_qdrant_storage:/qdrant/storage qdrant/qdrant
+restart_policy: manual
+stop:
+  kind: docker
+  container: letapis-qdrant
+logs:
+  kind: docker
+  container: letapis-qdrant

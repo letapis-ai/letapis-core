@@ -1,0 +1,9 @@
+# Docker daemon — not ours, but Qdrant runs inside it, so the panel watches it too.
+# Health is a command rather than a URL: the daemon has no HTTP endpoint worth asking.
+id: docker
+name: Docker daemon
+health:
+  kind: command
+  command: docker info
+start: open -a Docker
+restart_policy: manual

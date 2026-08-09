@@ -14,6 +14,7 @@ licence key; there is no public download. What is here is everything you need ar
 | Log this machine in, or understand a refusal | [docs/licence.md](docs/licence.md) |
 | Point Claude Code, opencode or another client at it | [letapis-mcp/README.md](letapis-mcp/README.md) |
 | Know which models it is built against | [docs/models.md](docs/models.md) |
+| Run the embedder under vllm-mlx instead of llama.cpp | [docs/vllm/README.md](docs/vllm/README.md) |
 | Go back to a previous engine version | [docs/updating.md](docs/updating.md) |
 
 **Installing from nothing?** Start with the panel instead — it brings up Docker, Qdrant and the
