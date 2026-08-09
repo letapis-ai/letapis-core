@@ -6,6 +6,9 @@ and the **MCP proxy**, which is how an assistant talks to it.
 The engine itself is licensed, and it is not in this repository. You receive it from us with your
 licence key; there is no public download. What is here is everything you need around it.
 
+**Installing for the first time? → [ONBOARDING.md](ONBOARDING.md)** — the whole path on one page,
+in order, with a box to tick at every step. The pages below are the long versions of its steps.
+
 ## Start here
 
 | If you want to | Go to |
