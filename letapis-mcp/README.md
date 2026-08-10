@@ -143,7 +143,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 
 ### Scenario 1: Local (Same Machine)
 
-letapis-core и Claude/OpenCode на одной машине. Файлы доступны напрямую.
+letapis-core and Claude/OpenCode on the same machine. Files are reachable directly.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -169,11 +169,11 @@ paths:
     enabled: false  # Not needed
 ```
 
-Claude может использовать Read tool напрямую для файлов из результатов поиска.
+Claude can open files from a search result with the Read tool, no fetch involved.
 
 ### Scenario 2: Remote Server
 
-letapis-core на удалённом сервере. Нужен path mapping или fetch.
+letapis-core on a remote server. Either path mapping or fetch is required.
 
 ```
 ┌──────────────────────┐          ┌──────────────────────────┐
@@ -216,7 +216,7 @@ paths:
     clear_on_start: true  # Fresh cache each session
 ```
 
-Claude использует `fetch_file` tool для скачивания файлов.
+Claude uses the `fetch_file` tool to download files.
 
 **Option C: Both (mapping + fetch fallback)**
 ```yaml
@@ -234,7 +234,7 @@ paths:
 
 ### Scenario 3: Docker (letapis-core in container)
 
-letapis-core в Docker с volume mount.
+letapis-core in Docker with a volume mount.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐

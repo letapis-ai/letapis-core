@@ -1,6 +1,6 @@
-"""Stage 162 — error-shape contract for the MCP proxy.
+"""Error-shape contract for the MCP proxy.
 
-CodeGraph-validated lesson: 1-2 `isError: true` early in a session and the
+The lesson this pins: 1-2 `isError: true` early in a session and the
 agent abandons the tool entirely. Every expected/recoverable condition
 (letapis-core down, timeout, probe tool) must return a SUCCESS-shaped result
 carrying guidance. The degraded tool list must never be cached — a session

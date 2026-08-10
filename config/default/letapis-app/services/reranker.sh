@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Stage 26.1: own the log — rotate 1 generation on start, then redirect self.
-# Stage 28.3: params from services.yaml via LETAPIS_SVC_* (D28-9). `--reranking` /
+# Own the log — rotate 1 generation on start, then redirect self.
+# Params from services.yaml via LETAPIS_SVC_* env. `--reranking` /
 # `--pooling rank` are deliberately NOT configurable: they are the reranker's MODE, not
 # tuning — drop one and /health stays green on a server that is no longer a reranker.
 : "${LETAPIS_SVC_ENGINE:=llama-cpp}"
@@ -9,7 +9,7 @@
 : "${LETAPIS_SVC_PORT:=8086}"
 : "${LETAPIS_SVC_HOST:=127.0.0.1}"
 : "${LETAPIS_SVC_CTX:=4096}"
-# Stage 51.0: expand a leading `~` — see the note in embedder.sh.
+# Expand a leading `~` — see the note in embedder.sh.
 LETAPIS_SVC_MODEL="${LETAPIS_SVC_MODEL/#\~/$HOME}"
 : "${LETAPIS_SVC_BIN:=llama-server}"
 
@@ -17,7 +17,7 @@ LOG=/tmp/letapis-reranker.log
 [ -f "$LOG" ] && mv -f "$LOG" "$LOG.1"
 exec >> "$LOG" 2>&1
 
-# Stage 51.0: engine first, resources second — see the note in embedder.sh.
+# Engine first, resources second — see the note in embedder.sh.
 case "$LETAPIS_SVC_ENGINE" in
   llama-cpp)
     # Destructive: missing runtime / missing weights → loud, not a silent zombie.

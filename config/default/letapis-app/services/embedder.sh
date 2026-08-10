@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Stage 26.1: own the log — rotate 1 generation on start, then redirect self.
-# Stage 28.3: launch params come from services.yaml as LETAPIS_SVC_* env (D28-9). The
+# Own the log — rotate 1 generation on start, then redirect self.
+# Launch params come from services.yaml as LETAPIS_SVC_* env. The
 # supervisor passes raw k/v and knows no flags; the case below is the only place that
 # knows how an engine spells them. A new engine = a new branch here, no panel rebuild.
 : "${LETAPIS_SVC_ENGINE:=llama-cpp}"
@@ -12,7 +12,7 @@
 # = ~512 tokens. llama.cpp's default n_ctx is 32768 PER SLOT, which reserved a 3584 MiB KV
 # cache for inputs 64x smaller than it.
 : "${LETAPIS_SVC_CTX:=8192}"
-# Stage 51.0: the config may spell the model path with a leading `~` (same style as the
+# The config may spell the model path with a leading `~` (same style as the
 # card's `file:`). Nothing expands it for us — the value arrives as an env var, and `~`
 # inside a quoted expansion reaches llama-server verbatim as a directory named "~".
 LETAPIS_SVC_MODEL="${LETAPIS_SVC_MODEL/#\~/$HOME}"
@@ -24,7 +24,7 @@ LOG=/tmp/letapis-embedder.log
 [ -f "$LOG" ] && mv -f "$LOG" "$LOG.1"
 exec >> "$LOG" 2>&1
 
-# Stage 51.0: the engine is decided FIRST, resources second. A wrong `engine:` is a config
+# The engine is decided FIRST, resources second. A wrong `engine:` is a config
 # fault and must be named as one — checking weights first would answer "weights not found"
 # to a user whose actual mistake was the engine value.
 case "$LETAPIS_SVC_ENGINE" in

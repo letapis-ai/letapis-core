@@ -20,7 +20,7 @@ from letapis_mcp.config import Config
 # background op. GET is idempotent by HTTP method; this set names the POST
 # readers (search is the incident tool). Everything else still heals the pool on
 # failure but is NOT retried — the caller gets guidance and its next call runs
-# on the fresh pool. (Stage mcp-connection-resilience, direction B / AC2.)
+# on the fresh pool.
 _RETRY_SAFE_TOOLS = frozenset(
     {
         "search",
@@ -169,7 +169,7 @@ class letapisClient:
 
         # Retry only pure reads: a recreated pool must never re-fire a mutation
         # or a long background op (index_folder, deep_index) — that would double
-        # the work server-side (AC2). GET is idempotent by method; the explicit
+        # the work server-side. GET is idempotent by method; the explicit
         # set covers the POST readers (search — the incident tool).
         retry_safe = method == "GET" or name in _RETRY_SAFE_TOOLS
         attempts = 2 if retry_safe else 1
@@ -193,7 +193,7 @@ class letapisClient:
             except httpx.HTTPStatusError as e:
                 # A live answer from core, not a stale socket — never recreate/retry.
                 if e.response.status_code == 503:
-                    # Expected warmup/not-ready state (Stage 162). letapis-core deps
+                    # Expected warmup/not-ready state. letapis-core deps
                     # raise 503 while services initialize; keep the guidance
                     # in-band instead of relaying a bare HTTP error the agent
                     # reads as "this tool is broken".

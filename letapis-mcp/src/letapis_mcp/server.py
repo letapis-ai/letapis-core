@@ -104,7 +104,7 @@ async def list_tools() -> list[types.Tool]:
         sys.stderr.write(f"[letapis-mcp] Error fetching tools: {e}\n")
         sys.stderr.flush()
         url = _config.server.url if _config else "unknown"
-        # Degraded surface is NOT cached (Stage 162): a session that starts
+        # Degraded surface is NOT cached: a session that starts
         # before letapis-core is up must recover on the next tools/list request
         # instead of being stuck with the probe tool forever.
         return [
@@ -157,7 +157,7 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResul
     """Handle tool calls by proxying to letapis-core REST API."""
 
     # Status probe tool (returned when letapis-core is down).
-    # Success-shaped (Stage 162): an expected/recoverable state must not be
+    # Success-shaped: an expected/recoverable state must not be
     # isError — early isError teaches the agent to abandon letapis entirely.
     if name == "letapis_status":
         return _to_call_result(_core_unavailable_result())
@@ -250,7 +250,7 @@ async def _handle_fetch_file(arguments: dict[str, Any]) -> dict[str, Any]:
     except httpx.ConnectError:
         raise
     except Exception as e:
-        # Actionable guidance (Stage 163.1): the path usually comes from a
+        # Actionable guidance: the path usually comes from a
         # search result — a miss means it's stale or mistyped, not that the
         # tool is broken. Steer the agent back to search, not to grep.
         return {
@@ -311,9 +311,9 @@ async def _async_main(config_path: str | None = None) -> None:
     _client = letapisClient(_config)
     await _client.start()
 
-    # Probe the backend for a friendly startup log, but NEVER exit on failure
-    # (Stage 162): a session that starts before letapis-core must still get the
-    # MCP server — list_tools serves the degraded letapis_status surface and
+    # Probe the backend for a friendly startup log, but NEVER exit on failure:
+    # a session that starts before letapis-core must still get the MCP
+    # server — list_tools serves the degraded letapis_status surface and
     # recovers automatically once the backend comes up. Exiting here left the
     # session with no letapis server at all, unrecoverable without a restart.
     try:

@@ -1,16 +1,16 @@
-"""Stage mcp-connection-resilience — stale keep-alive pool auto-recovery.
+"""Stale keep-alive pool auto-recovery.
 
-Incident (2026-07-15): after letapis-core restarted under the panel, the
+The incident this pins: after letapis-core restarted under the panel, the
 persistent httpx.AsyncClient kept a half-open keep-alive connection in
 httpcore's pool. It was neither is_closed() (no FIN/EOF received) nor
 has_expired() (within keepalive_expiry), so every reuse wrote to a dead socket
 and hung until the 60s read timeout — search timed out 3x until a manual /mcp
 reconnect built a fresh pool.
 
-Fix (direction B): on ConnectError / TimeoutException recreate the client
-(drop the stale pool → fresh connections) and retry ONCE, but only for
-read-only tools — a mutation / long background op (index_folder, deep_index)
-must never be double-fired (AC2). Reproduced deterministically with a stateful
+The fix: on ConnectError / TimeoutException recreate the client (drop the
+stale pool → fresh connections) and retry ONCE, but only for read-only tools —
+a mutation / long background op (index_folder, deep_index) must never be
+double-fired. Reproduced deterministically with a stateful
 httpx.MockTransport handler (fail first, succeed second).
 """
 from __future__ import annotations
@@ -39,7 +39,7 @@ async def _make_client(handler, routes):
 
 @pytest.mark.asyncio
 async def test_search_recovers_after_stale_timeout():
-    """T1 (AC1): a read tool that hits a stale ReadTimeout recreates the pool and
+    """T1: a read tool that hits a stale ReadTimeout recreates the pool and
     retries, returning the recovered result — no manual reconnect."""
     calls = {"n": 0}
 
@@ -61,7 +61,7 @@ async def test_search_recovers_after_stale_timeout():
 
 @pytest.mark.asyncio
 async def test_index_folder_not_retried_on_timeout():
-    """T2 (AC2, destructive): a long/mutating op that times out is NOT retried —
+    """T2 (destructive): a long/mutating op that times out is NOT retried —
     the pool still heals, but the operation is never double-fired server-side."""
     calls = {"n": 0}
 
@@ -79,7 +79,7 @@ async def test_index_folder_not_retried_on_timeout():
 
 @pytest.mark.asyncio
 async def test_connect_error_recovers_and_clears_routes():
-    """T3 (AC3): ConnectError on a read tool recreates the pool, clears the route
+    """T3: ConnectError on a read tool recreates the pool, clears the route
     cache, and retries — handled consistently with TimeoutException."""
     calls = {"n": 0}
 
@@ -118,7 +118,7 @@ async def test_connect_error_mutation_not_retried():
 
 @pytest.mark.asyncio
 async def test_normal_search_no_recreate():
-    """T5 (AC5): a healthy call succeeds on the first try — no recreate, no extra
+    """T5: a healthy call succeeds on the first try — no recreate, no extra
     round-trip, latency-neutral."""
     calls = {"n": 0}
 
