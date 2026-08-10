@@ -11,7 +11,7 @@ authors = [
 keywords = ["mcp", "letapis", "semantic-search", "code-search", "knowledge-graph"]
 
 dependencies = [
-    # AN UPPER BOUND, not "whatever is newest" (task 260809-1908). Installing FROM GIT
+    # AN UPPER BOUND, not "whatever is newest". Installing FROM GIT
     # (`uvx --from "git+…#subdirectory=letapis-mcp"`) does not apply `uv.lock` — it resolves
     # against THIS file. Unbounded, that brought in mcp 2.0.0, where `Server` no longer carries
     # `list_tools()`, and the proxy died on import before printing anything:

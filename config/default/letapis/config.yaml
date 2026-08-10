@@ -9,6 +9,10 @@
 #
 # Loopback is spelled 127.0.0.1 throughout, deliberately. On macOS `localhost` resolves to ::1
 # first, and llama-server listens on IPv4 only — a client that says `localhost` can miss it.
+#
+# A misspelled key is ignored and the engine keeps its own default, so a typo looks exactly
+# like an applied setting. The engine names what it ignored when it starts — worth a glance
+# at its log after you change anything here.
 
 server:
   host: "127.0.0.1"
@@ -20,7 +24,7 @@ server:
 qdrant:
   url: "http://127.0.0.1:6333"
   prefer_grpc: true             # gRPC for the data path; the URL above stays the REST address
-  grpc_port: 6334
+  grpc_port: 6334               # required whenever prefer_grpc is on
   hnsw_ef: 256                  # search-time graph exploration: higher = better recall, slower
 
 embeddings:
@@ -28,32 +32,41 @@ embeddings:
   api_url: http://127.0.0.1:12436
   model: harrier-0.6b           # the alias the embedder was started with, not a file path
   dimensions: 1024              # must match the model; changing it means reindexing everything
-  token_batch_size: 512         # matches --batch-size on the embedder, which clamps to 512
+  token_batch_size: 512         # tokens per request to the embedder
   chars_per_token: 2            # how text length is estimated before tokenising
   chunk_size: 1024              # characters per chunk — with the ratio above, ~512 tokens
-  chunk_overlap: 128
+  chunk_overlap: 128            # characters shared between neighbouring chunks
   delay_ms: 0                   # pause between requests; raise only to spare a shared GPU
-  idle_timeout_ms: 2000
+  idle_timeout_ms: 200          # a partly filled batch is sent after this much quiet
   timeout_seconds: 300          # a large batch on a cold model can take minutes
   sender_workers: 1             # one sender: the embedder runs a single slot (--parallel 1)
 
 reranker:
+  # Set both a url and a model and the reranker is on; leave either out and it stays off.
   url: "http://127.0.0.1:8086"
   model: "qwen3-reranker-0.6b"
-  top_k: 10                     # how many hits are re-scored before the answer is cut
-  timeout: 8.0
-  batch_size: 8
+  # How many hits are re-scored before the answer is cut. This is where a query spends
+  # most of its time: lower it for faster, blunter answers.
+  top_k: 10
+  timeout: 8.0                  # seconds before the reranker is given up on for this query
+  batch_size: 8                 # pairs sent to the reranker per request
   max_doc_chars: 4096           # longer documents are truncated for scoring, not skipped
 
 search:
   default_limit: 3              # results returned when a request does not ask for a number
   rrf_k: 60                     # rank-fusion constant — how sharply top ranks outweigh the tail
+  # There is no similarity floor to set here: it is chosen per query, and a short query is
+  # held to a stricter one than a sentence. A request may name its own floor instead.
+  # Worth knowing: a query written in a different language from the material scores lower,
+  # and can fall under the floor — then the answer rests on keyword matching alone, and it
+  # says so. Passing an `instruction` with the query is the better fix.
 
 indexing:
   max_active_folders: 3         # folders indexed at once; each one loads the embedder
-  scan_max_files: 50
-  index_max_files: 10
-  exclude_patterns:             # what never earns a place in the index
+  scan_max_files: 50            # how much of the quick "has this changed" pass runs at once
+  index_max_files: 10           # how much of the parse-and-store pass runs at once
+  exclude_patterns:             # what never earns a place in the index, on top of a
+                                # watched folder's own exclusions
     - "*.lock"
     - "migrations/"
     - "*.min.js"
