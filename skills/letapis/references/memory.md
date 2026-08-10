@@ -196,6 +196,16 @@ say where they came from, and that gap cannot be filled from memory once the ses
 whoever finds it has only the claim, with no way to weigh it. The call also takes `significance`
 and `confidence` when you have grounds to set them, and `context` for structured extras.
 
+**Provenance can rise on a re-read and never falls.** An episode that came from a document has its
+provenance derived from what kind of document it is, and that derivation runs again every time the
+file is re-indexed — so left alone it would decay, and an episode deliberately recorded as
+`observed` would come back `inferred` for no reason beyond having been read from disk a second
+time. The engine keeps the stronger of the two instead. The ranking is `user_confirmed` >
+`observed` > `inferred` > `generated`, and the confidence attached to each follows it — 1.0, 0.7,
+0.5, 0.3. Raising still happens, because a file may genuinely carry a stronger claim than the
+stored episode does. What you read on an episode is therefore the best-grounded claim anyone has
+made about it, not the most recent one.
+
 Then, before you trust it as new, check whether it already exists:
 
 ```python
@@ -228,6 +238,26 @@ survives a full rebuild —
 whereas forgetting an episode only marks the stored copy and is undone the next time the file is
 indexed. For a document that should permanently stop generating recall, do both: forget what
 exists, and set the flag so it is not recreated.
+
+### An episode remembers which file it came from
+
+A generated episode is keyed to the path of the document that produced it, and two consequences of
+that are worth expecting before you meet them.
+
+**Indexing the same document again updates its episode rather than adding another.** The episode
+is found by its file and rewritten in place — title, excerpt, tags, projects and its embedding —
+so re-indexing a folder, however many times, does not multiply what is remembered about it.
+
+**A document that leaves the disk takes its episode with it.** Delete or rename one, and the
+episode for the old path goes as the change is noticed, rather than waiting for someone to run a
+sync. A move is a delete of the old path plus a write of the new one, so what you are left with is
+one episode at the new address instead of a twin at the old. Saving a file in place is not a
+removal even when the editor implements it as a delete and a rewrite — that case is recognised and
+the episode survives it.
+
+The reach of this is the watcher's: it holds for changes made while the engine is running and
+watching the folder. A reorganisation done while it was not is exactly what `sync_episodes` and a
+hygiene scan are for.
 
 ### Frontmatter that makes recall work
 

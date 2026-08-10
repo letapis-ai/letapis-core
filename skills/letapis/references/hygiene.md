@@ -14,8 +14,10 @@ steps that someone takes on purpose.
 - Someone asks in so many words: "check the memory", "what has piled up", "audit the episodes".
 - The corpus has grown past a couple of thousand episodes. There is no magic number — the point
   is that hand-knowledge of what is in there stops being reliable somewhere around that size.
-- Right after a large batch of file renames or a folder reorganisation. Episodes remember where
-  they came from, and a move leaves the old address behind.
+- Right after a large batch of file renames or a folder reorganisation **that the engine did not
+  watch happen** — one done while it was stopped, or outside the watched tree. Episodes remember
+  where they came from; a move seen live is reconciled by itself, and one made behind the engine's
+  back leaves the old address behind.
 
 ## How to run it
 
@@ -57,7 +59,7 @@ the five are routinely misread as "delete this".
 
 | Flag | What it means | What it is usually worth |
 |---|---|---|
-| `orphan` | the file the episode came from is no longer at that path | often a forget — **but check for a move first**. A renamed file leaves an orphan that is perfectly healthy |
+| `orphan` | the file the episode came from is no longer at that path | often a forget — **but check for a move first**. A file renamed out from under a stopped engine leaves an orphan that is perfectly healthy; one renamed while it was watching reconciles itself and never reaches this flag |
 | `low_signal` | the body is empty or nearly so | a forget, when it is genuinely scaffolding or a stray note |
 | `stale` | older than `stale_factor` × its kind's half-life — the multiplier is a parameter of the scan, not a constant | **not** a forget. Old is not wrong; a durable decision stays true for years. Read it and ask whether it still holds |
 | `no_provenance` | the episode does not say where it came from | a labelling gap. Worth backfilling, never worth deleting over |
