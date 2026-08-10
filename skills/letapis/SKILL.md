@@ -54,7 +54,7 @@ That makes picking the engine part of asking the question, not a detail of the c
 |---|---|
 | the code, docs and decisions you are working on | the one indexing the working set |
 | someone else's framework, library or manual | the one indexing reference material |
-| what was decided before | the one your memory is written into — **check, do not assume: a reference engine grows episodes from other people's frontmatter and answers confidently with none of yours** |
+| what was decided before | the one your memory is written into — **check, do not assume: an engine with a marked folder of someone else's documentation grows episodes from their frontmatter and answers confidently with none of yours** |
 
 Asking the wrong one fails in two ways, and the second is worse. Usually you get nothing, and
 nothing looks exactly like "there is no such thing". Sometimes you get an answer — plausible,

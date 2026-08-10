@@ -9,10 +9,11 @@ each other, rather than as documents.
 
 
 **Which engine holds your memory is a question of fact, not of intent** — and the intuitive answer
-is wrong often enough to be worth checking. Episode creation is inclusive: any indexed markdown
-with non-empty frontmatter produces one. So an engine you set up purely to index someone else's
-documentation still accumulates episodes — from *their* frontmatter, about *their* documents — and
-a few of yours may have been written there by hand.
+is wrong often enough to be worth checking. Episodes grow from folders somebody marked as a source
+of them, and inside such a folder creation is inclusive: any indexed markdown with non-empty
+frontmatter produces one. Mark a folder of someone else's documentation and that engine
+accumulates episodes from *their* frontmatter, about *their* documents — and a few of yours may
+have been written there by hand.
 
 The failure this causes is the nasty kind. Ask the wrong engine and you do not get silence: you
 get a confident answer, drawn from a corpus that has nothing to do with your work — and on an
@@ -207,9 +208,11 @@ conflicts = mcp__<engine>__ena_find_conflicts(
 
 ### Episodes also appear on their own
 
-Indexed markdown creates them automatically from frontmatter. **The default is inclusive: any
-markdown file with non-empty frontmatter produces an episode** — a general one if nothing more
-specific matched.
+Indexed markdown creates them automatically from frontmatter — but only where a folder was marked
+as a source of episodes. **Two gates, and both must be open:** the folder carries `episodes=True`
+(see [corpus](corpus.md) § Whether a folder grows memory, where the default is off), and the file
+has non-empty frontmatter. Inside a marked folder the second gate is inclusive: **any markdown file
+with non-empty frontmatter produces an episode** — a general one if nothing more specific matched.
 
 | Frontmatter | Episode kind |
 |---|---|
@@ -219,8 +222,9 @@ specific matched.
 | `status: active` | milestone |
 | `importance: high` | insight |
 
-**To opt a document out, put `episode: false` in its frontmatter.** This matters more than it
-looks: the flag lives in the *file* and is re-read on every index, so it survives a full rebuild —
+**To opt one document out of a marked folder, put `episode: false` in its frontmatter.** This
+matters more than it looks: the flag lives in the *file* and is re-read on every index, so it
+survives a full rebuild —
 whereas forgetting an episode only marks the stored copy and is undone the next time the file is
 indexed. For a document that should permanently stop generating recall, do both: forget what
 exists, and set the flag so it is not recreated.
@@ -267,21 +271,27 @@ recalled episode.
 
 ## When recall comes back empty
 
-**"No confirmed memories found" while the documents clearly exist** has five causes worth walking
-in this order — the first is the cheapest to check and the easiest to overlook:
+**"No confirmed memories found" while the documents clearly exist** has six causes worth walking
+in this order — the first two are the cheapest to check and the easiest to overlook:
 
 1. **You asked an engine that holds no episodes.** With several registered this is the most common
    cause by far, and the emptiest-looking one: the answer is correct for the corpus you asked, and
    says nothing about what another engine knows.
-2. **The episodes have no embeddings** — they cannot be found by meaning without them. Re-sync
+2. **The folder was never marked as a source of episodes.** The documents are indexed and
+   searchable, and none of them was ever remembered — the default is off. `list_folders` reports
+   the flag per watch; [corpus](corpus.md) § Whether a folder grows memory is how it gets set.
+3. **The episodes have no embeddings** — they cannot be found by meaning without them. Re-sync
    with `sync_episodes(path, force=True)`, and check the embedding service was actually up while
    it ran.
-3. **The sync path was wrong.** It must be a path the engine watches — take it from
+4. **The sync path was wrong.** It must be a path the engine watches — take it from
    `list_folders`, not from wherever the files feel like they live.
-4. **The frontmatter does not trigger.** `type` must be one of the values in the table above, and
+5. **The frontmatter does not trigger.** `type` must be one of the values in the table above, and
    `project` must be present for grouping.
-5. **The query does not match the content.** Episodes are found by meaning like everything else;
+6. **The query does not match the content.** Episodes are found by meaning like everything else;
    broaden it, or name the project.
 
-`sync_episodes` returning zero files is a separate signal from all five: the path is not in the
-index at all. Check `list_folders` and use the exact folder it reports.
+**`sync_episodes` counts scanned files and created episodes separately, and the pair tells you
+which of these you have.** Zero files means the path is not in the index at all — check
+`list_folders` and use the exact folder it reports. Files scanned but nothing created means the
+gate closed further in: an unmarked folder skips every file it reads, and so does frontmatter that
+does not trigger.

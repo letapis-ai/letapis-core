@@ -1,9 +1,10 @@
 # Keeping episodic memory healthy
 
-Memory accumulates and nobody sweeps it. Every document you save with the right frontmatter
-becomes an episode, and so does everything you record deliberately — over months that grows into
-a corpus with orphans, empty stubs and claims that were true once. This page is about auditing
-that corpus: what the scan looks at, and what each of its verdicts is actually worth.
+Memory accumulates and nobody sweeps it. Every document you save with the right frontmatter, in a
+folder marked as a source of episodes, becomes one — and so does everything you record
+deliberately. Over months that grows into a corpus with orphans, empty stubs and claims that were
+true once. This page is about auditing that corpus: what the scan looks at, and what each of its
+verdicts is actually worth.
 
 **The scan only ever reads.** It proposes; deleting and correcting stay separate, deliberate
 steps that someone takes on purpose.
@@ -36,13 +37,15 @@ coverage — and `candidates`, the shortlist per flag.
 
 ## Which corpus you are auditing
 
-**Every engine that indexes markdown accumulates episodes**, including one you set up purely for
-someone else's documentation — it grows a memory made of *their* frontmatter. Why that happens and
-what it costs is in [memory](memory.md); what it means here is that the audit is two jobs.
+**Any engine with a marked folder of markdown accumulates episodes**, including one you set up
+purely for someone else's documentation — mark a folder there and it grows a memory made of
+*their* frontmatter. Why that happens and what it costs is in [memory](memory.md); what it means
+here is that the audit is two jobs.
 
 On the engine holding your work the flags below mean what they say. On a reference-only engine
-expect most of what surfaces to be generated noise, and the remedy is `episode: false` where you
-control the files rather than forgetting them one by one.
+expect most of what surfaces to be generated noise, and the remedy is the folder flag — clearing
+`episodes` stops the source, which beats `episode: false` file by file in documents you do not
+control.
 
 `summary.scanned` tells you which of the two you are looking at.
 
