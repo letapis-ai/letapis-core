@@ -45,10 +45,6 @@ reranker:
   # Set both a url and a model and the reranker is on; leave either out and it stays off.
   url: "http://127.0.0.1:8086"
   model: "qwen3-reranker-0.6b"
-  # `top_k` REMOVED (owner's decision, 2026-08-10). It sat here looking like a setting and was
-  # never executed: every search passes its own limit to the reranker, and the configured value
-  # is not reached. A setting the engine does not act on leaves the config rather than staying
-  # here to be believed.
   timeout: 8.0                  # seconds before the reranker is given up on for this query
   batch_size: 8                 # pairs sent to the reranker per request
   max_doc_chars: 4096           # longer documents are truncated for scoring, not skipped
