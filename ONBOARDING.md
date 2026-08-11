@@ -27,10 +27,16 @@ stays silent. You never need to type an FYI box for the installation to succeed.
 
 **Your machine:**
 
-- [ ] macOS **13** or newer, **Apple silicon** — the models run on the GPU through Metal;
-- [ ] **16 GB** memory or more, and **~10 GB** free disk if you are starting from nothing —
-      Docker Desktop is ~4 GB of it, the two models ~1.2 GB, the Qdrant image ~300 MB, and the
-      index grows from there. Already have Docker? Then 4 GB is enough for the rest;
+| | Requirement | Why |
+|---|---|---|
+| **OS** | macOS **13.0** or newer | the panel's minimum system version |
+| **Chip** | Apple silicon | the models run on the GPU through Metal |
+| **Memory** | **16 GB** or more | the two models together hold roughly 5.5 GB resident (see [models.md](docs/models.md)); the engine and Qdrant want their share on top |
+| **Disk** | **~10 GB** to install, plus room for the index | Docker Desktop is ~4 GB of it, the two models ~1.2 GB, the Qdrant image ~300 MB. Already have Docker? Then 4 GB is enough to install the rest. The index grows under Qdrant as the engine feeds it — plan for that separately |
+| **Docker Desktop** | installed | Qdrant runs as a container |
+| **llama.cpp** | installed | both models run under its `llama-server` |
+| **Homebrew** | installed | how llama.cpp gets onto the machine |
+
 - [ ] a terminal you are willing to paste three commands into. There is no installer, on purpose:
       you see what happens on your machine, and when something goes wrong you know which step.
 
@@ -69,8 +75,6 @@ brew --version && llama-server --version && docker info >/dev/null && echo "all 
 **Worked?** The panel lives in the **menu bar**, not the Dock — its icon is at the top right.
 There is no window until you ask for one: click the icon, or pick **Show Panel**.
 
-Long version: [the panel's install guide](https://github.com/letapis-ai/letapis-panel/blob/main/docs/install.md).
-
 ---
 
 ## 3. What the first launch made for you
@@ -79,8 +83,21 @@ You do not have to do anything here — read it, tick it, move on. The panel wro
 will never touch either again:
 
 - [ ] `~/.config/letapis-app/` — the five service cards it starts things from. **Yours** from now
-      on: change a port or a path and the panel obeys
-      ([services.md](https://github.com/letapis-ai/letapis-panel/blob/main/docs/services.md));
+      on: change a port or a path and the panel obeys ([services.md](docs/services.md));
+
+  ```
+  ~/.config/letapis-app/
+  ├── services.yaml            the list of services, in start order
+  └── services/
+      ├── docker.yaml          one card per service…
+      ├── qdrant.yaml
+      ├── embedder.yaml
+      ├── reranker.yaml
+      ├── letapis-bin.yaml
+      ├── embedder.sh          …and the two launch scripts
+      └── reranker.sh
+  ```
+
 - [ ] `~/.config/letapis/config.yaml` — the **engine's** configuration, already pointing at the
       services you are about to start. Without it the engine refuses to start, and nothing else
       on the machine creates it.
@@ -134,7 +151,7 @@ so in as many words. Both are about your machine, not about the panel — a cont
 project may already be holding 6333.
 
 > **Your index lives in the volume `letapis_qdrant_storage`.** Removing the container is
-> harmless. Removing that volume throws away everything the engine has indexed.
+> harmless. Removing that volume throws away everything the engine indexed.
 
 ---
 
@@ -154,6 +171,13 @@ curl -L -o ~/models/harrier-oss-v1-0.6b-Q8_0.gguf \
 curl -L -o ~/models/Qwen3-Reranker-0.6B.Q8_0.gguf \
   https://huggingface.co/ggml-org/Qwen3-Reranker-0.6B-Q8_0-GGUF/resolve/main/qwen3-reranker-0.6b-q8_0.gguf
 ```
+
+**Note that both commands rename the file.** On the hub they are `harrier-0.6b-Q8_0.gguf` and
+`qwen3-reranker-0.6b-q8_0.gguf`; the service cards look for the names on the left. Download them
+any other way and you must either use these names or point the cards at the real paths
+([services.md](docs/services.md) shows how). A file the card cannot find gives a readable
+`FATAL: model weights not found` in the row's log — not a mystery, but not a working stack
+either.
 
 - [ ] Press **Start** on the **Embedder** row, then on the **Reranker** row.
 
@@ -192,6 +216,28 @@ received a link from us.
 > `/Applications` is the panel, `letapis-app-rs.app`, from step 2 — this one goes where the
 > commands below put it, and the panel starts it for you.
 
+The engine goes under `~/.local/letapis-core/`, and the layout is the engine's own:
+
+```
+~/.local/letapis-core/
+├── ota_0/letapis.app/          the version you install now
+├── ota_1/                      empty until the first update fills it
+└── letapis-current -> ota_0/letapis.app     the entry point, a link
+```
+
+There are two slots, and an update always fills whichever one is free — so after your first
+update this link points at `ota_1`, after the next one at `ota_0` again. Which slot is current is
+never something you need to know: the link is the answer.
+
+The panel starts the engine **through the link**, never through a slot directly:
+
+```
+~/.local/letapis-core/letapis-current/Contents/MacOS/letapis
+```
+
+That is the whole reason the link exists — the panel keeps one fixed path and never has to know
+which version is current, and an update is a single rename of the link.
+
 - [ ] Put it where the panel starts it from — three commands, and the third one is a link, which
       is why this is not a drag in Finder:
 
@@ -209,9 +255,7 @@ will use:
 ```
 
 **Do not press Start yet.** An engine that has never been logged in refuses to start, and the row
-would go red for a reason that is not a fault. Log in first.
-
-The layout, the two slots and why the link exists: [install.md](docs/install.md).
+would go red for a reason that is not a fault. Log in first — the next step.
 
 ---
 
@@ -318,7 +362,7 @@ the proxy will carry it.
 
 That is the whole installation. From here the machine looks after itself: the engine renews its
 own login, and updates arrive through the panel's **Update** button
-([updating.md](https://github.com/letapis-ai/letapis-panel/blob/main/docs/updating.md)).
+([updating.md](docs/updating.md)).
 
 ---
 

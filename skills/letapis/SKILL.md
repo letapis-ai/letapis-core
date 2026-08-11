@@ -1,6 +1,6 @@
 ---
 name: letapis
-description: Work with a letapis engine — search a codebase or document corpus by meaning, trace who calls a symbol, analyse large documents, and recall what was decided before. Use this whenever you are looking for something in an indexed corpus and a plain text match is not obviously enough: "where is X handled", "who calls this", "what did we decide about Y", "make sense of this book/repo", "why is search returning nothing". Also use it when deciding whether a folder belongs in the index, or when old material should stop surfacing in results.
+description: 'Work with a letapis engine — search a codebase or document corpus by meaning, trace who calls a symbol, analyse large documents, and recall what was decided before. Use this whenever you are looking for something in an indexed corpus and a plain text match is not obviously enough: "where is X handled", "who calls this", "what did we decide about Y", "make sense of this book/repo", "why is search returning nothing". Also use it when deciding whether a folder belongs in the index, or when old material should stop surfacing in results.'
 ---
 
 # letapis

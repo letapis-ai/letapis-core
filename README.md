@@ -13,7 +13,7 @@ in order, with a box to tick at every step. The pages below are the long version
 
 | If you want to | Go to |
 |---|---|
-| Put the engine on a Mac that already has the panel | [docs/install.md](docs/install.md) |
+| Put the engine on a Mac that already has the panel | [ONBOARDING.md#6-the-engine](ONBOARDING.md#6-the-engine) |
 | Log this machine in, or understand a refusal | [docs/licence.md](docs/licence.md) |
 | Point Claude Code, opencode or another client at it | [letapis-mcp/README.md](letapis-mcp/README.md) |
 | Know which models it is built against | [docs/models.md](docs/models.md) |
