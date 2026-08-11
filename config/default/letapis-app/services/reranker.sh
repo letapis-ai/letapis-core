@@ -9,6 +9,12 @@
 : "${LETAPIS_SVC_PORT:=8086}"
 : "${LETAPIS_SVC_HOST:=127.0.0.1}"
 : "${LETAPIS_SVC_CTX:=4096}"
+# Batch defaults to the context size: an input that fits the context must be processable in one
+# go. A batch smaller than the context makes the server reject an oversized document with
+# `input is too large to process` and cancel the WHOLE batch, discarding neighbours it had
+# already scored; the engine then loses the call and silently stops ranking for 30 seconds.
+: "${LETAPIS_SVC_BATCH:=$LETAPIS_SVC_CTX}"
+: "${LETAPIS_SVC_UBATCH:=$LETAPIS_SVC_CTX}"
 # Expand a leading `~` — see the note in embedder.sh.
 LETAPIS_SVC_MODEL="${LETAPIS_SVC_MODEL/#\~/$HOME}"
 : "${LETAPIS_SVC_BIN:=llama-server}"
@@ -33,7 +39,8 @@ case "$LETAPIS_SVC_ENGINE" in
       --alias "$LETAPIS_SVC_ALIAS" --reranking --pooling rank \
       --port "$LETAPIS_SVC_PORT" --host "$LETAPIS_SVC_HOST" \
       --ctx-size "$LETAPIS_SVC_CTX" \
-      --batch-size 2048 --ubatch-size 2048 --parallel 1 --n-gpu-layers 99 \
+      --batch-size "$LETAPIS_SVC_BATCH" --ubatch-size "$LETAPIS_SVC_UBATCH" \
+      --parallel 1 --n-gpu-layers 99 \
       --flash-attn on --no-mmap --cache-ram 0
     ;;
   *)
