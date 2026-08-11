@@ -28,7 +28,9 @@ stays silent. You never need to type an FYI box for the installation to succeed.
 **Your machine:**
 
 - [ ] macOS **13** or newer, **Apple silicon** — the models run on the GPU through Metal;
-- [ ] **16 GB** memory or more, **4 GB** free disk;
+- [ ] **16 GB** memory or more, and **~10 GB** free disk if you are starting from nothing —
+      Docker Desktop is ~4 GB of it, the two models ~1.2 GB, the Qdrant image ~300 MB, and the
+      index grows from there. Already have Docker? Then 4 GB is enough for the rest;
 - [ ] a terminal you are willing to paste three commands into. There is no installer, on purpose:
       you see what happens on your machine, and when something goes wrong you know which step.
 
@@ -43,7 +45,10 @@ The panel supervises Docker and the model servers; it does not install them.
       you to put `/opt/homebrew/bin` on your `PATH`, and `brew` does not work until you do).
 - [ ] **llama.cpp** — `brew install llama.cpp`
 - [ ] **Docker Desktop** — download from [docker.com](https://www.docker.com/products/docker-desktop/)
-      and open it once so it can finish its own setup.
+      and open it once so it can finish its own setup. Installing it through Homebrew instead
+      (`brew install --cask docker-desktop`) asks for your **admin password** partway through,
+      to put its credential helper on the system path — expected, and it needs a terminal you
+      can type into.
 
 **Worked?**
 
@@ -86,9 +91,10 @@ config, with every value commented. What the panel writes is deliberately shorte
 what your machine needs and leaves the rest to the engine's own defaults.
 
 Take them, take a few lines out of them, or ignore them entirely. They are a reference, not a
-step: the panel already gave you a working set. The one thing worth copying if you copy nothing
-else is the embedder's launch flags — on defaults that server reserves memory for inputs sixty
-times larger than ours and aborts under indexing load.
+step: the panel already gave you a working set, launch flags included. The embedder's flags
+matter more than they look — on stock defaults that server reserves memory for inputs sixty
+times larger than ours and aborts under indexing load — and the panel writes them for you.
+Nothing here needs copying.
 
 > **Both are written on a first launch — one where `~/.config/letapis-app/` does not yet exist.**
 > A panel that already has its cards leaves both files alone: they are yours, and it will not
@@ -179,6 +185,13 @@ received a link from us.
 
 - [ ] Download the kit with the link we gave you. It is a `.tar.gz` whose single top-level entry
       is `letapis.app`.
+
+> **`letapis.app` is not an app to drag into `/Applications`.** It is a bundle only because
+> that is how a signed program travels on macOS: double-clicking it does nothing you can see,
+> and putting it in `/Applications` leaves the panel unable to find it. The app that belongs in
+> `/Applications` is the panel, `letapis-app-rs.app`, from step 2 — this one goes where the
+> commands below put it, and the panel starts it for you.
+
 - [ ] Put it where the panel starts it from — three commands, and the third one is a link, which
       is why this is not a drag in Finder:
 
