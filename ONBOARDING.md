@@ -389,16 +389,14 @@ everything indexed from it. Fencing either off is one line.
 - [ ] **Look at the folder before you add it.** Whatever your build writes — `DerivedData/`,
       `.gradle/`, `bin/obj/`, `.next/`, `vendor/`, a packaged application server — name it.
 
-- [ ] **Ask what is already covered**, so you write only what is yours:
+- [ ] **Ask what is already covered**, so you write only what is yours. Ask your assistant —
+      *what does the engine already exclude?* — and it answers with the `ignore_patterns` tool:
 
-      ```bash
-      curl -s http://127.0.0.1:<your engine port>/api/v1/files/ignore-patterns | jq
+      ```
+      ignore_patterns()
       ```
 
-      The port is `server.port` in your engine config (step 3).
-
-      Every layer comes back named, with what each one is for. Your assistant asks the same
-      question with the `ignore_patterns` tool.
+      Every layer comes back named, with what each one is for.
 
 - [ ] **Add yours when you add the folder**, through your assistant:
 
