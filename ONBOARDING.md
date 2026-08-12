@@ -395,8 +395,8 @@ find and a minute to fix.
       curl -s http://127.0.0.1:3131/api/v1/files/ignore-patterns | jq
       ```
 
-      Every layer comes back named, with what each one is for. Your assistant can ask the same
-      question through the `list_folders` / `index_folder` tools.
+      Every layer comes back named, with what each one is for. Your assistant asks the same
+      question with the `ignore_patterns` tool.
 
 - [ ] **Add yours when you add the folder**, through your assistant:
 

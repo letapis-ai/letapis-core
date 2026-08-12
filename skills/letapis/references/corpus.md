@@ -44,8 +44,8 @@ engine's built-in list, the machine's `indexing.exclude_patterns`, a set of bina
 file names refused before anything is read, and finally the folder's own `ignore_patterns`.
 
 ```python
-mcp__<engine>__list_folders()      # the per-folder layer
-# GET /api/v1/files/ignore-patterns — all layers, each one named and explained
+mcp__<engine>__list_folders()        # the per-folder layer
+mcp__<engine>__ignore_patterns()     # all layers, each one named and explained
 ```
 
 **Ask before you write.** Roughly two thirds of the patterns written by hand into folder configs
