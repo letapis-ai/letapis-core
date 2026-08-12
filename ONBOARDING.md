@@ -381,10 +381,10 @@ for Xcode, Java, .NET, Go, mobile toolchains or your framework's cache directory
 decision rather than an oversight: an engine that shipped a list for every stack would impose it
 on everyone who does not use them.
 
-**So the first folder you add from an unfamiliar stack is yours to fence off.** One team indexed a
-monorepo with an iOS app in it and pulled in **40,565 nodes** of Xcode `DerivedData` before they
-noticed; a stock SAP Commerce platform came out **62 percent** bundled Tomcat. Both took a day to
-find and a minute to fix.
+**So the first folder you add from an unfamiliar stack is yours to fence off.** The scale is not
+marginal: an Xcode `DerivedData` directory can carry **tens of thousands** of indexable nodes, and
+a packaged application server inside a platform repository can account for **more than half** of
+everything indexed from it. Fencing either off is one line.
 
 - [ ] **Look at the folder before you add it.** Whatever your build writes — `DerivedData/`,
       `.gradle/`, `bin/obj/`, `.next/`, `vendor/`, a packaged application server — name it.
@@ -392,8 +392,10 @@ find and a minute to fix.
 - [ ] **Ask what is already covered**, so you write only what is yours:
 
       ```bash
-      curl -s http://127.0.0.1:3131/api/v1/files/ignore-patterns | jq
+      curl -s http://127.0.0.1:<your engine port>/api/v1/files/ignore-patterns | jq
       ```
+
+      The port is `server.port` in your engine config (step 3).
 
       Every layer comes back named, with what each one is for. Your assistant asks the same
       question with the `ignore_patterns` tool.
