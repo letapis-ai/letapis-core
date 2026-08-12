@@ -54,10 +54,12 @@ all. Writing them costs nothing and is easy to keep doing for years, since the l
 not visible from the folder.
 
 `index_folder` and `update_folder` judge your patterns **against that folder's real files** —
-remove the pattern, would anything reach the index that did not before — and name the rule that
-already takes each one. They drop none of them. When a folder is empty, missing, or too large to
-walk, the answer says it is **not judging** rather than returning an empty list, which would read
-as "every one of yours is needed".
+remove the pattern, would anything reach the index that did not before. Each one that adds nothing
+comes back with which of two cases it is: **nothing here matches it**, or **already caught by**
+a named rule. The first has no rule to name, because nothing in the folder reached the question.
+They drop none of your patterns. When a folder is empty, missing, or too large to walk, the answer
+says it is **not judging** rather than returning an empty list, which would read as "every one of
+yours is needed".
 
 **The built-in list is deliberately basic.** It covers what nearly every tree has and carries
 nothing for Xcode, Java, .NET or your framework's cache directory. When you add a folder from a

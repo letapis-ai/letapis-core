@@ -53,7 +53,7 @@ Start pressed underneath the update would be a second hand on the same service.
 2. The panel says *Engine updated — restarting it now*, restarts the engine's card, and waits
    for the new build to answer. This is the only moment the engine is down.
 
-Between the two you may briefly see the engine row read `0.1.9 (installed 0.1.10)` — the running
+Between the two you may briefly see the engine row read `26.811.1 (installed 26.811.2)` — the running
 version and the one on disk, differing. That is not a fault; it is the state the two steps
 create, said out loud.
 
@@ -95,7 +95,7 @@ the engine itself:
 ```bash
 letapis update --list-versions        # what is in the two slots
 letapis update --rollback             # go back to the other slot
-letapis update --rollback 0.1.11      # the same, refusing unless that is what is there
+letapis update --rollback 26.811.1      # the same, refusing unless that is what is there
 ```
 
 **There is one step back, not a history.** The engine keeps two slots, so going back means
