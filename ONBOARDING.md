@@ -366,6 +366,59 @@ own login, and updates arrive through the panel's **Update** button
 
 ---
 
+## 10. Before you index your first folder
+
+A folder is taken whole. Build output, vendored copies and generated files are indexed as eagerly
+as your sources, and they cost more than space: machine-generated text is a dense scatter of your
+own identifiers with no meaning behind it, which is exactly what a vector search scores highly.
+Junk of that kind does not sit quietly at the bottom of the results — it competes with the answer
+you wanted.
+
+**The built-in exclusions are deliberately basic.** They cover what nearly every tree has —
+version control, `node_modules`, Python caches and virtualenvs, `build/`, `dist/`, `target/`,
+`out/`, editor droppings — plus a set of binary extensions refused by name. They carry **nothing**
+for Xcode, Java, .NET, Go, mobile toolchains or your framework's cache directory, and that is a
+decision rather than an oversight: an engine that shipped a list for every stack would impose it
+on everyone who does not use them.
+
+**So the first folder you add from an unfamiliar stack is yours to fence off.** One team indexed a
+monorepo with an iOS app in it and pulled in **40,565 nodes** of Xcode `DerivedData` before they
+noticed; a stock SAP Commerce platform came out **62 percent** bundled Tomcat. Both took a day to
+find and a minute to fix.
+
+- [ ] **Look at the folder before you add it.** Whatever your build writes — `DerivedData/`,
+      `.gradle/`, `bin/obj/`, `.next/`, `vendor/`, a packaged application server — name it.
+
+- [ ] **Ask what is already covered**, so you write only what is yours:
+
+      ```bash
+      curl -s http://127.0.0.1:3131/api/v1/files/ignore-patterns | jq
+      ```
+
+      Every layer comes back named, with what each one is for. Your assistant can ask the same
+      question through the `list_folders` / `index_folder` tools.
+
+- [ ] **Add yours when you add the folder**, through your assistant:
+
+      ```
+      index_folder(path="/path/to/repo", ignore_patterns=["DerivedData/", ".gradle/", "*.class"])
+      ```
+
+      The answer names any of your patterns that some layer already covered — nothing is dropped,
+      it just tells you what you did not need to type.
+
+- [ ] **Machine-wide instead of per-folder?** Put it in `indexing.exclude_patterns` in your
+      config file (step 3 wrote it) and restart the engine. Use this for what every folder on
+      this machine should skip — your sync tool's droppings, your own toolchain's caches.
+
+**Layers only add up.** A pattern set globally cannot be cancelled for one folder, so keep the
+global list to what is genuinely machine-wide and let each folder carry its own.
+
+**Already indexed the junk?** Add the pattern, then force a reindex of that folder. Changing the
+patterns stops new files arriving; it does not remove what is already stored.
+
+---
+
 ## When a step does not work
 
 | What you see | What it means | Where to look |
@@ -376,6 +429,7 @@ own login, and updates arrive through the panel's **Update** button
 | the login page refuses your key and email | one of the two does not match | [licence.md](docs/licence.md) — every refusal by name |
 | the download link says it expired | it lives minutes, by design | ask us for another |
 | a model row is red right after Start | the weights are not where the card looks | step 5 — the names on the left matter |
+| your build output turned up in search results | the built-in exclusions are basic and carry nothing for your stack | step 10 — ask what is covered, add what is yours |
 
 Something wrong that is not in this table — **open an issue on this repository**. That is what it
 is here for, and it is the one place you can reach us about the engine.

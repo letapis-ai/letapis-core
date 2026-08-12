@@ -29,13 +29,38 @@ makes that decision easy.
 |---|---|
 | `active` | a watch can be listed and switched off. An inactive folder answers nothing, and the row looks entirely normal |
 | `files_indexed` · `last_update` | how much is actually in there and when it was last touched. Zero files, or a date months old, is a diagnosis rather than a detail |
-| `ignore_patterns` | what was deliberately excluded — the single most common reason a file sits in a watched folder and never appears |
+| `ignore_patterns` | what was deliberately excluded **for this folder** — the single most common reason a file sits in a watched folder and never appears. It is one layer of several, and it is the only one you set here; see below |
 | `recursive` | whether the watch descends into subdirectories or holds only the top level. A false here explains a subtree that was never indexed and never reported missing |
 | `odoo_aware` | whether this folder is parsed with framework-specific extraction, which decides what the call graph can see in it |
 | `episodes` | whether documents here are remembered as events — see below. Off unless somebody said otherwise |
 | `description` | free text about why this folder is watched, left by whoever added it. Useful, and no fresher than the day it was written |
 | `nested_under` · `has_nested` | whether this folder sits inside another watch, or contains its own |
 | `groups` | **not in these rows** — group tags are set on the folder with `update_folder(path, groups=[…])` and read back with `list_groups`. They are a search-time label rather than a property of the index, and what they are for is in [search](search.md) § Narrowing |
+
+### What is excluded, and by which layer
+
+A file is turned away by more than one mechanism, and only the last of them is per-folder: the
+engine's built-in list, the machine's `indexing.exclude_patterns`, a set of binary extensions and
+file names refused before anything is read, and finally the folder's own `ignore_patterns`.
+
+```python
+mcp__<engine>__list_folders()      # the per-folder layer
+# GET /api/v1/files/ignore-patterns — all layers, each one named and explained
+```
+
+**Ask before you write.** Roughly two thirds of the patterns written by hand into folder configs
+on a working machine were already covered by a layer above — `*.pyc` fifteen times, `__pycache__/`
+fifteen, `.venv/` eleven. Nobody was careless: until the endpoint answered with every layer, the
+only way to find out was to read the engine's source. `index_folder` and `update_folder` now name
+any submitted pattern that was already covered, and drop none of them.
+
+**The built-in list is deliberately basic.** It covers what nearly every tree has and carries
+nothing for Xcode, Java, .NET or your framework's cache directory. When you add a folder from a
+stack the engine has never heard of, look at what its build writes and name it yourself — a
+monorepo with an iOS app in it contributed 40,565 nodes of `DerivedData` to somebody's index
+before anyone noticed.
+
+**Layers only add up**: nothing set globally can be cancelled for one folder.
 
 ### Whether a folder grows memory
 
