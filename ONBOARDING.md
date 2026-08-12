@@ -404,8 +404,9 @@ find and a minute to fix.
       index_folder(path="/path/to/repo", ignore_patterns=["DerivedData/", ".gradle/", "*.class"])
       ```
 
-      The answer names any of your patterns that some layer already covered — nothing is dropped,
-      it just tells you what you did not need to type.
+      The answer names any of your patterns that add nothing in that folder — checked against the
+      files actually there, with the rule that already covers each. Nothing is dropped; it just
+      tells you what you did not need to type.
 
 - [ ] **Machine-wide instead of per-folder?** Put it in `indexing.exclude_patterns` in your
       config file (step 3 wrote it) and restart the engine. Use this for what every folder on

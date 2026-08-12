@@ -48,11 +48,17 @@ mcp__<engine>__list_folders()        # the per-folder layer
 mcp__<engine>__ignore_patterns()     # all layers, each one named and explained
 ```
 
-**Ask before you write.** Roughly two thirds of the patterns written by hand into folder configs
-on a working machine were already covered by a layer above — `*.pyc` fifteen times, `__pycache__/`
-fifteen, `.venv/` eleven. Nobody was careless: until the endpoint answered with every layer, the
-only way to find out was to read the engine's source. `index_folder` and `update_folder` now name
-any submitted pattern that was already covered, and drop none of them.
+**Ask before you write.** Roughly four in five patterns written by hand into folder configs on a
+working machine turned out to add nothing to what their folder indexes — `*.pyc` fifteen times,
+`__pycache__/` fifteen, `.venv/` eleven, and many more that match nothing in that folder at all.
+Nobody was careless: until the endpoint answered with every layer, the only way to find out was to
+read the engine's source.
+
+`index_folder` and `update_folder` now judge your patterns **against that folder's real files** —
+remove the pattern, would anything reach the index that did not before — and name the rule that
+already takes each one. They drop none of them. When a folder is empty, missing, or too large to
+walk, the answer says it is **not judging** rather than returning an empty list, which would read
+as "every one of yours is needed".
 
 **The built-in list is deliberately basic.** It covers what nearly every tree has and carries
 nothing for Xcode, Java, .NET or your framework's cache directory. When you add a folder from a
