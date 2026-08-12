@@ -43,8 +43,8 @@ port is not it.
 
 | Shows | Means |
 |---|---|
-| `0.1.9` | the running engine reports this version |
-| `0.1.9 (installed 0.2.0)` | a newer engine is on disk but the old one is still serving — restart the row to pick it up |
+| `26.811.1` | the running engine reports this version |
+| `26.811.1 (installed 26.811.2)` | a newer engine is on disk but the old one is still serving — restart the row to pick it up |
 | `version unknown` | it is serving, but it is too old to report a version. The panel will not fill the gap with a number read off the disk |
 | `checking…` | the install directory has not been read yet |
 | `not installed` | there is no engine binary at the install path |
@@ -56,7 +56,7 @@ port is not it.
 |---|---|
 | *update: not checked* | nobody has asked the channel yet |
 | *up to date · \<time\>* | asked, and the answer was no new version |
-| *update: 0.2.0 available · \<time\>* | asked, and there is one |
+| *update: 26.811.2 available · \<time\>* | asked, and there is one |
 | *update: could not check* | the channel could not be reached — see [updating.md](updating.md) |
 
 "Up to date" is only ever shown for an answer actually received. An unreachable channel says so.

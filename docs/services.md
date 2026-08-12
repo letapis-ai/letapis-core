@@ -83,9 +83,7 @@ Two more fields appear only on the engine card:
 **Which row is an engine is not decided by that label.** It is decided by the card's `health:
 kind: letapis` probe, and whether a row shows the version lying on disk is decided by its
 `start:` line — the card that launches the engine executable is the card that has an install
-directory. Both answers come from the panel's backend; neither reads a name. A card was once
-recognised by carrying `letapis.bin` in `owner_hint`, and when the seed stopped writing that
-retired executable name, the recipient's row lost its login button and, later, its version.
+directory. Both answers come from the panel's backend; neither reads a name.
 
 `owner_exe_roots` is the identity check, and it is stricter than a name on purpose: a stray
 copy of the engine binary launched from somewhere else has the same process name, and killing

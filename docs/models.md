@@ -85,12 +85,11 @@ shasum -a 256 ~/models/harrier-oss-v1-0.6b-Q8_0.gguf ~/models/Qwen3-Reranker-0.6
 * the embedder should be `072a0be84fae7673bc1391d493580336b84d798a1a0bb504a5c5da3d7d00c4b9`
   — the same bytes this stack was built and measured against;
 * the reranker from that repository is
-  `22c9979ce4fbcdc5acdc310c6641c32797eff1aa980b8f7a2db8a8ea23429a48`, and the build **we**
-  tested is a different one:
-  `6ddab39a36c6c87fdb76f0e5f05657012d5dbc97034c0983c157f17ef9f34d55`. Same model, same
-  quantisation, a different conversion run — 160 bytes apart. We have no reason to expect it
-  to behave differently and no measurement saying it does not, so you are told rather than
-  reassured.
+  `22c9979ce4fbcdc5acdc310c6641c32797eff1aa980b8f7a2db8a8ea23429a48`. The figures on this page
+  were measured against a different build:
+  `6ddab39a36c6c87fdb76f0e5f05657012d5dbc97034c0983c157f17ef9f34d55` — same model, same
+  quantisation, a different conversion run, 160 bytes apart. The numbers here describe that
+  build, not the one you are about to download.
 
 
 ## The flags that are not optional
