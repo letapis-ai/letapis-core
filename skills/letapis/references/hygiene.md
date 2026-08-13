@@ -54,16 +54,38 @@ control.
 
 ## What each flag is worth
 
-The scan sorts candidates; it does not judge them. The right action differs per flag, and two of
-the five are routinely misread as "delete this".
+The scan sorts candidates; it does not judge them. The right action differs per flag, and several
+are routinely misread as "delete this".
+
+Three of the flags are about the file an episode came from, and they are kept apart because they
+need opposite things done to them:
 
 | Flag | What it means | What it is usually worth |
 |---|---|---|
-| `orphan` | the file the episode came from is no longer at that path | often a forget — **but check for a move first**. A file renamed out from under a stopped engine leaves an orphan that is perfectly healthy; one renamed while it was watching reconciles itself and never reaches this flag |
+| `stale_pointer` | the file is alive, the episode points at where it used to be | the pointer is repairable, and the row says how. Never a forget: the content is intact |
+| `no_carrier` | the episode has no file recorded at all | repairable too — a file can be written from the episode's own content |
+| `orphan` | a file is recorded and it is nowhere on disk | **no automatic cure.** A person decides: give the record a file of its own, or forget it if the document was removed deliberately. Repairing does not bring the lost document back |
 | `low_signal` | the body is empty or nearly so | a forget, when it is genuinely scaffolding or a stray note |
 | `stale` | older than `stale_factor` × its kind's half-life — the multiplier is a parameter of the scan, not a constant | **not** a forget. Old is not wrong; a durable decision stays true for years. Read it and ask whether it still holds |
 | `no_provenance` | the episode does not say where it came from | a labelling gap. Worth backfilling, never worth deleting over |
 | `isolated` | no causal links to anything else | informational, rarely actionable |
+
+**Rows about the carrier bring their own remedy with them**, so for those three the table above
+is a summary rather than something to memorise:
+
+```
+id             episode-…
+source_file    /vault/…/decision.md
+address_field  source_path           # which field the address came from
+resolves_to    /vault/…/decision.md  # for a moved file, where it actually is
+repair         {automatic: …, how: "…"}
+```
+
+`repair.automatic` is the one to read first: `true` means the engine can mend it and `how` names
+the move, `false` means the decision is yours.
+
+The other flags — `low_signal`, `stale`, `no_provenance`, `isolated` — carry no `repair` field,
+because what to do about them is a judgement rather than a move: read the episode and decide.
 
 **Two things the scan cannot do at all,** and it is honest about not doing them: it does not spot
 contradictions, and it does not spot near-duplicates. Both need someone to read the shortlist and
@@ -91,3 +113,56 @@ These are downstream of the audit, and none of them are part of it:
   whole retired directory has left a cluster of orphans behind.
 
 Their detail lives in [memory](memory.md).
+
+## Mending what the scan found: `letapis doctor`
+
+The scan reads. Mending is a separate command of the engine itself, run from a terminal:
+
+```bash
+letapis doctor --dry-run      # report only, writes nothing
+letapis doctor --apply        # mend what has a mend
+```
+
+**It is a command rather than a tool an agent can call, and that is deliberate.** Repairing a
+memory is a rare, deliberate act with a person behind it, not something to reach for between two
+other things.
+
+### What it mends, and what it only names
+
+| | |
+|---|---|
+| a record with no date | the date is taken from its own file |
+| a pointer to a file that moved | the pointer is repointed; no content is copied |
+| a record with no file at all | a file is written from the record's own content |
+| a forgetting that never reached the file | it is written there, so a rebuild keeps it |
+| an empty record | **named only.** Whether a record with nothing in it is worth keeping is your call |
+| a record marked because its file left the disk | **counted only.** The mark is correct until the file returns, and it lifts itself when it does |
+
+The dry run prints the same table with counts and ends with how many records `--apply` would
+mend. Run it first; there is no reason not to.
+
+### Where it looks for the config
+
+Three places, in this order, and the first that answers wins:
+
+1. `LETAPIS_CONFIG_FILE`, if set — **authoritative**: named but missing is a refusal, not a
+   reason to look further;
+2. `./config.yaml` in the working directory;
+3. `~/.config/letapis/config.yaml` — the fixed place, so the command works from any directory.
+
+Nothing found in all three is a refusal that names what it checked. There are no silent
+defaults: an engine that quietly started on an empty config would look like one that works
+badly rather than one that was not told where to look.
+
+The third place is the one worth setting up once. With a config there, `letapis doctor` runs
+from wherever you happen to be standing.
+
+### On Linux, where the engine runs in a container
+
+The command lives with the engine, so it is called inside the container from outside it:
+
+```bash
+docker exec <container> letapis doctor --dry-run
+```
+
+The config path above is the container's, not the host's.

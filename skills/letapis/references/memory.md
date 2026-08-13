@@ -36,7 +36,7 @@ mcp__<engine>__ena_get_context(query="what we worked on yesterday")
 **One call is usually the whole answer.** Reading files or searching code after a recall tends to
 return the present, and the question was about the past — they answer different things.
 
-### Windows, and how to tell whether one was applied
+### Narrowing an answer to a period
 
 Episodes can be long. A bare `limit` over a large corpus returns a wall of text, and on a big
 enough answer the client spills it to a file where you end up reading blind. A date window is the
@@ -48,19 +48,23 @@ mcp__<engine>__ena_get_context(query="work", date_from="2026-01-04", date_to="20
 mcp__<engine>__ena_get_context(query="work", session_id="…")   # one working session instead
 ```
 
-**Check that it narrowed rather than assuming it did.** A date filter can only bite on episodes
-that carry a date, and an episode gets one from its own frontmatter — an explicit `date`, then a
-completion date, then a start date, and file modification time as a last resort. Episodes written
-directly rather than derived from a document often carry none of those, and a window over a corpus
-like that filters nothing while looking as though it did.
+**The answer reports what the window did**, so there is nothing to infer. Alongside the episodes
+it carries `date_window`:
 
-**The tell is already in the answer you have: `t_valid`.** Null on every row means nothing in that
-result was datable, so nothing could have been filtered by date — and the dates you read in the
-text are the episodes' own content, not evidence the window held. This costs nothing.
+```
+date_window.applied              True
+date_window.date_from            2026-08-12
+date_window.date_to              2026-08-13
+date_window.returned             3
+date_window.undated_not_checked  0
+```
 
-**When you want it beyond doubt, one extra call settles it:** ask the same question with a window
-that cannot possibly match, two days years ago. A different, smaller result means the filter
-works; the same result means it does not.
+`returned` is how many episodes came through the window. `undated_not_checked` is the one number
+worth a second look: a date filter can only judge an episode that carries a date, and an episode
+takes one from its own frontmatter — an explicit `date`, then a completion date, then a start
+date. Episodes written directly rather than derived from a document may carry none of those.
+Those are counted here rather than silently dropped, so a non-zero value tells you the window
+gave an answer about part of the corpus and named the rest.
 
 ### Check memory before acting on a plan
 
@@ -232,12 +236,30 @@ with non-empty frontmatter produces an episode** — a general one if nothing mo
 | `status: active` | milestone |
 | `importance: high` | insight |
 
-**To opt one document out of a marked folder, put `episode: false` in its frontmatter.** This
-matters more than it looks: the flag lives in the *file* and is re-read on every index, so it
-survives a full rebuild —
-whereas forgetting an episode only marks the stored copy and is undone the next time the file is
-indexed. For a document that should permanently stop generating recall, do both: forget what
-exists, and set the flag so it is not recreated.
+**To opt one document out of a marked folder, put `episode: false` in its frontmatter.** The flag
+lives in the *file* and is re-read on every index, so it survives a full rebuild. It governs what
+happens next: the document stops producing an episode, and an episode it produced earlier stays
+as it is.
+
+**To withdraw the episode a document already produced, add `episode_retracted` to the same
+frontmatter:**
+
+```yaml
+---
+type: decision
+episode_retracted: 2026-08-12
+episode_retracted_reason: superseded by the new contract
+---
+```
+
+The record stops being recalled, and — because the retraction is part of the document — it stays
+withdrawn through a reindex and through a rebuild of the database from files. The reason is
+optional and is kept with the record.
+
+The two keys answer different questions and are usually written together: `episode_retracted`
+withdraws what exists, `episode: false` stops the next one from being made. Taking the retraction
+back out of the frontmatter brings the record back — the document decides, and it may change its
+mind.
 
 ### An episode remembers which file it came from
 
