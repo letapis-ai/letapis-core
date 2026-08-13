@@ -123,20 +123,19 @@ letapis doctor --dry-run      # report only, writes nothing
 letapis doctor --apply        # mend what has a mend
 ```
 
-**It is a command rather than a tool an agent can call, and that is deliberate.** Repairing a
-memory is a rare, deliberate act with a person behind it, not something to reach for between two
-other things.
+It is a command rather than a tool an agent can call, and that is deliberate. Repairing a memory
+is a rare act with a person behind it, not something to reach for between two other things.
 
 ### What it mends, and what it only names
 
 | | |
 |---|---|
 | a record with no date | the date is taken from its own file |
-| a pointer to a file that moved | the pointer is repointed; no content is copied |
+| a pointer to a file that moved | the pointer is repointed, and no content is copied |
 | a record with no file at all | a file is written from the record's own content |
 | a forgetting that never reached the file | it is written there, so a rebuild keeps it |
-| an empty record | **named only.** Whether a record with nothing in it is worth keeping is your call |
-| a record marked because its file left the disk | **counted only.** The mark is correct until the file returns, and it lifts itself when it does |
+| an empty record | named only. Whether a record with nothing in it is worth keeping is your call |
+| a record marked because its file left the disk | counted only. The mark is correct until the file returns, and it lifts itself when it does |
 
 The dry run prints the same table with counts and ends with how many records `--apply` would
 mend. Run it first; there is no reason not to.
@@ -145,15 +144,15 @@ mend. Run it first; there is no reason not to.
 
 Three places, in this order, and the first that answers wins:
 
-1. `LETAPIS_CONFIG_FILE`, if set — **authoritative**: named but missing is a refusal, not a
-   reason to look further;
-2. `./config.yaml` in the working directory;
-3. `~/.config/letapis/config.yaml` — the fixed place, so the command works from any directory.
+1. `LETAPIS_CONFIG_FILE`, if set. This one is authoritative: named but missing is a refusal, not
+   a reason to look further.
+2. `./config.yaml` in the working directory.
+3. `~/.config/letapis/config.yaml`, the fixed place, so the command works from any directory.
 
-Nothing found in all three is a refusal that names what it checked. There are no silent
-defaults: an engine that quietly started on an empty config would look like one that works
-badly rather than one that was not told where to look.
+Nothing found in all three is a refusal that names what it checked. There are no silent defaults.
+An engine that quietly started on an empty config would look like one that works badly, rather
+than one that was never told where to look.
 
-The third place is the one worth setting up once. With a config there, `letapis doctor` runs
-from wherever you happen to be standing.
+The third place is worth setting up once. With a config there, `letapis doctor` runs from
+wherever you happen to be standing.
 
