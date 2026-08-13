@@ -20,6 +20,7 @@ an answer you did not expect.**
 | Make sense of this book / paper / unfamiliar codebase | a research graph over the document | [research](references/research.md) |
 | Was this decided before? What happened last time? | episodic memory (ENA) — **a date window only bites on episodes that carry a date; check it narrowed** | [memory](references/memory.md) |
 | Memory has grown large — what is worth keeping? | a read-only audit of the episodes | [hygiene](references/hygiene.md) |
+| The audit found something broken — how is it mended? | `letapis doctor`, a command of the engine | [hygiene](references/hygiene.md) |
 | Should this folder be indexed? Should this doc stop appearing? | index and visibility management | [corpus](references/corpus.md) |
 | Search is coming back wrong or empty and I do not know why | diagnosis from inside the session | [admin](references/admin.md) |
 | What do these fields in the answer mean? | reading a result properly | [response](references/response.md) |
