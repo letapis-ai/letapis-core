@@ -10,7 +10,7 @@ one and a newer one. The scan read only the newer. Everything written before tha
 was not misjudged: it was **not looked at**.
 
 A report can be honest about what it examined and silent about what it skipped. Silence reads as
-absence. Read the `coverage` line before the counts.
+absence. Read the `coverage` line before the counts — [what each flag is worth][flags].
 
 ## What was there
 
@@ -35,6 +35,8 @@ having their files intact one directory over.
 letapis doctor --dry-run    # writes nothing
 letapis doctor --apply
 ```
+
+Run from anywhere once the config sits in its fixed place — [where the doctor looks for it][cfg].
 
 **753 records in one pass.**
 
@@ -66,3 +68,16 @@ mistake.
 - **Distinguish before repairing.** Three states of a missing file need three different answers.
 - **Do it on a quiet afternoon.** The same work mid-restore, with 568 undated records, is a very
   different day.
+
+## Where this is documented
+
+- [Keeping episodic memory healthy][hygiene] — running the scan, what each flag is worth, and
+  [`letapis doctor`][doctor]: what it mends, what it only names, [where it reads its config][cfg].
+- [Episodic memory][memory] — how an episode gets its date, and how a document withdraws the
+  record it produced.
+
+[hygiene]: ../skills/letapis/references/hygiene.md
+[flags]: ../skills/letapis/references/hygiene.md#what-each-flag-is-worth
+[doctor]: ../skills/letapis/references/hygiene.md#mending-what-the-scan-found-letapis-doctor
+[cfg]: ../skills/letapis/references/hygiene.md#where-it-looks-for-the-config
+[memory]: ../skills/letapis/references/memory.md

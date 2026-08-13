@@ -157,12 +157,3 @@ badly rather than one that was not told where to look.
 The third place is the one worth setting up once. With a config there, `letapis doctor` runs
 from wherever you happen to be standing.
 
-### On Linux, where the engine runs in a container
-
-The command lives with the engine, so it is called inside the container from outside it:
-
-```bash
-docker exec <container> letapis doctor --dry-run
-```
-
-The config path above is the container's, not the host's.
