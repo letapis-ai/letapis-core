@@ -54,16 +54,35 @@ control.
 
 ## What each flag is worth
 
-The scan sorts candidates; it does not judge them. The right action differs per flag, and two of
-the five are routinely misread as "delete this".
+The scan sorts candidates; it does not judge them. The right action differs per flag, and several
+are routinely misread as "delete this".
+
+Three of the flags are about the file an episode came from, and they are kept apart because they
+need opposite things done to them:
 
 | Flag | What it means | What it is usually worth |
 |---|---|---|
-| `orphan` | the file the episode came from is no longer at that path | often a forget — **but check for a move first**. A file renamed out from under a stopped engine leaves an orphan that is perfectly healthy; one renamed while it was watching reconciles itself and never reaches this flag |
+| `stale_pointer` | the file is alive, the episode points at where it used to be | the pointer is repairable, and the row says how. Never a forget: the content is intact |
+| `no_carrier` | the episode has no file recorded at all | repairable too — a file can be written from the episode's own content |
+| `orphan` | a file is recorded and it is nowhere on disk | **no automatic cure.** A person decides: give the record a file of its own, or forget it if the document was removed deliberately. Repairing does not bring the lost document back |
 | `low_signal` | the body is empty or nearly so | a forget, when it is genuinely scaffolding or a stray note |
 | `stale` | older than `stale_factor` × its kind's half-life — the multiplier is a parameter of the scan, not a constant | **not** a forget. Old is not wrong; a durable decision stays true for years. Read it and ask whether it still holds |
 | `no_provenance` | the episode does not say where it came from | a labelling gap. Worth backfilling, never worth deleting over |
 | `isolated` | no causal links to anything else | informational, rarely actionable |
+
+**Each candidate row carries its own remedy**, so the table above is a summary rather than
+something to memorise:
+
+```
+id             episode-…
+source_file    /vault/…/decision.md
+address_field  source_path           # which field the address came from
+resolves_to    /vault/…/decision.md  # for a moved file, where it actually is
+repair         {automatic: …, how: "…"}
+```
+
+`repair.automatic` is the one to read first: `true` means the engine can mend it and `how` names
+the move, `false` means the decision is yours.
 
 **Two things the scan cannot do at all,** and it is honest about not doing them: it does not spot
 contradictions, and it does not spot near-duplicates. Both need someone to read the shortlist and
