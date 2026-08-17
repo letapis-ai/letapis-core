@@ -86,7 +86,10 @@ is what turns a claim into a finding.
 **An empty result is a fact about the question, not about the world.** Semantic search is
 sensitive to phrasing: a generic query returns generic results, and a query in the wrong register
 returns nothing at all. The productive move is to ask differently — in the words the material
-itself would use — rather than to conclude the thing does not exist.
+itself would use — rather than to conclude the thing does not exist. **Register here is what the
+question is about, not which language it is written in:** name the parts and you get material
+about those parts; describe what the system does and you get the place that does it. Both are
+specific, and only the second answers "where does this happen".
 
 **And a full result is not proof either.** What the engine did to your query — whether the semantic
 half ran at all, what a zero from the graph means, how much of a hit's structure is real — is in

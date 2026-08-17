@@ -38,6 +38,18 @@ What sharpens a query, in rough order of effect:
 - **Prefer the specific over the general.** "bearer token validation" and "authentication" reach
   different depths of the same area.
 
+**Sharpening a query and choosing its register are two different moves, and confusing them is the
+common failure.** The list above makes a query more precise about the *machinery* — the module, the
+file, the names the code uses. That is right when the answer sits in one named place. It is the
+wrong move when you are asking where something happens: a symbol name returns the material built
+out of that symbol, its tests and its neighbouring definitions, because that is what the corpus
+holds about it. Describe what the system **does** and the place that does it comes back instead.
+
+**One check tells you which register you are in: can you point at the file the answer must be
+in?** Yes — sharpen as above; the text names itself and there is something to catch on. No —
+describe the behaviour rather than the parts, because naming a part is what the structural axis is
+for. A sweep is this same check applied to a change you just made (§ Meaning — the sweep).
+
 **A query that returns the wrong thing is worth rewriting once before you reach for another
 tool.** Most disappointing results are a register mismatch, not an absence.
 
