@@ -14,8 +14,8 @@ The one that matters most: a query can come back **keyword-only**, with the sema
 out entirely, and the hint is the only place that appears.
 
 ```
-hint: Results are BM25-only: the adaptive min_similarity threshold
-      filtered the vector (semantic) arm down to 0 candidates
+hint: Results are BM25-only: no vector candidate cleared min_similarity,
+      so the semantic arm contributed nothing
 ```
 
 **Why that is worse than an empty answer.** Two searches run on every query: one by meaning, one
@@ -24,10 +24,11 @@ technical query it answers *well*, because the words you typed are the words in 
 result looks like a good semantic answer and is a text match. Everything named differently was
 never considered.
 
-**What to do about it is not what the hint suggests.** It advises lowering `min_similarity`, which
-you probably never set: the engine computes a threshold from the shape of your query whenever you
-leave it unset. The move that works is the opposite — set an explicit low floor to override the
-computed one. Expect a genuinely different set of files, not the same list with more of it.
+**What to do about it.** The floor is a single constant the engine applies to every query —
+`vector_floor`, `0.25` by default — not something computed from what you typed. When you leave
+`min_similarity` unset, that constant is what filtered the arm. Send an explicit lower value to
+override it for that one call. Expect a genuinely different set of files, not the same list with
+more of it.
 
 ## An episode in a search result
 
@@ -36,19 +37,57 @@ a similarity, and none of the file fields — no path, no excerpt, no structural
 malformed; it is a memory node surfacing in a corpus query. Read it as a pointer: the material is
 in memory, and [memory](memory.md) is where it is retrieved properly.
 
-## `score` and `similarity` — and what neither of them can tell you
+## The scores — what each one can and cannot tell you
 
-`score` ranks within one answer. The top row is always `1.0`, including for a nonsense query,
-because it is relative to the rest of that result set. It is not comparable across queries.
+A row carries several score fields, and the **name of each is its scale**. They are not
+interchangeable and must never be compared against one another. There is no field called plain
+`score`.
 
-`similarity` is the raw measure, and it appears **only on semantically matched rows**. Its absence
-on a keyword-matched row means "not measured", not "zero".
+**`rerank_score` — the cross-encoder's judgement of this row against this query, and the only
+scale here that falls to near zero.** Its extremes are informative; the middle is not. Measured on a live
+corpus, five queries from sensible to nonsense: a subject the corpus knows scored 0.978; a
+paraphrase carrying none of the literal words, 0.816; a nonsense string matched by letters alone,
+0.309; a subject entirely absent from the corpus, **0.0008**. So a very low top row
+says "nothing here answers this", and around 0.3 says only "cannot tell".
 
-**Neither says whether the answer came from the right corpus.** A query sent to an engine that
+**`similarity` — raw cosine, and it has a floor of plausibility it never goes below.** In the same
+run, the subject entirely absent from the corpus still scored **0.525**. That is why its VALUE
+does not read as confidence while `rerank_score` does. What its **presence** says is exact and
+useful: the row was found by the semantic half. Its absence on a keyword-matched row means "not
+measured", not "zero" — and that binary is more reliable than any reading of the number itself.
+
+**`relevance` — the full-text engine's own measure. `rrf_score` — a function of POSITION by
+construction**, useful for ordering and nothing else; never read its spread as quality.
+
+A field that is absent was not measured, which is not the same as measuring zero.
+
+**No score says whether the answer came from the right corpus.** A query sent to an engine that
 knows nothing about your subject returns its best matches in the same numeric band as a correct
 answer elsewhere — a wrong-corpus hit can outscore the right one. There is no threshold that
-separates them, and hunting for one is the trap. **The path in each hit is what separates them**:
+separates them, and hunting for one is the trap. The path in each hit is what separates them:
 material with nothing to do with your work says so in its location long before any number does.
+
+## `fused` in the hint — a signal from below only, and it is capped
+
+The hint prints `fused: N → limit: M → returned: K`. `N` is the size of the merge, and it is
+**bounded above by `4 × limit`**: each arm fetches `limit × branch_candidates_per_result`
+(a setting, default 2), and the merge is built from two such lists.
+
+Three consequences, and skipping any of them makes the number lie:
+
+1. **A value at the ceiling is saturation and carries no information.** Proved, not argued: a
+   nonsense string at `limit 3` returned **12 of 12** — the arms hand over their quota for any
+   rubbish.
+2. `fused` is comparable across queries only at the same `limit`, and the actual `limit` is
+   printed in the hint itself. Check it before comparing, not after. Beyond the ceiling, the pool
+   width also decides whether `rrf_min_score` and the vector floor can fire at all — so two
+   queries at different limits are incomparable in their CONTENT as well.
+3. Below the ceiling it means "at least one arm handed over less than its quota", and there
+   are three reasons for that: few documents match by words, vector candidates sit under the
+   floor, or the arm was switched off by an explicit `min_similarity`. So "few candidates, the
+   corpus does not know this" is a **hypothesis to confirm** with a second query worded
+   differently — never a rule.
+
 
 ## `structural_context` — how good it is depends entirely on the material
 
