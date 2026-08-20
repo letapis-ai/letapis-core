@@ -65,6 +65,19 @@ is replaced.
 **No score says the answer came from the right corpus** — a wrong-corpus hit scores in the same band.
 The path separates them, long before any number does.
 
+## A lone number verifies nothing — check it against its neighbour
+
+Before carrying a number out of an answer as evidence, find the other field of the same answer that
+constrains it, and see whether the two agree. A count sits next to a rate; a returned figure sits
+next to a total; a flag sits next to the thing it describes. Fields that disagree are the answer
+telling you one of them is wrong, and that is a fact you can only get from the pair.
+
+A field with no neighbour to check it against is not thereby trustworthy. It is unverifiable, which
+is a different thing, and it should leave the answer labelled as such rather than as a measurement.
+
+The pairing that catches this most often is a counter beside a rate derived from it: a rate cannot
+be non-zero if nothing was counted, so a zero counter next to a live rate means the zero is wrong.
+
 ## `fused` in the hint — a signal from below only, and it is capped
 
 The hint prints `fused: N → limit: M → returned: K`. `N` is the size of the merge, and it is
