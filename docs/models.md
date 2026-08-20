@@ -31,7 +31,7 @@ environment, and it uses the GPU through Metal without any further setup.
 | Listens on | `127.0.0.1:12436` | `127.0.0.1:8086` |
 | Health endpoint | `/v1/models` | `/health` |
 | Output dimensions | **1024** | — (returns scores) |
-| Context window | the model's own, 32768 | 4096 |
+| Context window | the model's own, 32768 | 8192 |
 | Batch it processes at once | 512 (embedding mode clamps to it) | the context size |
 | Alias it serves under | `harrier-0.6b` | `qwen3-reranker-0.6b` |
 | Log | `/tmp/letapis-embedder.log` | `/tmp/letapis-reranker.log` |

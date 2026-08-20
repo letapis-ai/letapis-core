@@ -18,7 +18,7 @@ config:
   file: ~/.config/letapis-app/services/reranker.yaml
   params:
     alias: qwen3-reranker-0.6b
-    ctx: '4096'
+    ctx: '8192'
     engine: llama-cpp
     host: 127.0.0.1
     model: ~/models/Qwen3-Reranker-0.6B.Q8_0.gguf
