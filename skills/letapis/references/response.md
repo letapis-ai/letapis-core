@@ -37,35 +37,33 @@ a similarity, and none of the file fields — no path, no excerpt, no structural
 malformed; it is a memory node surfacing in a corpus query. Read it as a pointer: the material is
 in memory, and [memory](memory.md) is where it is retrieved properly.
 
-## The scores — what each one can and cannot tell you
+## The scores — read the shape, not the first row
 
-A row carries several score fields, and the **name of each is its scale**. They are not
-interchangeable and must never be compared against one another. There is no field called plain
-`score`.
+**Did anything separate the results?** Top value minus bottom value of a field. A clear leader with a
+drop behind it means the engine sorted this. Rows within a few thousandths of each other mean it did
+not, and the order in front of you is arbitrary — first place in a flat answer is not an answer.
 
-**`rerank_score` — the cross-encoder's judgement of this row against this query, and the only
-scale here that falls to near zero.** Its extremes are informative; the middle is not. Measured on a live
-corpus, five queries from sensible to nonsense: a subject the corpus knows scored 0.978; a
-paraphrase carrying none of the literal words, 0.816; a nonsense string matched by letters alone,
-0.309; a subject entirely absent from the corpus, **0.0008**. So a very low top row
-says "nothing here answers this", and around 0.3 says only "cannot tell".
+**Which field did the separating?** The fields disagree, in both directions: either can be flat while
+another spreads, and they can contradict outright — the row holding the highest `similarity` can hold
+the lowest `rerank_score` and sit last. A position is a claim by one measure. Name the measure that
+made it before you trust it.
 
-**`similarity` — raw cosine, and it has a floor of plausibility it never goes below.** In the same
-run, the subject entirely absent from the corpus still scored **0.525**. That is why its VALUE
-does not read as confidence while `rerank_score` does. What its **presence** says is exact and
-useful: the row was found by the semantic half. Its absence on a keyword-matched row means "not
-measured", not "zero" — and that binary is more reliable than any reading of the number itself.
+**A flat answer is cured by narrowing the scope, not by rephrasing.** Restrict `folder` / `groups` to
+where the material lives. Synonym-hunting changes the wording, not the shape.
 
-**`relevance` — the full-text engine's own measure. `rrf_score` — a function of POSITION by
-construction**, useful for ordering and nothing else; never read its spread as quality.
+| Field | Spread means |
+|---|---|
+| `rerank_score` | the only scale falling near zero; extremes informative, middle not |
+| `similarity` | value stays above ~0.5 even for an absent subject — its **presence** says more than its size |
+| `relevance` | can be the separator when the cross-encoder is flat |
+| `rrf_score` | a function of POSITION — never read as quality |
 
-A field that is absent was not measured, which is not the same as measuring zero.
+Each field's name is its scale; they are never compared against one another, and an absent field was
+not measured rather than measured zero. No thresholds here on purpose: a scale moves when its model
+is replaced.
 
-**No score says whether the answer came from the right corpus.** A query sent to an engine that
-knows nothing about your subject returns its best matches in the same numeric band as a correct
-answer elsewhere — a wrong-corpus hit can outscore the right one. There is no threshold that
-separates them, and hunting for one is the trap. The path in each hit is what separates them:
-material with nothing to do with your work says so in its location long before any number does.
+**No score says the answer came from the right corpus** — a wrong-corpus hit scores in the same band.
+The path separates them, long before any number does.
 
 ## `fused` in the hint — a signal from below only, and it is capped
 
