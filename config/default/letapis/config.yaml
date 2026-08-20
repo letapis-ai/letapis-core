@@ -52,11 +52,17 @@ reranker:
 search:
   default_limit: 3              # results returned when a request does not ask for a number
   rrf_k: 60                     # rank-fusion constant — how sharply top ranks outweigh the tail
-  # There is no similarity floor to set here: it is chosen per query, and a short query is
-  # held to a stricter one than a sentence. A request may name its own floor instead.
-  # Worth knowing: a query written in a different language from the material scores lower,
-  # and can fall under the floor — then the answer rests on keyword matching alone, and it
-  # says so. Passing an `instruction` with the query is the better fix.
+  # One similarity floor applies to every query, whatever its length. Candidates from the
+  # vector branch that score below it are dropped before the two branches are merged; the
+  # keyword branch is not affected. A request may still name its own floor for that call.
+  # vector_floor: 0.25
+  #
+  # The default suits prose and code that use the words a reader would ask with. Material
+  # whose wording differs from the questions put to it — transcripts, notes in a second
+  # language, a domain with its own vocabulary — scores lower across the board, and a floor
+  # set too high silently leaves the vector branch with nothing to contribute: the answer
+  # then rests on keyword matching alone. Lower it before concluding the search is weak.
+  # Passing an `instruction` alongside the query helps for the cross-language case.
 
 indexing:
   max_active_folders: 3         # folders indexed at once; each one loads the embedder
