@@ -8,7 +8,7 @@
 : "${LETAPIS_SVC_ALIAS:=qwen3-reranker-0.6b}"
 : "${LETAPIS_SVC_PORT:=8086}"
 : "${LETAPIS_SVC_HOST:=127.0.0.1}"
-: "${LETAPIS_SVC_CTX:=8192}"
+: "${LETAPIS_SVC_CTX:=4096}"
 # Batch defaults to the context size: an input that fits the context must be processable in one
 # go. A batch smaller than the context makes the server reject an oversized document with
 # `input is too large to process` and cancel the WHOLE batch, discarding neighbours it had
