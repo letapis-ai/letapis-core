@@ -13,30 +13,34 @@
 # A misspelled key is ignored and the engine keeps its own default, so a typo looks exactly
 # like an applied setting. The engine names what it ignored when it starts — worth a glance
 # at its log after you change anything here.
+#
+# A line marked [default] repeats the value the engine would use anyway. Delete it and nothing
+# changes today; keep it and the value is pinned here — a later engine that changes that
+# default will not change yours.
 
 server:
   host: "127.0.0.1"
   port: 3131                    # the panel's engine card checks this port
-  name: "letapis"
-  api_keys: []                  # empty = no key required; see ONBOARDING §8 before changing
-  cors_origins: ["*"]           # any origin may call in — same section explains the trade
+  name: "letapis"               # [default]
+  api_keys: []                  # [default] empty = no key required; see ONBOARDING §8 first
+  cors_origins: ["*"]           # [default] any origin may call in — same section explains it
 
 qdrant:
   url: "http://127.0.0.1:6333"
   prefer_grpc: true             # gRPC for the data path; the URL above stays the REST address
   grpc_port: 6334               # required whenever prefer_grpc is on
-  hnsw_ef: 256                  # search-time graph exploration: higher = better recall, slower
+  hnsw_ef: 256                  # [default] search-time graph exploration: higher = better recall, slower
 
 embeddings:
   provider: openai              # llama-server speaks the OpenAI shape (/v1/embeddings)
   api_url: http://127.0.0.1:12436
   model: harrier-0.6b           # the alias the embedder was started with, not a file path
-  dimensions: 1024              # must match the model; changing it means reindexing everything
+  dimensions: 1024              # [default] must match the model; changing it means reindexing everything
   token_batch_size: 512         # tokens per request to the embedder
-  chars_per_token: 2            # how text length is estimated before tokenising
-  chunk_size: 1024              # characters per chunk — with the ratio above, ~512 tokens
-  chunk_overlap: 128            # characters shared between neighbouring chunks
-  delay_ms: 0                   # pause between requests; raise only to spare a shared GPU
+  chars_per_token: 2            # [default] how text length is estimated before tokenising
+  chunk_size: 1024              # [default] characters per chunk — with the ratio above, ~512 tokens
+  chunk_overlap: 128            # [default] characters shared between neighbouring chunks
+  delay_ms: 0                   # [default] pause between requests; raise only to spare a shared GPU
   idle_timeout_ms: 200          # a partly filled batch is sent after this much quiet
   timeout_seconds: 300          # a large batch on a cold model can take minutes
   sender_workers: 1             # one sender: the embedder runs a single slot (--parallel 1)
@@ -50,8 +54,11 @@ reranker:
   max_doc_chars: 4096           # longer documents are truncated for scoring, not skipped
 
 search:
-  default_limit: 3              # results returned when a request does not ask for a number
-  rrf_k: 60                     # rank-fusion constant — how sharply top ranks outweigh the tail
+  # A ceiling on results when a request does not ask for a number; the engine's default is 5.
+  # The tail is also cut after reranking by the shape of the score curve, so an answer is often
+  # shorter than this. Raise it if your questions have list-shaped answers.
+  default_limit: 3
+  rrf_k: 60                     # [default] rank-fusion constant — how sharply top ranks outweigh the tail
   # One similarity floor applies to every query, whatever its length. Candidates from the
   # vector branch that score below it are dropped before the two branches are merged; the
   # keyword branch is not affected. A request may still name its own floor for that call.
@@ -65,9 +72,9 @@ search:
   # Passing an `instruction` alongside the query helps for the cross-language case.
 
 indexing:
-  max_active_folders: 3         # folders indexed at once; each one loads the embedder
-  scan_max_files: 50            # how much of the quick "has this changed" pass runs at once
-  index_max_files: 10           # how much of the parse-and-store pass runs at once
+  max_active_folders: 3         # [default] folders indexed at once; each one loads the embedder
+  scan_max_files: 50            # [default] how much of the quick "has this changed" pass runs at once
+  index_max_files: 10           # [default] how much of the parse-and-store pass runs at once
   exclude_patterns:             # what never earns a place in the index, on top of a
                                 # watched folder's own exclusions
     - "*.lock"

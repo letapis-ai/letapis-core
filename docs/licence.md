@@ -70,7 +70,7 @@ before this scheme — the way forward is a newer engine and a fresh login.
 | What | How it behaves |
 |---|---|
 | How long the string is good for | **7 days**, decided by the licence service |
-| When the engine asks | at **every start**, and before an engine update — never while it is running |
+| When the engine asks | at **every start**, and before an engine update — never while it is running. It exchanges the string once the term is inside its last **3 days** |
 | What comes back | the next string and a fresh copy of the licence, checked before anything is written |
 | Service unreachable | the engine keeps working until the string's 7 days run out, and warns |
 | Licence revoked | the refusal arrives at the **next start or update**; a running engine keeps running until it is restarted |

@@ -40,7 +40,7 @@ id: reranker                                   # unique, internal
 name: Reranker                                 # what the row is called
 health:
   kind: http                                   # http | command | letapis
-  url: http://localhost:8086/health
+  url: http://127.0.0.1:8086/health
 start: nohup bash ~/.config/letapis-app/services/reranker.sh &
 restart_policy: manual                         # manual | unmanaged
 stop:
@@ -128,12 +128,15 @@ If a file has a syntax error the panel says so rather than starting with half a 
 | Service | Port | Bound to |
 |---|---|---|
 | Qdrant | 6333 REST, 6334 gRPC | all interfaces (Docker publishes them) |
-| Embedder | 12436 | `127.0.0.1` |
-| Reranker | 8086 | `127.0.0.1` |
+| Embedder | 12436 | `127.0.0.1` — the card's `host` |
+| Reranker | 8086 | `127.0.0.1` — the card's `host` |
 | letapis-core | 3131 | whatever its own configuration says |
 
-Both model servers listen on the loopback address only — the cards bind them there, so they
-are not reachable from your network, and nothing in this stack needs them to be. The engine's
-bind address is not the panel's to set: it comes from `server.host` in
+Both model servers listen on the loopback address by default — that is the `host` value in
+each card's `config.params`, which reaches the script as `LETAPIS_SVC_HOST` and becomes the
+server's `--host`. Nothing in this stack needs them to be reachable from your network, so
+change it only if something outside this machine has to call them; anything other than a
+loopback address exposes the model server to whatever can route to you. The engine's bind
+address is not the panel's to set: it comes from `server.host` in
 `~/.config/letapis/config.yaml`, the file the panel writes at first launch —
 [ONBOARDING.md § 3](../ONBOARDING.md#3-what-the-first-launch-made-for-you) describes it.

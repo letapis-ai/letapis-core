@@ -27,17 +27,21 @@ environment, and it uses the GPU through Metal without any further setup.
 | Format | GGUF, `Q8_0` | GGUF, `Q8_0` |
 | File the card expects | `~/models/harrier-oss-v1-0.6b-Q8_0.gguf` | `~/models/Qwen3-Reranker-0.6B.Q8_0.gguf` |
 | Weights on disk | ~610 MiB | ~610 MiB |
-| Resident memory, idle | **~4.2 GB** | **1.3–1.5 GB** |
+| Resident memory, idle | weights plus the KV cache for `ctx` | **1.3–1.5 GB** |
 | Listens on | `127.0.0.1:12436` | `127.0.0.1:8086` |
 | Health endpoint | `/v1/models` | `/health` |
 | Output dimensions | **1024** | — (returns scores) |
-| Context window | the model's own, 32768 | 4096 |
+| Context window | 8192 | 4096 |
 | Batch it processes at once | 512 (embedding mode clamps to it) | the context size |
 | Alias it serves under | `harrier-0.6b` | `qwen3-reranker-0.6b` |
 | Log | `/tmp/letapis-embedder.log` | `/tmp/letapis-reranker.log` |
 
-The memory figures are measured at idle, with the command each card produces; serving traffic
-adds to them. The reranker is a range because it is one — repeated runs settle anywhere in it.
+**The cards are the source for every number in that table that a card also carries** — the
+context windows, the ports, the aliases and the file paths. If a card and this page disagree,
+the card is what runs.
+
+The reranker's memory is measured at idle, with the command its card produces; serving traffic
+adds to it. It is a range because it is one — repeated runs settle anywhere in it.
 
 **Why the reranker's batch follows its context.** A batch smaller than the context makes the
 server refuse any document that does not fit it — `input is too large to process` — and cancel
@@ -48,9 +52,10 @@ by **characters** (`reranker.max_doc_chars`), the server measures **tokens**, an
 dense text crosses the line first. Keeping the batch at the context size is what removes the
 gap; if you raise `ctx` on the card, the batch follows it on its own.
 
-**Why the embedder is the hungry one.** Its 4.2 GB is almost all key-value cache, not weights:
-the server allocates the model's full 32k context across its slots. If memory is tight, the
-context window is the knob — see [services.md](services.md) for where `ctx` lives.
+**Why the embedder is the hungrier of the two.** Almost all of it is key-value cache rather
+than weights: the server reserves the whole context window for its slot, so the card's `ctx` is
+what decides the size of the process. If memory is tight, that is the knob — see
+[services.md](services.md) for where `ctx` lives.
 
 
 ## The dimension contract

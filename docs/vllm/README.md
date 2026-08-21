@@ -154,7 +154,7 @@ The panel's health probe, stop strategy and port already say `12436` and need no
 you do change is the card's `start:` line — it invokes
 `~/.config/letapis-app/services/embedder.sh`, and that script knows `llama-cpp` only. The panel
 passes `config.params` through as `LETAPIS_SVC_*` environment and never interprets them
-(see [services.md](https://github.com/letapis-ai/letapis-panel/blob/main/docs/services.md)).
+(see [services.md](../services.md)).
 
 **Add a branch to the shipped script — do not replace the file with a copy.** The `llama-cpp`
 branch carries guards and a flag set that exist for measured reasons, and a copy taken today
