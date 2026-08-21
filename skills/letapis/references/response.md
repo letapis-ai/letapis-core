@@ -24,11 +24,11 @@ technical query it answers *well*, because the words you typed are the words in 
 result looks like a good semantic answer and is a text match. Everything named differently was
 never considered.
 
-**What to do about it.** The floor is a single constant the engine applies to every query —
-`vector_floor`, `0.25` by default — not something computed from what you typed. When you leave
-`min_similarity` unset, that constant is what filtered the arm. Send an explicit lower value to
-override it for that one call. Expect a genuinely different set of files, not the same list with
-more of it.
+**What to do about it.** The hint names the way back itself, and the contract for that
+parameter is in its schema — read it there rather than from a second account here. What belongs
+on this page is how to read the outcome: expect a genuinely different set of files, not the same
+list with more of it. An arm that contributed nothing does not make the answer shorter, it makes
+it a different answer.
 
 ## An episode in a search result
 
@@ -86,9 +86,8 @@ The hint prints `fused: N → limit: M → returned: K`. `N` is the size of the 
 
 Three consequences, and skipping any of them makes the number lie:
 
-1. **A value at the ceiling is saturation and carries no information.** Proved, not argued: a
-   nonsense string at `limit 3` returned **12 of 12** — the arms hand over their quota for any
-   rubbish.
+1. **A value at the ceiling is saturation and carries no information.** A nonsense string at
+   `limit 3` returned **12 of 12** — the arms hand over their quota for any rubbish.
 2. `fused` is comparable across queries only at the same `limit`, and the actual `limit` is
    printed in the hint itself. Check it before comparing, not after. Beyond the ceiling, the pool
    width also decides whether `rrf_min_score` and the vector floor can fire at all — so two

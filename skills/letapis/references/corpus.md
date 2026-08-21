@@ -48,6 +48,10 @@ mcp__<engine>__list_folders()        # the per-folder layer
 mcp__<engine>__ignore_patterns()     # all layers, each one named and explained
 ```
 
+**A folder is taken WHOLE.** Build output, test-expectation files, notebooks and vendored copies
+are indexed as eagerly as sources, so look at what is in there before adding it — that is part of
+the job rather than a precaution. The moment of adding is also the cheapest moment to narrow it.
+
 **Ask before you write.** Most patterns written into a folder by hand turn out to add nothing:
 either a layer above already catches what they catch, or nothing in that folder matches them at
 all. Writing them costs nothing and is easy to keep doing for years, since the layers above are
@@ -143,10 +147,9 @@ default. You can still open the file directly, and the audit trail can find it a
 | "we archived that plan, it should not surface" | same |
 | results keep coming from an `*_archive/` path | worth proposing proactively |
 
-**Related calls:** `forget_folder(folder, reason)` hides a whole subtree in one go and is
-sibling-safe; `restore_document` and `restore_folder` undo either; `list_forgotten_documents`
-shows the audit trail with the reason and the time, and matches substrings of path and title only —
-it is not a semantic search.
+**Related calls:** `forget_folder(folder, reason)` hides a whole subtree in one go;
+`restore_document` and `restore_folder` undo either; `list_forgotten_documents` shows the audit
+trail with the reason and the time.
 
 **Write the reason for the person who finds it in a year** — same discipline, and the same
 worked examples, as for correcting a memory: [memory](memory.md) § Write the reason.

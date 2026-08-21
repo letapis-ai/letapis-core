@@ -53,6 +53,24 @@ for. A sweep is this same check applied to a change you just made (§ Meaning �
 **A query that returns the wrong thing is worth rewriting once before you reach for another
 tool.** Most disappointing results are a register mismatch, not an absence.
 
+### Which language to ask in
+
+Register is one axis, language is another, and on a corpus written in more than one they pull
+apart. Code spells its names in English whatever the team speaks; prose — docs, comments, notes —
+carries the project's own language. So the language of the question quietly picks the half of the
+corpus that answers it.
+
+- **Identifiers, proper names and technical terms: English**, because that is how the code
+  spells them and the keyword arm matches letters.
+- **Asking about prose: the language the prose is written in.**
+- **Asking about code: English plus a name FROM the code.** `RerankerService rerank` beats a
+  description of what the thing does — the identifier exists in the source and not in the
+  documentation, so the keyword arm has something to catch on.
+
+Measured on our corpus: one question about file handlers returned **zero** `.py` files asked in
+the prose language and **seven** asked in English. The failure is quiet — a fluent, plausible
+answer built entirely from documentation, with the implementation never considered.
+
 ### `instruction` — the same query, a different facet
 
 An instruction tells the embedding model what kind of thing you are after, which is often faster
@@ -67,12 +85,9 @@ mcp__<engine>__search(query="batch processing", instruction="Find configuration 
 Reach for it when a query returns a mix of docs, code and tests and you wanted one of them. Skip
 it when the query is already specific, or when you deliberately want everything.
 
-**An instruction does two things, and the second one is not about the model at all.** Beyond
-focusing the embedding, it changes how the engine sets its own similarity threshold: a query is
-treated as descriptive when it is long *or* when it carries an instruction. On a two-word query
-that flips the threshold from strict to lenient in one step — so adding an instruction to a short
-query widens the result set for a reason that has nothing to do with phrasing, and you cannot read
-that from the output.
+**An instruction changes the embedding and nothing else.** It does not move the similarity floor:
+that is one constant the engine applies to every query, whatever its length and whether or not an
+instruction came with it.
 
 **Where the model's own response to instructions is concerned, corpora differ.** On some
 embedders a well-aimed instruction sharpens a vague query; on others it narrows toward the named
@@ -119,7 +134,6 @@ The rest of the knobs change the shape of the answer rather than its scope:
 |---|---|
 | `prev_next_chunks` | 0–5 neighbouring chunks — the cure for an excerpt that stops mid-thought |
 | `depth` | 1–3 hops along the graph, returning the neighbourhood of a match rather than the match alone |
-| `min_similarity` | a floor for the **vector** arm only; keyword hits are not subject to it, so a high value can empty one arm and leave the other answering alone. **There is always a threshold** — leave this unset and the engine computes one from the shape of your query; setting it replaces that, it does not switch it on |
 | `use_reranker` | on by default; `false` gives the raw fused order — see below for when it earns its place |
 | `include_forgotten` | brings back material deliberately retired — the only way to search what was hidden, and exactly what you want when asking what the corpus *used to* say |
 | `verbose` | the full metadata behind each hit |

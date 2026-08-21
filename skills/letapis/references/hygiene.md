@@ -22,17 +22,23 @@ steps that someone takes on purpose.
 ## How to run it
 
 ```python
-mcp__<engine>__ena_hygiene_scan()                          # the standard pass
+op = mcp__<engine>__ena_hygiene_scan()                          # the standard pass
+mcp__<engine>__get_operation(operation_id=op["operation_id"])   # report in detail.result
+
 mcp__<engine>__ena_hygiene_scan(with_graph=True)           # also flags episodes with no causal links; slower
 mcp__<engine>__ena_hygiene_scan(stale_factor=2, cap=100)   # widen or narrow what counts
 ```
+
+**The scan runs in the background and the call does not return the report.** It hands back an
+`operation_id`; the report arrives in `detail.result` once `get_operation` reports completed.
+Reading the first answer as the result shows no findings, which looks exactly like clean memory.
 
 `<engine>` is the server name from your own configuration — see [SKILL.md](../SKILL.md)
 § Addressing an engine. **Run this against the engine that holds your episodes**, which with
 several registered is a choice, not a formality.
 
-The engine runs the scan against its own store and hands back the report, so this works the same
-whether it sits on this machine or elsewhere. Nothing is needed locally.
+The engine runs the scan against its own store, so this works the same whether it sits on this
+machine or elsewhere.
 
 The report has two halves: a `summary` — how many episodes were scanned, the count per flag, and
 coverage — and `candidates`, the shortlist per flag.
@@ -114,17 +120,29 @@ These are downstream of the audit, and none of them are part of it:
 
 Their detail lives in [memory](memory.md).
 
-## Mending what the scan found: `letapis doctor`
+## Mending what the scan found
 
-The scan reads. Mending is a separate command of the engine itself, run from a terminal:
+The scan reads. Mending is a separate act, and there are two doors to it.
+
+**From a session**, for the carrier faults — a record whose `.md` is missing, a pointer to a file
+that moved:
+
+```python
+mcp__<engine>__memory_repair_carriers()              # dry: names what it would do
+mcp__<engine>__memory_repair_carriers(apply=True)    # writes the missing files, repoints the rest
+```
+
+It is dry unless `apply=True` and deletes nothing.
+
+**From a terminal**, for the full set:
 
 ```bash
 letapis doctor --dry-run      # report only, writes nothing
 letapis doctor --apply        # mend what has a mend
 ```
 
-It is a command rather than a tool an agent can call, and that is deliberate. Repairing a memory
-is a rare act with a person behind it, not something to reach for between two other things.
+Repairing a memory is a rare act with a person behind it, so neither door is something to reach
+for between two other things.
 
 ### What it mends, and what it only names
 

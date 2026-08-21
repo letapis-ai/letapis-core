@@ -56,6 +56,13 @@ Four operations change state, and three of them destroy data that has to be rebu
 | `force_reindex` | deletes everything indexed for a folder and rebuilds it | the folder is unsearchable until it finishes, which on a large corpus is not quick |
 | `remove_folder` | removes a folder's data and stops watching it | the index is gone; the files on disk are untouched |
 
+**Two things about `cleanup_orphaned_files` are worth knowing before you call it**, and neither is
+visible from its own answer. Narrowing a watch and then running it drops the newly-excluded files
+from the index — the sweep judges against the folder's CURRENT patterns, not the ones it was
+indexed under. And a chunk whose parent file node is gone is still returned by search today,
+because search groups chunks by `parent_file_path` without checking that the parent exists; so
+removing one takes findable content out of answers rather than tidying bookkeeping.
+
 **None of these is a diagnostic step.** They are what you do *after* a diagnosis, with the
 agreement of whoever owns the corpus — a reindex started to see whether it helps is a reindex
 started without knowing what was wrong. If the answer to "why is this happening" is not yet in
