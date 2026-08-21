@@ -6,19 +6,19 @@ whole `letapis.app` directory, not a single file — downloading, checking and i
 exactly as it does on a Linux server where no panel exists. The panel's part is to ask
 it to, and then to restart it, which is the one thing a running program cannot do for itself.
 
-The panel therefore knows **one** address, its own — and **it is inside the program**. A released
+The panel therefore knows **one** address, its own, and **it is inside the program**. A released
 panel carries the address it updates from; there is no file to edit, nothing to point elsewhere,
 and nothing on your disk that decides where your panel looks. Moving the channel is done by
 publishing a new build, which is the only way that reaches everybody.
 
 That is deliberate, and the reason is worth one sentence: an address kept in a config file is
-written once and never rewritten, so it would outlive every later decision — a panel installed
+written once and never rewritten, so it would outlive every later decision: a panel installed
 today would still be asking yesterday's address years from now, and nobody could change it.
 
 **The engine does not carry an address either.** It asks the licence service where its channel
 is and what that channel holds, so there is nothing on your disk, and nothing in its environment,
 that points it anywhere. Neither program can be aimed at a different channel by editing something
-on this machine — that is the whole design, not a limitation of it.
+on this machine. That is the whole design, not a limitation of it.
 
 > **Building the panel yourself?** A build made from source carries no address, and says so
 > instead of guessing: the Update button reports *Panel update channel is not configured*. Give
@@ -35,7 +35,7 @@ on this machine — that is the whole design, not a limitation of it.
 ## Updating
 
 What changed in the version you are moving to is in
-[release-notes.md](release-notes.md) — read it before updating, in case it asks
+[release-notes.md](release-notes.md). Read it before updating, in case it asks
 something of you.
 
 One button, **Update**, in the panel's toolbar. It asks both — the engine's channel through the

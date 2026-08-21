@@ -1,11 +1,11 @@
 # The other embedder: vllm-mlx
 
-The kit ships **llama.cpp** for both models, and that is the supported path — nothing on this
+The kit ships **llama.cpp** for both models, and that is the supported path; nothing on this
 page is needed to run letapis. **vllm-mlx** is a vLLM-shaped server for Apple silicon and an
 alternative for the embedder only; the reranker stays on `llama-server` either way.
 
 It answers on **the same port as the default embedder, `12436`**, and speaks the same
-OpenAI-shaped `/v1/embeddings`. The address is a constant here and the runtime is a choice —
+OpenAI-shaped `/v1/embeddings`. The address is a constant here and the runtime is a choice;
 that is why the port is shared.
 
 **Use 0.4.1 or newer.** Earlier versions cap every input at 512 tokens and drop the rest without
@@ -25,7 +25,7 @@ strategy — stays as it is.
 | Dimensions | 1024 | 1024 |
 | **`embeddings.model`** | `harrier-0.6b` (the alias) | **the absolute model path** |
 
-The left column is the profile this kit ships, not the schema's own defaults — those are
+The left column is the profile this kit ships, not the schema's own defaults. Those are
 different for `embeddings.model`, which defaults to `nomic-embed-text` and is set to
 `harrier-0.6b` by the shipped configuration.
 
@@ -37,7 +37,7 @@ are throughput: vllm-mlx works at the shipped values, just slower.
 | `embeddings.sender_workers` | 1 | 4 |
 | `embeddings.token_batch_size` | 512 | 2048 |
 
-Same model, same width, same address — vectors from one are comparable with vectors from the
+Same model, same width, same address: vectors from one are comparable with vectors from the
 other. A different **model** would not be; that is a re-index, not a swap.
 
 ## The name in `embeddings.model` is not the alias
@@ -61,11 +61,11 @@ right value; here it is the one setting that must change.
 **Write it absolute.** The engine does not expand `~` in config values: the file is parsed as
 plain YAML and `embeddings.model` travels into the request body untouched, so `~/models/…`
 reaches the server as a directory literally named `~` and is refused exactly like the alias.
-(The panel's service card is a different consumer — `embedder.sh` does expand `~` there.)
+(The panel's service card is a different consumer; `embedder.sh` does expand `~` there.)
 
 **A green health lamp does not mean embeddings work.** `/v1/models` lists both names and answers
 200 to both, and that route is the panel's health probe. The card goes green, the install check
-passes, and every embedding call fails — which surfaces much later as an index that produced
+passes, and every embedding call fails, which surfaces much later as an index that produced
 nodes and not one vector.
 
 **So check the runtime with a real embedding, never with `/v1/models`:**
@@ -78,7 +78,7 @@ curl -sS http://127.0.0.1:12436/v1/embeddings \
 ```
 
 `1024` means the embedder works. An HTTP 400 with the text above means the model name is the
-alias — fix `embeddings.model`, not the server.
+alias: fix `embeddings.model`, not the server.
 
 **Why the other two settings differ.** The shipped `embedder.sh` starts llama.cpp with
 `--parallel 1` and `--batch-size 512 --ubatch-size 512`, so the engine sends one request at a
@@ -87,7 +87,7 @@ concurrent requests, so four senders and a larger batch are useful rather than q
 
 ## What changes in your configuration
 
-The panel's service card — four values, and the rest of the card is untouched:
+Four values change on the panel's service card, and the rest of it is untouched:
 
 ```yaml
 config:
@@ -104,7 +104,7 @@ logs:
 
 `health`, `port` and `stop` are shared and stay as they are.
 
-The engine's `embeddings` section — the three settings from the table, in place:
+The engine's `embeddings` section, with the three settings from the table in place:
 
 ```yaml
 embeddings:
@@ -123,7 +123,7 @@ embeddings:
 
 ## Where it comes from
 
-Install from PyPI with `uv` — a wheel, not a git checkout:
+Install from PyPI with `uv`, a wheel rather than a git checkout:
 
 ```bash
 uv venv ~/.venv-vllm-mlx --python 3.12
@@ -146,10 +146,10 @@ and carries the tags the releases are cut from.
 ```
 
 Whatever path you pass to `--embedding-model` is the string the engine must put in
-`embeddings.model` — see above.
+`embeddings.model`; see above.
 
 The panel's health probe, stop strategy and port already say `12436` and need no editing. What
-you do change is the card's `start:` line — it invokes
+you do change is the card's `start:` line. It invokes
 `~/.config/letapis-app/services/embedder.sh`, and that script knows `llama-cpp` only. The panel
 passes `config.params` through as `LETAPIS_SVC_*` environment and never interprets them
 (see [services.md](../services.md)).

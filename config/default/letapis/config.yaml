@@ -1,21 +1,21 @@
-# letapis engine — a working configuration, not a minimal one.
+# letapis engine: a working configuration, not a minimal one.
 #
 # This is the file a running machine actually uses, copied here so you can see real values
 # rather than guess them. Take it as it is, or take the parts you need: the engine falls back
 # to its own defaults for anything you leave out.
 #
-# The addresses must agree with the panel's service cards — those are what start the programs.
+# The addresses must agree with the panel's service cards; those are what start the programs.
 # Change a port there and change it here to match.
 #
 # Loopback is spelled 127.0.0.1 throughout, deliberately. On macOS `localhost` resolves to ::1
-# first, and llama-server listens on IPv4 only — a client that says `localhost` can miss it.
+# first, and llama-server listens on IPv4 only, so a client that says `localhost` can miss it.
 #
 # A misspelled key is ignored and the engine keeps its own default, so a typo looks exactly
-# like an applied setting. The engine names what it ignored when it starts — worth a glance
+# like an applied setting. The engine names what it ignored when it starts, worth a glance
 # at its log after you change anything here.
 #
 # A line marked [default] repeats the value the engine would use anyway. Delete it and nothing
-# changes today; keep it and the value is pinned here — a later engine that changes that
+# changes today; keep it and the value is pinned here, so a later engine that changes that
 # default will not change yours.
 
 server:
@@ -23,7 +23,7 @@ server:
   port: 3131                    # the panel's engine card checks this port
   name: "letapis"               # [default]
   api_keys: []                  # [default] empty = no key required; see ONBOARDING §8 first
-  cors_origins: ["*"]           # [default] any origin may call in — same section explains it
+  cors_origins: ["*"]           # [default] any origin may call in; same section explains it
 
 qdrant:
   url: "http://127.0.0.1:6333"
@@ -38,7 +38,7 @@ embeddings:
   dimensions: 1024              # [default] must match the model; changing it means reindexing everything
   token_batch_size: 512         # tokens per request to the embedder
   chars_per_token: 2            # [default] how text length is estimated before tokenising
-  chunk_size: 1024              # [default] characters per chunk — with the ratio above, ~512 tokens
+  chunk_size: 1024              # [default] characters per chunk; with the ratio above, ~512 tokens
   chunk_overlap: 128            # [default] characters shared between neighbouring chunks
   delay_ms: 0                   # [default] pause between requests; raise only to spare a shared GPU
   idle_timeout_ms: 200          # a partly filled batch is sent after this much quiet
@@ -58,7 +58,7 @@ search:
   # The tail is also cut after reranking by the shape of the score curve, so an answer is often
   # shorter than this. Raise it if your questions have list-shaped answers.
   default_limit: 3
-  rrf_k: 60                     # [default] rank-fusion constant — how sharply top ranks outweigh the tail
+  rrf_k: 60                     # [default] rank-fusion constant; how sharply top ranks outweigh the tail
   # One similarity floor applies to every query, whatever its length. Candidates from the
   # vector branch that score below it are dropped before the two branches are merged; the
   # keyword branch is not affected. A request may still name its own floor for that call.

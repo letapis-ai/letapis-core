@@ -1,12 +1,12 @@
 # letapis-core
 
-The engine's public home: how to install it, how to license it, what it expects of the machine —
+The engine's public home: how to install it, how to license it, what it expects of the machine,
 and the **MCP proxy**, which is how an assistant talks to it.
 
 The engine itself is licensed, and it is not in this repository. You receive it from us with your
 licence key; there is no public download. What is here is everything you need around it.
 
-**Installing for the first time? → [ONBOARDING.md](ONBOARDING.md)** — the whole path on one page,
+**Installing for the first time? → [ONBOARDING.md](ONBOARDING.md).** The whole path on one page,
 in order, with a box to tick at every step. The pages below are the long versions of its steps.
 
 ## Start here
@@ -21,7 +21,7 @@ in order, with a box to tick at every step. The pages below are the long version
 | Go back to a previous engine version | [docs/updating.md](docs/updating.md) |
 | See what changed in this version | [docs/release-notes.md](docs/release-notes.md) |
 
-**Installing from nothing?** Start with the panel instead — it brings up Docker, Qdrant and the
+**Installing from nothing?** Start with the panel instead: it brings up Docker, Qdrant and the
 two model servers, and this repository picks up from there:
 [letapis-ai/letapis-panel](https://github.com/letapis-ai/letapis-panel).
 
@@ -31,7 +31,7 @@ two model servers, and this repository picks up from there:
 passes them through as they are. It holds no tool definitions of its own, which is why a new
 capability in the engine needs no new version of this.
 
-It is a normal Python package — install it, point it at your engine with `LETAPIS_SERVER_URL`,
+It is a normal Python package: install it, point it at your engine with `LETAPIS_SERVER_URL`,
 and register it with your client. [letapis-mcp/README.md](letapis-mcp/README.md) has the config
 blocks for the common clients.
 
@@ -40,7 +40,7 @@ they let you check the proxy works against your own engine rather than taking ou
 
 ## Something wrong, something missing?
 
-**Open an issue.** That is what this repository is for as much as the files in it — it is the one
+**Open an issue.** That is what this repository is for as much as the files in it. It is the one
 place you can reach us about the engine.
 
 ## What is not here, and why
