@@ -134,7 +134,6 @@ The rest of the knobs change the shape of the answer rather than its scope:
 |---|---|
 | `prev_next_chunks` | 0–5 neighbouring chunks — the cure for an excerpt that stops mid-thought |
 | `depth` | 1–3 hops along the graph, returning the neighbourhood of a match rather than the match alone |
-| `min_similarity` | a floor for the **vector** arm only; keyword hits are not subject to it, so a high value can empty one arm and leave the other answering alone. **There is always a threshold** — unset, the engine applies one constant to every query; setting this replaces that constant, it does not switch a filter on |
 | `use_reranker` | on by default; `false` gives the raw fused order — see below for when it earns its place |
 | `include_forgotten` | brings back material deliberately retired — the only way to search what was hidden, and exactly what you want when asking what the corpus *used to* say |
 | `verbose` | the full metadata behind each hit |

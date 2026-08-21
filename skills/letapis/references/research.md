@@ -76,7 +76,6 @@ mcp__<engine>__search(query="penalties deadlines enforcement",
 | `scope_id` | required — this is what confines the query to your document |
 | `limit` | 3–5 when you are after a specific passage, 10–15 for a survey |
 | `prev_next_chunks` | 1–2 when an excerpt is likely to cut off mid-thought, 0 for precise hits |
-| `min_similarity` | lower for a broad sweep, higher when you know roughly what you want |
 
 **Ask in the document's own language.** A query in English against a document written in another
 language matches far worse than the same query in its language — and mixing a structural marker
