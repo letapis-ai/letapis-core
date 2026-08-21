@@ -36,45 +36,15 @@ ALWAYS_LOAD_META: dict[str, Any] = {"anthropic/alwaysLoad": True}
 #: Tools whose descriptions stay in the caller's window from the first second.
 #:
 #: The rest of the surface is deferred: the caller sees the names and fetches a
-#: description when it decides to call one. That trade is only worth making if the
-#: pinned few are the ones actually reached for, so the list comes from telemetry
-#: rather than taste. Over the 14 days to 2026-08-20, across the domain's heads:
-#:
-#:     blast_radius     693 calls
-#:     search           660
-#:     list_folders      44
-#:     ena_get_context   17
-#:     everything else   single figures
-#:
-#: `search` and `blast_radius` are 95% of all calls to the server.
-#:
-#: The boundary of that measurement, which matters before anyone re-derives the
-#: list: only heads with telemetry on are counted. Calls from codex heads and from
-#: sessions without OTEL are not in it, so the tail is undercounted rather than
-#: absent — a tool being low here is weaker evidence than a tool being high.
-#:
-#: `ena_get_context` is the third name, and it is NOT there on that count. Its 17
-#: calls are stated above rather than hidden, and they argue against it. They are
-#: not the reason, because they measure the wrong thing: the window they were
-#: recorded in showed memory next to everything else, so they say how heads
-#: BEHAVED, not whether recall is worth reaching for. A head cannot ask "did we
-#: decide this before" until it knows the question is askable, and the description
-#: is where it learns that. The owner decided on 2026-08-20 that recall belongs in
-#: the window regardless of the count; whether the count then moves is the real
-#: measurement, and the same query a week after this change is what answers it.
-#:
-#: Adding a name costs its description in every session of every head that mounts
-#: this proxy, forever. The whole surface is 13 851 characters and `search` alone is
-#: 1 873 of them, so this list is short on purpose. `ena_get_context` costs 59
-#: characters (`Recall episodic memories (decisions, milestones, insights).`),
-#: which is why a name this thin on calls can still be worth pinning — and why the
-#: same argument does not carry over to a description ten times its size.
+#: description when it decides to call one. Pinning a name costs its description in
+#: every session that mounts this proxy, so the list is short by design. The two
+#: search tools are here because a session reaches for them constantly; recall is
+#: here because a caller cannot ask whether something was decided before until it
+#: knows the question is askable, and the description is where it learns that.
 #:
 #: One name from the memory group, not the group. The engine serves eight `ena_`
 #: tools; the other seven write, correct, forget, audit, or read memory along one
-#: narrow axis (a time window, the forgotten list), and a head reaches for those
-#: knowing already what it wants. Only this one is how a head remembers at all, so
-#: only this one has to be visible before the head thinks to look.
+#: narrow axis, and a caller reaches for those knowing already what it wants.
 ALWAYS_LOADED: tuple[str, ...] = ("search", "blast_radius", "ena_get_context")
 
 
@@ -115,7 +85,6 @@ def get_paths() -> PathHandler:
     return _paths
 
 
-# Create low-level MCP server
 server = Server("letapis")
 
 
@@ -201,8 +170,7 @@ async def list_tools() -> list[types.Tool]:
                 # how an agent decides letapis is not worth the trouble and leaves
                 # for grep (the reason the whole surface is success-shaped, above).
                 # It costs nothing while the engine is up: then this tool does not
-                # exist. Frequency, which decides ALWAYS_LOADED, does not apply to a
-                # message that only ever appears when something is wrong.
+                # exist at all.
                 _meta=dict(ALWAYS_LOAD_META),
             ),
             FETCH_FILE_TOOL,
@@ -258,7 +226,6 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResul
             _tools_cache.clear()
             return _to_call_result(_core_unavailable_result())
 
-    # Coerce types before proxying
     arguments = _coerce_arguments(name, arguments)
 
     # Proxy to letapis-core
@@ -387,14 +354,11 @@ async def _async_main(config_path: str | None = None) -> None:
     """Async initialization and run."""
     global _client, _paths, _config, _tools_cache
 
-    # Load config
     _config = Config.load(config_path=config_path)
 
-    # Initialize path handler
     _paths = PathHandler(_config)
     _paths.init_cache()
 
-    # Initialize HTTP client
     _client = letapisClient(_config)
     await _client.start()
 
@@ -453,7 +417,6 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    # Log startup
     sys.stderr.write("[letapis-mcp] Starting with dynamic tool schema...\n")
     sys.stderr.flush()
 

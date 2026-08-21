@@ -73,7 +73,6 @@ class Config:
         """
         config = cls()
 
-        # Try to load config file
         path_to_load: Path | None = None
 
         if config_path:
@@ -97,7 +96,6 @@ class Config:
         if path_to_load and path_to_load.exists():
             config = cls._load_from_file(path_to_load)
 
-        # Override with environment variables
         config = cls._apply_env_overrides(config)
 
         return config

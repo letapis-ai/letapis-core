@@ -1,4 +1,4 @@
-"""Three tools stay in the window, the other forty-seven arrive on demand.
+"""Three tools stay in the window, and the rest of the surface arrives on demand.
 
 The proxy marks a named few with ``_meta: {"anthropic/alwaysLoad": true}`` so the
 client keeps their descriptions loaded once the SERVER-level `alwaysLoad` is off.
@@ -200,11 +200,11 @@ async def test_the_outage_message_is_pinned_even_when_the_list_is_empty(monkeypa
 @pytest.mark.asyncio
 @pytest.mark.parametrize("client", [FakeClientUp(), FakeClientDown()])
 async def test_fetch_file_is_never_pinned(monkeypatch, client):
-    """`fetch_file` stays deferred in both lists, and that is a decision.
+    """`fetch_file` stays deferred in both lists.
 
     It is an ordinary tool, not a message about an outage: its description explains
-    when to reach for it, which is read at the moment of reaching. 179 characters in
-    every window forever against single-figure use is the wrong side of the trade.
+    when to reach for it, and that is read at the moment of reaching. Pinning it
+    would spend a window slot on a tool nobody needs told about in advance.
     """
     monkeypatch.setattr(srv, "_client", client)
     tools = {t.name: t for t in await srv.list_tools()}
