@@ -29,8 +29,8 @@ but it answers from the older cut until it is read again: run `force_reindex` on
   they could only be chosen when the folder was added, and changing them meant removing the
   folder and losing its index. `odoo_aware` can now be set at registration rather than in a
   second call.
-- **No chunk is larger than the embedder's window.** Every writer bounds its chunks before they
-  are embedded, and the store refuses a chunk that is not — an oversized chunk used to be
+- **No chunk is larger than the embedder's window.** Text is bounded to it before it is
+  embedded, and a chunk that is not is refused rather than stored — an oversized chunk used to be
   embedded whole and truncated by the model, which produced a plausible vector for a text the
   model had only partly read. Markdown is cut by the configured `embeddings.chunk_size`.
 - **Files are read as UTF-8 explicitly**, so the engine starts and indexes the same way whatever
@@ -60,8 +60,8 @@ but it answers from the older cut until it is read again: run `force_reindex` on
   their description, so a client can act on it without reading prose. Tool and parameter
   descriptions were rewritten against the code they describe.
 
-A large part of this release is internal rework — the cutting pipeline, the record layer and the
-test harness — with no change to behaviour or to anything the caller sees.
+A large part of this release is not visible from the outside and changes nothing in how the
+engine behaves.
 
 ## Configuration
 
