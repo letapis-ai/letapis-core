@@ -100,8 +100,9 @@ at a time.
 
 Work from the bottom of the stack up — each service depends on the ones started before it:
 
-1. **Docker daemon** grey or red → Docker Desktop is not running.
-2. **Qdrant** red → Docker is up but the container is not; press Start.
+1. **Docker daemon** or **Podman machine** grey or red → that runtime is not running. The panel
+   shows a card only for a runtime that is actually installed, so you see the one you have.
+2. **Qdrant** red → the runtime is up but the container is not; press Start.
 3. **Embedder / Reranker** red → open the row's log. The scripts fail loudly and name the cause
    ([models.md](models.md)).
 4. **letapis-core** red → open `/tmp/letapis-core.log`. The engine is the only piece that can

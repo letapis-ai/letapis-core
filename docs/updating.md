@@ -128,6 +128,7 @@ system service. Removing it is removing files, in this order:
 
 ```bash
 # 1. Quit the panel from its menu-bar menu, and stop what it was supervising.
+#    Use the runtime you installed — docker or podman; the commands are the same either way.
 docker stop letapis-qdrant
 
 # 2. The app.
@@ -143,18 +144,23 @@ rm -rf ~/.local/letapis-core ~/.config/letapis
 rm -f ~/models/harrier-oss-v1-0.6b-Q8_0.gguf ~/models/Qwen3-Reranker-0.6B.Q8_0.gguf
 ```
 
-**The index is separate, and outlives all of the above.** It lives in a Docker volume:
+**The index is separate, and outlives all of the above.** It lives in a volume of your container
+runtime — `docker` below, `podman` if that is the one you use; the two take the same arguments:
 
 ```bash
 docker rm letapis-qdrant                       # the container — harmless, rebuilt on demand
 docker volume rm letapis_qdrant_storage        # the index itself — NOT recoverable
 ```
 
+A volume belongs to the runtime that created it. If you switch from one runtime to the other, the
+old index stays where it was and the new runtime starts empty — moving it is a copy, not a
+setting.
+
 Remove the volume only when you mean to lose everything the engine indexed. Re-indexing a large
 corpus is measured in hours.
 
 **Reinstalling** is this page's opposite read backwards, with one shortcut: if you kept
-`~/.config/letapis-app/` and the Docker volume, a fresh panel picks up your existing cards and
+`~/.config/letapis-app/` and the container volume, a fresh panel picks up your existing cards and
 your existing index, and the stack comes up where it left off. If you are moving to a new
 machine, the new one has to be logged in on its own — see [licence.md](licence.md). Do not carry
 the engine's data directory across: both machines would work until the licence string is renewed,

@@ -32,8 +32,8 @@ stays silent. You never need to type an FYI box for the installation to succeed.
 | **OS** | macOS **13.0** or newer | the panel's minimum system version |
 | **Chip** | Apple silicon | the models run on the GPU through Metal |
 | **Memory** | **16 GB** or more | the two models together hold roughly 5.5 GB resident (see [models.md](docs/models.md)); the engine and Qdrant want their share on top |
-| **Disk** | **~10 GB** to install, plus room for the index | Docker Desktop is ~4 GB of it, the two models ~1.2 GB, the Qdrant image ~300 MB. Already have Docker? Then 4 GB is enough to install the rest. The index grows under Qdrant as the engine feeds it — plan for that separately |
-| **Docker Desktop** | installed | Qdrant runs as a container |
+| **Disk** | **~10 GB** to install, plus room for the index | Docker Desktop is ~4 GB of it, the two models ~1.2 GB, the Qdrant image ~300 MB. Already have Docker or Podman? Then 4 GB is enough to install the rest. The index grows under Qdrant as the engine feeds it — plan for that separately |
+| **Docker Desktop** *or* **Podman** | one of them installed | Qdrant runs as a container, and either runtime can run it |
 | **llama.cpp** | installed | both models run under its `llama-server` |
 | **Homebrew** | installed | how llama.cpp gets onto the machine |
 
@@ -44,22 +44,49 @@ stays silent. You never need to type an FYI box for the installation to succeed.
 
 ## 1. Two dependencies
 
-The panel supervises Docker and the model servers; it does not install them.
+The panel supervises your container runtime and the model servers; it does not install them.
 
 - [ ] **Homebrew** — not part of macOS. If `brew --version` does not answer, install it from
       [brew.sh](https://brew.sh) and follow the "Next steps" it prints (on Apple silicon it asks
       you to put `/opt/homebrew/bin` on your `PATH`, and `brew` does not work until you do).
 - [ ] **llama.cpp** — `brew install llama.cpp`
-- [ ] **Docker Desktop** — download from [docker.com](https://www.docker.com/products/docker-desktop/)
-      and open it once so it can finish its own setup. Installing it through Homebrew instead
-      (`brew install --cask docker-desktop`) asks for your **admin password** partway through,
-      to put its credential helper on the system path. That is expected, and it needs a terminal
-      you can type into.
+- [ ] **A container runtime.** Qdrant runs as a container, so the machine needs something to run
+      containers with. Either Docker or Podman will do, and you do not need both. The panel looks
+      for what is installed and shows a card for the one it finds, so there is nothing to
+      configure by hand.
+
+      **Docker Desktop** — download it from
+      [docker.com](https://www.docker.com/products/docker-desktop/) and open it once so it can
+      finish its own setup. If you install it through Homebrew instead
+      (`brew install --cask docker-desktop`), it will ask for your **admin password** partway
+      through, because it puts its credential helper on the system path. That is expected, and it
+      needs a terminal you can type into.
+
+      **Podman** — there are two ways in, and they leave you at different points.
+
+      Through [Podman Desktop](https://podman-desktop.io): install the application, open it, and
+      let it install the Podman engine and create the machine when it offers to. Installing the
+      application by itself is not enough — it is a window onto the runtime rather than the
+      runtime, and it keeps the engine's installer inside itself until you go through that step.
+
+      Through Homebrew: `brew install podman` puts the engine on the machine and stops there. It
+      does not create the virtual machine, so you have to do that yourself:
+
+      ```bash
+      podman machine init          # create the virtual machine — once, and it takes a few minutes
+      podman machine start         # start it — after a reboot as well
+      ```
+
+      Podman on macOS has no daemon that runs all the time: containers run inside that virtual
+      machine, and nothing works until it exists and is running. The panel's Podman card starts
+      an existing machine when you press Start, but it cannot create one — if you skip
+      `podman machine init`, the card stays red and Start answers `VM does not exist`.
 
 **Worked?**
 
 ```bash
-brew --version && llama-server --version && docker info >/dev/null && echo "all three answer"
+brew --version && llama-server --version && \
+  { docker info >/dev/null 2>&1 || podman info >/dev/null 2>&1; } && echo "all three answer"
 ```
 
 ---

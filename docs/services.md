@@ -62,12 +62,50 @@ config:
 
 | Field | What it decides |
 |---|---|
-| `health` | how the lamp is lit. `http` — a GET returning 2xx. `command` — a shell command exiting 0 (this is how the Docker daemon is checked). `letapis` — the same 2xx rule, but the reply is also read as an engine health payload, which is where the version and update lines on the engine row come from |
+| `health` | how the lamp is lit. `http` — a GET returning 2xx. `command` — a shell command exiting 0 (this is how a container runtime is checked). `letapis` — the same 2xx rule, but the reply is also read as an engine health payload, which is where the version and update lines on the engine row come from |
 | `start` | the command the Start button runs. Absent → no Start button |
-| `stop` | `port` kills whatever process tree is listening there; `docker` runs `docker stop`. Absent → no Stop button |
-| `logs` | what the Logs button opens: a file in Console, or `docker logs` in a terminal |
+| `stop` | `port` kills whatever process tree is listening there; `docker` stops a container. Absent → no Stop button |
+| `logs` | what the Logs button opens: a file in Console, or the container's log in a terminal |
+| `requires_runtime` | the card is shown only when that container runtime is on the machine. `docker`, `podman`, or `any` for a card that works with whichever one is present. Absent → the card is always shown |
 | `config.file` | what the pencil button opens |
 | `config.params` | key/value pairs handed to the start command as environment, upper-cased and prefixed: `port: '8086'` arrives as `LETAPIS_SVC_PORT=8086` |
+
+## Docker or Podman
+
+The panel works with either container runtime and shows a card only for the one that is actually
+installed — a runtime you do not have does not sit there as a red lamp. If both are installed,
+both cards appear.
+
+A card that runs a container does not name the runtime itself. It writes `{{runtime}}`, and the
+panel substitutes whichever runtime it found:
+
+```yaml
+id: qdrant
+name: Qdrant
+requires_runtime: any                          # docker | podman | any
+health:
+  kind: http
+  url: http://127.0.0.1:6333/healthz
+start: '{{runtime}} start letapis-qdrant || {{runtime}} run -d --name letapis-qdrant …'
+stop:
+  kind: docker                                 # the container form; the runtime is filled in
+  container: letapis-qdrant
+logs:
+  kind: docker
+  container: letapis-qdrant
+```
+
+`kind: docker` keeps its spelling for configurations written before Podman was supported: an
+existing file goes on working untouched, and the runtime is filled in by the panel rather than
+by the word in the file.
+
+Podman on macOS has no daemon that runs all the time. Its work is done by a virtual machine,
+which has to be running before containers will start, and the Podman card starts that machine
+(`podman machine start`) when you press Start.
+
+A card whose runtime is not installed is not shown at all, and it does not turn the menu-bar icon
+red — an absent runtime is not a broken service. When the panel finds a runtime it has no card
+for, it adds one; the cards you already have are never rewritten.
 
 **The panel does not interpret `params`.** It passes them through; the script decides what a
 key means and which flag it becomes, so changing a model runtime is an edit to a `.sh` file,
