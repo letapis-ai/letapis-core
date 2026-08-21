@@ -41,7 +41,7 @@ context windows, the ports, the aliases and the file paths. If a card and this p
 the card is what runs.
 
 The reranker's memory is measured at idle, with the command its card produces; serving traffic
-adds to it. It is a range because it is one — repeated runs settle anywhere in it.
+adds to it. It is a range because it is one: repeated runs settle anywhere in it.
 
 **Why the reranker's batch follows its context.** A batch smaller than the context makes the
 server refuse any document that does not fit it — `input is too large to process` — and cancel
@@ -54,15 +54,14 @@ gap; if you raise `ctx` on the card, the batch follows it on its own.
 
 **Why the embedder is the hungrier of the two.** Almost all of it is key-value cache rather
 than weights: the server reserves the whole context window for its slot, so the card's `ctx` is
-what decides the size of the process. If memory is tight, that is the knob — see
+what decides the size of the process. If memory is tight, that is the knob; see
 [services.md](services.md) for where `ctx` lives.
 
 
 ## The dimension contract
 
 The engine's configuration declares the size of the vectors it stores, and the Qdrant
-collection is created with that size. The embedder must produce vectors of exactly that size —
-**1024** with the model above.
+collection is created with that size. The embedder must produce vectors of exactly that size, **1024** with the model above.
 
 Change the embedder for one with a different output size and the existing collection stops
 accepting writes; a collection built at the new size cannot be searched with vectors from the
@@ -78,7 +77,7 @@ old one. Changing embedder means re-indexing from scratch.
 | Licence | MIT | Apache-2.0 |
 | Upstream model | `microsoft/harrier-oss-v1-0.6b` | `Qwen/Qwen3-Reranker-0.6B` |
 
-Both files are named differently on the hub than the cards expect — [the install guide](../ONBOARDING.md#5-the-two-models)
+Both files are named differently on the hub than the cards expect. [The install guide](../ONBOARDING.md#5-the-two-models)
 downloads them straight into the right names.
 
 **Checksums, and one honest gap.** Verify what you downloaded:
@@ -103,13 +102,13 @@ Both launch scripts pass one flag that is the server's **mode**, not a tuning ch
 neither is exposed as configuration:
 
 * the embedder runs with `--embedding`. Without it the server still answers `/v1/models`, and
-  `/v1/embeddings` simply does not exist — so the health lamp goes green on a server that
+  `/v1/embeddings` simply does not exist, so the health lamp goes green on a server that
   cannot do the one thing it is there for.
 * the reranker runs with `--reranking --pooling rank`. Drop either and you get the same trap:
   a green lamp on a server that is no longer a reranker.
 
 If you replace a model, keep the flags. The scripts are `~/.config/letapis-app/services/embedder.sh`
-and `reranker.sh`, and they are yours to edit — but that pair of lines is load-bearing.
+and `reranker.sh`, and they are yours to edit, but that pair of lines is load-bearing.
 
 
 ## Replacing a model
@@ -121,7 +120,7 @@ button on the row opens exactly that file.
 
 Two things to check before you do:
 
-1. **Dimensions**, for the embedder — see the dimension contract above.
+1. **Dimensions**, for the embedder: see the dimension contract above.
 2. **That it is the right kind of model.** A reranker and an embedder are not interchangeable,
    and neither will tell you it is the wrong one; you will simply get poor results from a green
    stack.

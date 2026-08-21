@@ -7,7 +7,7 @@ but it answers from the older cut until it is read again: run `force_reindex` on
 ## What changed
 
 - **The similarity floor for the vector branch is one constant for every query.** It used to be
-  chosen from the length of the question, which filtered short queries hardest — the case where
+  chosen from the length of the question, which filtered short queries hardest, the case where
   the meaning half matters most. A request may still name its own floor for that one call, and a
   value below the constant returns candidates the constant would have cut.
 - **Answers are trimmed by the shape of the reranker's score curve, not by the limit alone.**
@@ -30,7 +30,7 @@ but it answers from the older cut until it is read again: run `force_reindex` on
   folder and losing its index. `odoo_aware` can now be set at registration rather than in a
   second call.
 - **No chunk is larger than the embedder's window.** Text is bounded to it before it is
-  embedded, and a chunk that is not is refused rather than stored — an oversized chunk used to be
+  embedded, and a chunk that is not is refused rather than stored. An oversized chunk used to be
   embedded whole and truncated by the model, which produced a plausible vector for a text the
   model had only partly read. Markdown is cut by the configured `embeddings.chunk_size`.
 - **Files are read as UTF-8 explicitly**, so the engine starts and indexes the same way whatever
@@ -66,7 +66,7 @@ engine behaves.
 ## Configuration
 
 In the engine's own settings, four keys are gone. An engine that meets them ignores them and
-keeps its own defaults, so a configuration carrying them still starts — but the thresholds they
+keeps its own defaults, so a configuration carrying them still starts, but the thresholds they
 used to set no longer exist:
 
 ```yaml

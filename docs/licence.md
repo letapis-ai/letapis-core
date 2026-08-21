@@ -1,6 +1,6 @@
 # Licensing the engine
 
-The panel needs no licence — it is open source and updates itself from a public channel. The
+The panel needs no licence: it is open source and updates itself from a public channel. The
 **engine** is the licensed part: until this machine has been logged in, it refuses to start and
 says so.
 
@@ -19,17 +19,17 @@ is part of the build, not part of your configuration.
 ## How it works, in one paragraph
 
 You open our login page in a browser **once**, type the key and the email there, and the page
-prints a **licence string** — a line beginning `lt_`. You hand that string to the engine, and
+prints a **licence string**, a line beginning `lt_`. You hand that string to the engine, and
 that is the end of your part. From then on the machine renews itself: it holds the string on
 disk, shows it to the licence service, and gets the next one back together with a fresh copy of
-the licence. **The key and the email never reach this machine** — not the config file, not the
+the licence. **The key and the email never reach this machine.** Not the config file, not the
 disk. They belong in the browser.
 
 ## Activating from the panel
 
 The engine row carries a **key button**. Press it and a small window opens.
 
-1. The window prints the address of the login page. Open it in a browser — any machine will do,
+1. The window prints the address of the login page. Open it in a browser; any machine will do,
    it does not have to be this one.
 2. On that page, type your licence key and the email the licence was issued to. It answers with
    a string starting `lt_`.
@@ -63,7 +63,7 @@ token.json     the string, and the moment it stops being good
 ```
 
 Two files, not three. A `receipt.json` there means the machine is running an **old** engine from
-before this scheme — the way forward is a newer engine and a fresh login.
+before this scheme, and the way forward is a newer engine and a fresh login.
 
 ## Living with it afterwards
 
@@ -77,7 +77,7 @@ before this scheme — the way forward is a newer engine and a fresh login.
 
 There is no weekly login. A machine nobody touches keeps working on its own.
 
-**Do not copy the data directory to a second machine.** Both will work — until the string is
+**Do not copy the data directory to a second machine.** Both will work, until the string is
 renewed. Then one of them gets the new string and the other is refused, and you will not know
 which one it will be until it happens.
 
@@ -103,7 +103,7 @@ The engine answers in sentences, not codes. Each one names a **different next st
 ## What the panel's lamp does and does not say
 
 The lamp answers **"is the engine alive"** and nothing else. An engine that starts and then
-refuses work for licence reasons is not a service fault — and an engine that never got past the
+refuses work for licence reasons is not a service fault, and an engine that never got past the
 licence gate does not start at all, so the row simply stays dark.
 
 Either way the engine's own words are in its log, `/tmp/letapis-core.log`, one click away on the

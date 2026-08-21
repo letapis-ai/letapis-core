@@ -1,7 +1,7 @@
 # Services and their cards
 
 Everything the panel knows about your machine is data, not code. It reads one index file and
-one card per service, and it never learns what any of it means — that is why you can change a
+one card per service, and it never learns what any of it means. That is why you can change a
 port, move a model, or add a service the panel has never heard of, without a new build.
 
 ## The layout
@@ -16,7 +16,7 @@ port, move a model, or add a service the panel has never heard of, without a new
     └── …
 ```
 
-The index is a list of pointers, in **start order** — the panel starts from the top down, so
+The index is a list of pointers, in **start order**: the panel starts from the top down, so
 the database comes before the models and the models before the engine:
 
 ```yaml
@@ -30,7 +30,7 @@ services:
   - conf: ~/.config/letapis-app/services/letapis-bin.yaml
 ```
 
-`boot_stack` is the second half of the panel's **Autostart** switch — the first half is the
+`boot_stack` is the second half of the panel's **Autostart** switch; the first half is the
 login item. The switch arms and disarms both together, so it never leaves you half-armed.
 
 ## A card, field by field
@@ -70,7 +70,7 @@ config:
 | `config.params` | key/value pairs handed to the start command as environment, upper-cased and prefixed: `port: '8086'` arrives as `LETAPIS_SVC_PORT=8086` |
 
 **The panel does not interpret `params`.** It passes them through; the script decides what a
-key means and which flag it becomes — so changing a model runtime is an edit to a `.sh` file,
+key means and which flag it becomes, so changing a model runtime is an edit to a `.sh` file,
 never to the panel.
 
 Two more fields appear only on the engine card:
@@ -82,7 +82,7 @@ Two more fields appear only on the engine card:
 
 **Which row is an engine is not decided by that label.** It is decided by the card's `health:
 kind: letapis` probe, and whether a row shows the version lying on disk is decided by its
-`start:` line — the card that launches the engine executable is the card that has an install
+`start:` line: the card that launches the engine executable is the card that has an install
 directory. Both answers come from the panel's backend; neither reads a name.
 
 `owner_exe_roots` is the identity check, and it is stricter than a name on purpose: a stray
@@ -110,14 +110,14 @@ get a service running somewhere the panel is not looking.
 `llama-server`.
 
 **Add a service of your own.** Write a card, put it in `services/`, and add a `conf:` line to
-`services.yaml` in the position you want it started. Nothing else is needed — the panel has no
+`services.yaml` in the position you want it started. Nothing else is needed: the panel has no
 list of known services.
 
 **Remove one.** Delete its line from `services.yaml`. The card file can stay; nothing reads it.
 
 ## After editing
 
-Press **↻** in the panel. It re-reads the configuration, not just the health — added, removed
+Press **↻** in the panel. It re-reads the configuration, not just the health: added, removed
 and edited services all appear. Services that are already running are left alone; this only
 re-reads data.
 
@@ -132,7 +132,7 @@ If a file has a syntax error the panel says so rather than starting with half a 
 | Reranker | 8086 | `127.0.0.1` — the card's `host` |
 | letapis-core | 3131 | whatever its own configuration says |
 
-Both model servers listen on the loopback address by default — that is the `host` value in
+Both model servers listen on the loopback address by default. That is the `host` value in
 each card's `config.params`, which reaches the script as `LETAPIS_SVC_HOST` and becomes the
 server's `--host`. Nothing in this stack needs them to be reachable from your network, so
 change it only if something outside this machine has to call them; anything other than a

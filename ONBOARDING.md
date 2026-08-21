@@ -53,8 +53,8 @@ The panel supervises Docker and the model servers; it does not install them.
 - [ ] **Docker Desktop** — download from [docker.com](https://www.docker.com/products/docker-desktop/)
       and open it once so it can finish its own setup. Installing it through Homebrew instead
       (`brew install --cask docker-desktop`) asks for your **admin password** partway through,
-      to put its credential helper on the system path — expected, and it needs a terminal you
-      can type into.
+      to put its credential helper on the system path. That is expected, and it needs a terminal
+      you can type into.
 
 **Worked?**
 
@@ -79,7 +79,7 @@ There is no window until you ask for one: click the icon, or pick **Show Panel**
 
 ## 3. What the first launch made for you
 
-You do not have to do anything here — read it, tick it, move on. The panel wrote two things and
+You do not have to do anything here: read it, tick it, move on. The panel wrote two things and
 will never touch either again:
 
 - [ ] `~/.config/letapis-app/` — the five service cards it starts things from. **Yours** from now
@@ -103,7 +103,7 @@ will never touch either again:
       on the machine creates it.
 
 **Want to see what a working machine actually runs?** [`config/default/`](config/default/) in
-this repository holds the same files as they are on ours — both the cards and the engine's
+this repository holds the same files as they are on ours: both the cards and the engine's
 config, with every value commented. What the panel writes is deliberately shorter: it fills in
 what your machine needs and leaves the rest to the engine's own defaults.
 
@@ -119,7 +119,7 @@ Nothing here needs copying.
 > `~/.config/letapis/` before launching — that throws away any service cards you had changed.
 
 **Worked?** The panel window shows **five rows**, and all of them except Docker are red. That is
-correct — nothing else is installed yet.
+correct; nothing else is installed yet.
 
 ---
 
@@ -147,7 +147,7 @@ docker start letapis-qdrant || docker run -d --name letapis-qdrant \
 ```
 
 Then press **Logs** on the row: a port already taken, or an image that could not be pulled, says
-so in as many words. Both are about your machine, not about the panel — a container of another
+so in as many words. Both are about your machine, not about the panel: a container of another
 project may already be holding 6333.
 
 > **Your index lives in the volume `letapis_qdrant_storage`.** Removing the container is
@@ -176,7 +176,7 @@ curl -L -o ~/models/Qwen3-Reranker-0.6B.Q8_0.gguf \
 `qwen3-reranker-0.6b-q8_0.gguf`; the service cards look for the names on the left. Download them
 any other way and you must either use these names or point the cards at the real paths
 ([services.md](docs/services.md) shows how). A file the card cannot find gives a readable
-`FATAL: model weights not found` in the row's log — not a mystery, but not a working stack
+`FATAL: model weights not found` in the row's log. Not a mystery, but not a working stack
 either.
 
 - [ ] Press **Start** on the **Embedder** row, then on the **Reranker** row.
@@ -196,8 +196,8 @@ the script yourself, it is an ordinary file and you can read it first.
 curl -s 127.0.0.1:12436/v1/models >/dev/null && curl -s 127.0.0.1:8086/health && echo " both up"
 ```
 
-If a row stays red, press **Logs** on it — a missing weights file says so in as many words, and so
-does `llama-server` not being on your `PATH`.
+If a row stays red, press **Logs** on it. A missing weights file says so in as many words, and
+so does `llama-server` not being on your `PATH`.
 What each model is and why the launch flags are what they are: [models.md](docs/models.md).
 
 ---
@@ -225,7 +225,7 @@ The engine goes under `~/.local/letapis-core/`, and the layout is the engine's o
 └── letapis-current -> ota_0/letapis.app     the entry point, a link
 ```
 
-There are two slots, and an update always fills whichever one is free — so after your first
+There are two slots, and an update always fills whichever one is free, so after your first
 update this link points at `ota_1`, after the next one at `ota_0` again. Which slot is current is
 never something you need to know: the link is the answer.
 
@@ -235,7 +235,7 @@ The panel starts the engine **through the link**, never through a slot directly:
 ~/.local/letapis-core/letapis-current/Contents/MacOS/letapis
 ```
 
-That is the whole reason the link exists — the panel keeps one fixed path and never has to know
+That is the whole reason the link exists: the panel keeps one fixed path and never has to know
 which version is current, and an update is a single rename of the link.
 
 - [ ] Put it where the panel starts it from — three commands, and the third one is a link, which
@@ -308,7 +308,7 @@ you fixed it too.
 
 The part worth knowing: a web page open in your browser can also reach a loopback address. So
 while the engine is running, a page you visit could in principle ask it what is in your index,
-or start indexing a folder. Nothing on the open web knows the engine is there — but the
+or start indexing a folder. Nothing on the open web knows the engine is there, but the
 protection is that nobody is looking, not that the door is shut.
 
 If that is not a trade you want, `~/.config/letapis/config.yaml` takes a key and a narrower
@@ -371,7 +371,7 @@ own login, and updates arrive through the panel's **Update** button
 A folder is taken whole. Build output, vendored copies and generated files are indexed as eagerly
 as your sources, and they cost more than space: machine-generated text is a dense scatter of your
 own identifiers with no meaning behind it, which is exactly what a vector search scores highly.
-Junk of that kind does not sit quietly at the bottom of the results — it competes with the answer
+Junk of that kind does not sit quietly at the bottom of the results; it competes with the answer
 you wanted.
 
 **The built-in exclusions are deliberately basic.** They cover what nearly every tree has —
