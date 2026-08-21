@@ -86,9 +86,8 @@ The hint prints `fused: N → limit: M → returned: K`. `N` is the size of the 
 
 Three consequences, and skipping any of them makes the number lie:
 
-1. **A value at the ceiling is saturation and carries no information.** Proved, not argued: a
-   nonsense string at `limit 3` returned **12 of 12** — the arms hand over their quota for any
-   rubbish.
+1. **A value at the ceiling is saturation and carries no information.** A nonsense string at
+   `limit 3` returned **12 of 12** — the arms hand over their quota for any rubbish.
 2. `fused` is comparable across queries only at the same `limit`, and the actual `limit` is
    printed in the hint itself. Check it before comparing, not after. Beyond the ceiling, the pool
    width also decides whether `rrf_min_score` and the vector floor can fire at all — so two

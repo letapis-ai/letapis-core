@@ -100,7 +100,6 @@ mcp__<engine>__save_research_finding(chunk_id=hit["id"], title="Sandbox eligibil
                                      tags=["regulation", "sandbox"])
 
 mcp__<engine>__link_findings(source_id=a, target_id=b, relation="implements")
-# relations: relates_to · implements · depends_on · references · contains
 
 mcp__<engine>__get_knowledge_graph(query="sandbox eligibility", tags=["regulation"])
 ```
