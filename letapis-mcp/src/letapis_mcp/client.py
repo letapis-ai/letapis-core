@@ -177,7 +177,7 @@ class letapisClient:
         for attempt in range(attempts):
             try:
                 if method == "GET":
-                                response = await self.client.get(endpoint, params=arguments or None)
+                    response = await self.client.get(endpoint, params=arguments or None)
                 elif method == "POST":
                     response = await self.client.post(endpoint, json=arguments)
                 elif method == "PATCH":
