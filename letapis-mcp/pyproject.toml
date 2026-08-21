@@ -15,8 +15,7 @@ dependencies = [
     # (`uvx --from "git+…#subdirectory=letapis-mcp"`) does not apply `uv.lock` — it resolves
     # against THIS file. Unbounded, that brought in mcp 2.0.0, where `Server` no longer carries
     # `list_tools()`, and the proxy died on import before printing anything:
-    # `server.py:71 AttributeError: 'Server' object has no attribute 'list_tools'`
-    # `[measured on a clean cache, 2026-08-09]`.
+    # `server.py:71 AttributeError: 'Server' object has no attribute 'list_tools'`.
     #
     # A clone never saw it: `uv run --project` reads the lock (mcp 1.26.0), so the two install
     # paths disagreed and only one of them was ever tried here. The bound is what makes the

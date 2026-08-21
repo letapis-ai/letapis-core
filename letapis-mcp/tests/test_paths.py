@@ -15,7 +15,6 @@ class TestPathMapping:
 
     def test_map_exact_prefix(self, tmp_path: Path) -> None:
         """Path with exact prefix should be mapped."""
-        # Create local file
         local_dir = tmp_path / "local"
         local_dir.mkdir()
         (local_dir / "file.py").write_text("content")
@@ -166,7 +165,6 @@ class TestPathResolution:
         config.paths.fetch.cache_dir = tmp_path / "cache"
 
         handler = PathHandler(config)
-        # Save to cache first
         handler.save_to_cache("/remote/file.py", b"cached")
 
         result = handler.resolve_path("/remote/file.py")

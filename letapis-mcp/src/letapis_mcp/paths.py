@@ -100,7 +100,6 @@ class PathHandler:
         if mapped := self.map_path(remote_path):
             return mapped
 
-        # Check if cached
         cache_path = self.get_cache_path(remote_path)
         if cache_path.exists():
             return str(cache_path)

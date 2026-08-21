@@ -27,6 +27,27 @@ _config: Config | None = None
 _tools_cache: list[types.Tool] = []
 
 
+# The key a client reads to keep one tool's description loaded while the rest of the
+# server's surface is deferred. Set per tool, it works independently of the
+# server-level `alwaysLoad` in the client's MCP config.
+ALWAYS_LOAD_META: dict[str, Any] = {"anthropic/alwaysLoad": True}
+
+
+#: Tools whose descriptions stay in the caller's window from the first second.
+#:
+#: The rest of the surface is deferred: the caller sees the names and fetches a
+#: description when it decides to call one. Pinning a name costs its description in
+#: every session that mounts this proxy, so the list is short by design. The two
+#: search tools are here because a session reaches for them constantly; recall is
+#: here because a caller cannot ask whether something was decided before until it
+#: knows the question is askable, and the description is where it learns that.
+#:
+#: One name from the memory group, not the group. The engine serves eight `ena_`
+#: tools; the other seven write, correct, forget, audit, or read memory along one
+#: narrow axis, and a caller reaches for those knowing already what it wants.
+ALWAYS_LOADED: tuple[str, ...] = ("search", "blast_radius", "ena_get_context")
+
+
 # Local tool definition for fetch_file (handled by letapis-mcp, not letapis-core)
 FETCH_FILE_TOOL = types.Tool(
     name="fetch_file",
@@ -64,7 +85,6 @@ def get_paths() -> PathHandler:
     return _paths
 
 
-# Create low-level MCP server
 server = Server("letapis")
 
 
@@ -87,6 +107,15 @@ async def list_tools() -> list[types.Tool]:
                 name=t["name"],
                 description=t.get("description", ""),
                 inputSchema=t.get("inputSchema", {"type": "object"}),
+                # Passed through rather than derived here: destructiveness is the
+                # engine's statement about its own tool, and a second opinion in
+                # the proxy is one more place to drift. Absent upstream stays
+                # absent — `None` keeps the field off the wire entirely, so a
+                # client reading the key gets no answer instead of a false one.
+                annotations=t.get("annotations"),
+                # A fresh dict per tool: one shared mapping would let a client or a
+                # later edit mutate every marked tool at once.
+                _meta=dict(ALWAYS_LOAD_META) if t["name"] in ALWAYS_LOADED else None,
             )
             for t in tools
         ]
@@ -94,8 +123,25 @@ async def list_tools() -> list[types.Tool]:
         # Add local-only tools (handled by letapis-mcp, not letapis-core)
         _tools_cache.append(FETCH_FILE_TOOL)
 
+        # A pinned name the engine no longer serves is the quiet failure this
+        # guards: the proxy keeps working, the caller keeps its window, and the tool
+        # meant to stay loaded has become deferred with nobody told. Renames happen
+        # engine-side, where this file is not read.
+        served = {t["name"] for t in tools} | {FETCH_FILE_TOOL.name}
+        unknown = [name for name in ALWAYS_LOADED if name not in served]
+        if unknown:
+            sys.stderr.write(
+                f"[letapis-mcp] WARNING: always-loaded names not served by letapis-core: "
+                f"{', '.join(unknown)} — they are deferred like everything else. "
+                f"Renamed or removed upstream? Fix ALWAYS_LOADED in server.py\n"
+            )
+
+        # Say which names were actually pinned, not just how many tools loaded:
+        # the pair (list, engine surface) is what decides it, and both move.
+        pinned_note = ", ".join(sorted(set(ALWAYS_LOADED) & served)) or "none"
         sys.stderr.write(
-            f"[letapis-mcp] Loaded {len(_tools_cache)} tools ({len(tools)} from letapis-core + 1 local)\n"
+            f"[letapis-mcp] Loaded {len(_tools_cache)} tools ({len(tools)} from letapis-core "
+            f"+ 1 local), always-loaded: {pinned_note}\n"
         )
         sys.stderr.flush()
 
@@ -104,8 +150,8 @@ async def list_tools() -> list[types.Tool]:
         sys.stderr.write(f"[letapis-mcp] Error fetching tools: {e}\n")
         sys.stderr.flush()
         url = _config.server.url if _config else "unknown"
-        # Degraded surface is NOT cached: a session that starts
-        # before letapis-core is up must recover on the next tools/list request
+        # Degraded surface is NOT cached: a session that starts before
+        # letapis-core is up must recover on the next tools/list request
         # instead of being stuck with the probe tool forever.
         return [
             types.Tool(
@@ -117,6 +163,15 @@ async def list_tools() -> list[types.Tool]:
                     "Ask the user to check that letapis-core is running."
                 ),
                 inputSchema={"type": "object", "properties": {}},
+                # Pinned unconditionally, and not via ALWAYS_LOADED: this tool
+                # IS its description. The address and the error live nowhere else,
+                # so a deferred one leaves the caller a bare name at the exact
+                # moment it is already confused — and one more call to learn why is
+                # how an agent decides letapis is not worth the trouble and leaves
+                # for grep (the reason the whole surface is success-shaped, above).
+                # It costs nothing while the engine is up: then this tool does not
+                # exist at all.
+                _meta=dict(ALWAYS_LOAD_META),
             ),
             FETCH_FILE_TOOL,
         ]
@@ -171,7 +226,6 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResul
             _tools_cache.clear()
             return _to_call_result(_core_unavailable_result())
 
-    # Coerce types before proxying
     arguments = _coerce_arguments(name, arguments)
 
     # Proxy to letapis-core
@@ -300,14 +354,11 @@ async def _async_main(config_path: str | None = None) -> None:
     """Async initialization and run."""
     global _client, _paths, _config, _tools_cache
 
-    # Load config
     _config = Config.load(config_path=config_path)
 
-    # Initialize path handler
     _paths = PathHandler(_config)
     _paths.init_cache()
 
-    # Initialize HTTP client
     _client = letapisClient(_config)
     await _client.start()
 
@@ -366,7 +417,6 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    # Log startup
     sys.stderr.write("[letapis-mcp] Starting with dynamic tool schema...\n")
     sys.stderr.flush()
 
