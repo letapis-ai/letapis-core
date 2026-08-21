@@ -446,6 +446,29 @@ global list to what is genuinely machine-wide and let each folder carry its own.
 **Already indexed the junk?** Add the pattern, then force a reindex of that folder. Changing the
 patterns stops new files arriving; it does not remove what is already stored.
 
+### Notes are a second decision
+
+Adding a folder of notes — an Obsidian vault, a directory of design documents, anything where you
+write down what you decided — indexes it for search like any other folder. It does **not** make
+those documents part of the engine's memory. That is a separate choice, and it is off unless you
+make it:
+
+```
+index_folder(path="/path/to/vault", episodes=True)     # when you add the folder
+update_folder(path="/path/to/vault", episodes=True)    # or later, on a folder already there
+```
+
+With the flag on, a document that records a decision or a milestone also becomes an episode: the
+engine can later be asked what was decided about something and answer from those notes rather
+than from a keyword match. With it off, the folder is searched exactly as any other; its
+documents simply never become episodes.
+
+The flag is set on the watched root and covers everything under it — subdirectories do not need
+their own. The default is off on purpose: memory grows only where somebody allowed it to.
+
+One folder should stay unmarked — the one the engine writes its own memory files into. Marking it
+would make the engine remember its own memories, and the copies pile up.
+
 ---
 
 ## When a step does not work
