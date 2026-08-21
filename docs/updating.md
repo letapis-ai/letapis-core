@@ -34,6 +34,10 @@ on this machine — that is the whole design, not a limitation of it.
 
 ## Updating
 
+What changed in the version you are moving to is in
+[release-notes.md](release-notes.md) — read it before updating, in case it asks
+something of you.
+
 One button, **Update**, in the panel's toolbar. It asks both — the engine's channel through the
 engine, its own directly — and installs what is stale: the engine first, then the panel.
 

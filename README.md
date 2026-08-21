@@ -19,6 +19,7 @@ in order, with a box to tick at every step. The pages below are the long version
 | Know which models it is built against | [docs/models.md](docs/models.md) |
 | Run the embedder under vllm-mlx instead of llama.cpp | [docs/vllm/README.md](docs/vllm/README.md) |
 | Go back to a previous engine version | [docs/updating.md](docs/updating.md) |
+| See what changed in this version | [docs/release-notes.md](docs/release-notes.md) |
 
 **Installing from nothing?** Start with the panel instead — it brings up Docker, Qdrant and the
 two model servers, and this repository picks up from there:
