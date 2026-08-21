@@ -27,6 +27,57 @@ _config: Config | None = None
 _tools_cache: list[types.Tool] = []
 
 
+# The key a client reads to keep one tool's description loaded while the rest of the
+# server's surface is deferred. Set per tool, it works independently of the
+# server-level `alwaysLoad` in the client's MCP config.
+ALWAYS_LOAD_META: dict[str, Any] = {"anthropic/alwaysLoad": True}
+
+
+#: Tools whose descriptions stay in the caller's window from the first second.
+#:
+#: The rest of the surface is deferred: the caller sees the names and fetches a
+#: description when it decides to call one. That trade is only worth making if the
+#: pinned few are the ones actually reached for, so the list comes from telemetry
+#: rather than taste. Over the 14 days to 2026-08-20, across the domain's heads:
+#:
+#:     blast_radius     693 calls
+#:     search           660
+#:     list_folders      44
+#:     ena_get_context   17
+#:     everything else   single figures
+#:
+#: `search` and `blast_radius` are 95% of all calls to the server.
+#:
+#: The boundary of that measurement, which matters before anyone re-derives the
+#: list: only heads with telemetry on are counted. Calls from codex heads and from
+#: sessions without OTEL are not in it, so the tail is undercounted rather than
+#: absent — a tool being low here is weaker evidence than a tool being high.
+#:
+#: `ena_get_context` is the third name, and it is NOT there on that count. Its 17
+#: calls are stated above rather than hidden, and they argue against it. They are
+#: not the reason, because they measure the wrong thing: the window they were
+#: recorded in showed memory next to everything else, so they say how heads
+#: BEHAVED, not whether recall is worth reaching for. A head cannot ask "did we
+#: decide this before" until it knows the question is askable, and the description
+#: is where it learns that. The owner decided on 2026-08-20 that recall belongs in
+#: the window regardless of the count; whether the count then moves is the real
+#: measurement, and the same query a week after this change is what answers it.
+#:
+#: Adding a name costs its description in every session of every head that mounts
+#: this proxy, forever. The whole surface is 13 851 characters and `search` alone is
+#: 1 873 of them, so this list is short on purpose. `ena_get_context` costs 59
+#: characters (`Recall episodic memories (decisions, milestones, insights).`),
+#: which is why a name this thin on calls can still be worth pinning — and why the
+#: same argument does not carry over to a description ten times its size.
+#:
+#: One name from the memory group, not the group. The engine serves eight `ena_`
+#: tools; the other seven write, correct, forget, audit, or read memory along one
+#: narrow axis (a time window, the forgotten list), and a head reaches for those
+#: knowing already what it wants. Only this one is how a head remembers at all, so
+#: only this one has to be visible before the head thinks to look.
+ALWAYS_LOADED: tuple[str, ...] = ("search", "blast_radius", "ena_get_context")
+
+
 # Local tool definition for fetch_file (handled by letapis-mcp, not letapis-core)
 FETCH_FILE_TOOL = types.Tool(
     name="fetch_file",
@@ -87,6 +138,15 @@ async def list_tools() -> list[types.Tool]:
                 name=t["name"],
                 description=t.get("description", ""),
                 inputSchema=t.get("inputSchema", {"type": "object"}),
+                # Passed through rather than derived here: destructiveness is the
+                # engine's statement about its own tool, and a second opinion in
+                # the proxy is one more place to drift. Absent upstream stays
+                # absent — `None` keeps the field off the wire entirely, so a
+                # client reading the key gets no answer instead of a false one.
+                annotations=t.get("annotations"),
+                # A fresh dict per tool: one shared mapping would let a client or a
+                # later edit mutate every marked tool at once.
+                _meta=dict(ALWAYS_LOAD_META) if t["name"] in ALWAYS_LOADED else None,
             )
             for t in tools
         ]
@@ -94,8 +154,25 @@ async def list_tools() -> list[types.Tool]:
         # Add local-only tools (handled by letapis-mcp, not letapis-core)
         _tools_cache.append(FETCH_FILE_TOOL)
 
+        # A pinned name the engine no longer serves is the quiet failure this
+        # guards: the proxy keeps working, the caller keeps its window, and the tool
+        # meant to stay loaded has become deferred with nobody told. Renames happen
+        # engine-side, where this file is not read.
+        served = {t["name"] for t in tools} | {FETCH_FILE_TOOL.name}
+        unknown = [name for name in ALWAYS_LOADED if name not in served]
+        if unknown:
+            sys.stderr.write(
+                f"[letapis-mcp] WARNING: always-loaded names not served by letapis-core: "
+                f"{', '.join(unknown)} — they are deferred like everything else. "
+                f"Renamed or removed upstream? Fix ALWAYS_LOADED in server.py\n"
+            )
+
+        # Say which names were actually pinned, not just how many tools loaded:
+        # the pair (list, engine surface) is what decides it, and both move.
+        pinned_note = ", ".join(sorted(set(ALWAYS_LOADED) & served)) or "none"
         sys.stderr.write(
-            f"[letapis-mcp] Loaded {len(_tools_cache)} tools ({len(tools)} from letapis-core + 1 local)\n"
+            f"[letapis-mcp] Loaded {len(_tools_cache)} tools ({len(tools)} from letapis-core "
+            f"+ 1 local), always-loaded: {pinned_note}\n"
         )
         sys.stderr.flush()
 
@@ -104,8 +181,8 @@ async def list_tools() -> list[types.Tool]:
         sys.stderr.write(f"[letapis-mcp] Error fetching tools: {e}\n")
         sys.stderr.flush()
         url = _config.server.url if _config else "unknown"
-        # Degraded surface is NOT cached: a session that starts
-        # before letapis-core is up must recover on the next tools/list request
+        # Degraded surface is NOT cached: a session that starts before
+        # letapis-core is up must recover on the next tools/list request
         # instead of being stuck with the probe tool forever.
         return [
             types.Tool(
@@ -117,6 +194,16 @@ async def list_tools() -> list[types.Tool]:
                     "Ask the user to check that letapis-core is running."
                 ),
                 inputSchema={"type": "object", "properties": {}},
+                # Pinned unconditionally, and not via ALWAYS_LOADED: this tool
+                # IS its description. The address and the error live nowhere else,
+                # so a deferred one leaves the caller a bare name at the exact
+                # moment it is already confused — and one more call to learn why is
+                # how an agent decides letapis is not worth the trouble and leaves
+                # for grep (the reason the whole surface is success-shaped, above).
+                # It costs nothing while the engine is up: then this tool does not
+                # exist. Frequency, which decides ALWAYS_LOADED, does not apply to a
+                # message that only ever appears when something is wrong.
+                _meta=dict(ALWAYS_LOAD_META),
             ),
             FETCH_FILE_TOOL,
         ]
