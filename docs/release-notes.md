@@ -1,42 +1,44 @@
 # Release notes
 
-**Reindex every watched folder after installing this version.** Text is cut differently: chunks
-that carried no content at all are no longer produced. Nothing already stored is lost, but it
-answers from the older cut until the folder is read again — run `force_reindex` on each one.
-
-Reindexing is not automatic and will not happen on its own. A file indexed by an earlier engine
-carries no record of what cut it, and the engine treats that silence as "leave it alone" rather
-than as "re-cut everything": the alternative would rebuild an entire corpus, silently, on the
-first pass after an update.
+**If you are upgrading from a version earlier than 26.822.1, reindex every watched folder
+after installing this one.** 26.822.1 changed how text is cut, and a file indexed by an older
+engine carries no record of which cut produced it. The engine reads that silence as "leave it
+alone", not as "re-cut everything", so nothing happens on its own: the folder keeps answering
+from the old cut until you run `force_reindex` on it. Upgrading from 26.822.1 itself needs no
+reindex — this version does not touch the cutter.
 
 ## What changed
 
-- **A chunk is no longer allowed to be made of nothing.** A boundary that would leave a stretch
-  with not one word of content in it is refused, and the cut falls elsewhere. Such a chunk is
-  near-identical across every document of a corpus — a document's front matter, a licence header,
-  a closing brace — so it matches every question equally well and pushes the real answer down the
-  list. **No text is dropped by this:** the seam moves, the file is still covered end to end.
+- **`folder` on `blast_radius` now narrows below the root of a watched folder.** Naming a
+  subdirectory used to select the watch that contained it and then answer from all of it, so
+  asking about one module returned callers from every module in the tree. The answer is now
+  limited to files under the path you named; naming the watch root behaves as before. The
+  parameter's description said "path prefix" all along — the behaviour has caught up with it.
 
-  Measured on our corpora: markdown went to 72 contentless chunks out of 43 346 (0.17 %), and
-  C++ from 378 to 147 over 200 files of `or-tools`.
+- **A `scope`d answer says which callers are not on that model.** `scope` filters definitions
+  and cannot filter callers: a call site is found by name, and a name does not say which type
+  it was called on. That limit is unchanged. What is new is that the answer no longer hides it.
+  Each caller carries `scope_relation` — `in_scope` (same model), `defines_its_own` (another
+  model that defines this name itself), or `undetermined` (a test class, a helper, or a model
+  with no definition — the answer cannot tell). A mixed list raises a hint. Nothing is dropped:
+  a filter would have judged the undecidable ones by deleting them.
 
-- **The rule reads the text, not a list of node names.** A marker names what it *proposes*, not
-  what a chunk *contains* — a tail left over from a node spanning the whole file is a legitimate
-  node by type and two braces by content. So a language declares which of its atoms are labels
-  rather than content, those are set aside, and what remains is asked one question: is there a
-  word here. The ruler, which places a boundary when the markup offers none, now asks it too.
+- **`index_folder` names both ways of narrowing a folder, not one.** Its description advised
+  `ignore_patterns` and said nothing about `file_patterns`, which was declared a few lines
+  below. Both are now described, with what each matches against: a whitelist is checked against
+  the file **name**, not its path (`*.py` works, `src/*.py` matches nothing), and whatever it
+  turns away is counted and returned as `pattern_misses`.
 
-- **A chunk records the cutter that produced it.** The record is `<handler>=<version>`, and a
-  file is read again when its handler's version changes — only the share of the corpus that
-  handler owns, not the whole of it. **Rebuilding or updating the engine re-cuts nothing:** the
-  number is raised deliberately, when the cut has actually changed, and never as a side effect of
-  a release.
+- **`deep_index` says what it does not build.** A research scope holds chunks and the chain
+  between them — no chapter, section, figure or table nodes — so `get_research_structure` on
+  it returns an empty tree however well the document is organised. The description now says
+  so; before, the empty tree read as a property of the document.
 
 ## Known limits of this version
 
-- A service header longer than the chunk budget still yields a chunk without content, because
-  there is nothing within the budget to attach it to. Measured on `or-tools`: 95 of the remaining
-  147.
-- PDF and Word files are cut by length alone and take no part in the rule above.
-- Files indexed before this version carry no cut record and are not re-read automatically. See
-  the note at the top.
+- Only the text layer of a document is indexed. Whatever a page says in pictures — an icon
+  standing for a key, a label on a diagram, a value on a drawing, a scan with no recognition
+  layer — is not in the corpus. The tell is a hole inside a passage that came back, not an
+  empty answer.
+- A service header longer than the chunk budget still yields a chunk without content.
+- PDF and Word files are cut by length alone.
