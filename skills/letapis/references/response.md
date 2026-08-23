@@ -134,6 +134,24 @@ in the excerpt.
 | `caller_count` vs `call_site_count` | distinct callers against distinct places. One caller invoking a symbol three times reads as `1` and `3`; take the first for "one place" and you miss two |
 | `definitions` | **count them yourself.** More than one definition of the same name is worth reading whichever language you are in |
 | `ambiguous` | fires when a name lives on several *types*. In languages where free functions all sit at module level it stays `false` even with several definitions — so it is not a general duplicate detector |
+| `scope_relation` | present on each caller **when a scope was given**. `scope` selects among definitions and cannot select among callers, so the list can hold call sites belonging to other types; this field says which is which |
+
+**`scope_relation` has three values, and the third is the one that matters.**
+
+| Value | What is known |
+|---|---|
+| `in_scope` | the call site sits on the type you asked about |
+| `defines_its_own` | it sits on another type that defines this same name itself — so it is almost certainly calling its own, not yours |
+| `undetermined` | a test class, a helper, or a type that does not define the name at all. The lookup cannot decide, and says so |
+
+`undetermined` is not a gap waiting to be filled. A call site found by name carries no receiver,
+so some of them are genuinely undecidable — and they stay in the answer with that label rather
+than being dropped. **A filter would have been quieter and worse**: it would delete exactly the
+entries nothing can judge, and the list would then look authoritative while being short.
+
+When the list is mixed, `hint` says so. An answer whose callers are all `in_scope` raises no hint
+at all — the warning is earned rather than automatic, because one printed on every scoped answer
+is how a real one stops being read.
 
 ## What a recall carries
 

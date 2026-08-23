@@ -127,6 +127,30 @@ them. When a path from a hit does not resolve on your disk, `fetch_file(path=…
 from the engine rather than leaving you to work out the mapping. And every call that takes a
 folder wants the path exactly as `list_folders` reports it — not the one you would type.
 
+### Two versions of one thing are two worlds with one set of paths
+
+Indexing two releases of the same library, framework or product is a normal and useful thing to
+do. What it costs is that **a question about either matches both**, and nothing in the answer
+marks the difference: file paths repeat, symbol names repeat, prose repeats. On such a corpus one
+broad question returned eight hits with five from the release that was not the subject; two of the
+eight were the same chunk in both, one identifier apart, scored 0.000013 apart.
+
+There is no ranking fix for this, because both hits are honest. The corpus-side remedy is to make
+the difference nameable before anyone asks:
+
+```python
+mcp__<engine>__update_folder(path="/corpus/lib-2.0", groups=["current"])
+mcp__<engine>__update_folder(path="/corpus/lib-1.4", groups=["legacy"])
+```
+
+After that a query can say which world it means — `groups=["current"]`, or
+`exclude_groups=["legacy"]` — instead of relying on whoever reads the answer to check the path.
+Tagging is a search-time label, so it takes effect immediately and costs no reindexing.
+
+**The same applies to any pair the corpus holds twice**: a vendored copy beside the original, a
+fork beside upstream, a generated tree beside its source. If two folders can answer the same
+question and only one of them should, that is what group tags are for.
+
 ## Retiring material that should stop surfacing
 
 Archived plans, superseded designs and deprecated docs keep answering queries long after they
