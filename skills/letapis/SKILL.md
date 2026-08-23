@@ -17,6 +17,7 @@ an answer you did not expect.**
 | Where is this handled? What exists about X? | semantic search over the corpus | [search](references/search.md) |
 | Who calls this symbol? What breaks if I change it? | structural lookup (`blast_radius`) | [search](references/search.md) |
 | Does this name exist anywhere at all? | structural lookup **and** a literal text match | [search](references/search.md) |
+| Every place, not the best one — how many are there? | an exhaustive pass, because a ranked list is truncated by construction | [search](references/search.md) |
 | Make sense of this book / paper / unfamiliar codebase | a research graph over the document | [research](references/research.md) |
 | Was this decided before? What happened last time? | episodic memory (ENA) — **a date window only bites on episodes that carry a date; check it narrowed** | [memory](references/memory.md) |
 | Memory has grown large — what is worth keeping? | a read-only audit of the episodes | [hygiene](references/hygiene.md) |
@@ -101,8 +102,9 @@ the wrong corpus outscores the right one as easily as not.
 The rooms below go deeper. Read the one that matches your question; there is no need to read
 them all.
 
-- **[references/search.md](references/search.md)** — asking a corpus: phrasing, narrowing, the
-  three reaches, and reading a result properly.
+- **[references/search.md](references/search.md)** — asking a corpus: phrasing, the language to
+  ask in, narrowing (including a corpus that holds two versions of one thing), the three reaches,
+  when a ranked answer cannot be the answer, and reading a result properly.
 - **[references/corpus.md](references/corpus.md)** — what the corpus is made of: what is indexed,
   adding and fetching material, following background jobs, retiring what should stop surfacing.
 - **[references/response.md](references/response.md)** — what an answer carries besides its text:

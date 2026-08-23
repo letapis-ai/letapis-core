@@ -53,6 +53,42 @@ for. A sweep is this same check applied to a change you just made (§ Meaning �
 **A query that returns the wrong thing is worth rewriting once before you reach for another
 tool.** Most disappointing results are a register mismatch, not an absence.
 
+### "Where is it" and "who else is there" are different kinds of question
+
+The first is satisfied by one good hit, and ranking is built for exactly that. The second is not
+satisfied by any number of good hits, because its whole content is **all of them** — and a ranked
+list is truncated by construction. Asking it of search gives you an answer that looks complete and
+is not.
+
+The shape of the failure, measured: a query for one attribute value returned ten hits out of
+twenty-six candidates, and two of the ten were near-misses matching the shape of the line rather
+than the value. The full set came from an exhaustive pass — twenty-five occurrences across
+twenty-one modules — and no rephrasing of the query would have produced it.
+
+**When the answer is a count, stop searching and enumerate.** Search is how you find *where* to
+enumerate; the literal axis is how you enumerate (§ Letters — a literal match). The give-away is
+the shape of your own question: "who else", "how many", "every place", "all of the" — none of
+those can be answered by something that ranks.
+
+**Name the field before you count, not after.** The same value can mean different things depending
+on which attribute holds it — one saying "extends this" and another "opens this" — and a text
+match returns both, because the difference is not in the text it matched.
+
+### A question that reads two ways will answer both
+
+A search matches meaning as written, and some phrasings describe an operation and its inverse
+equally well. Ask where a discount is *applied to a price* and you can get back the places that
+divide it out again to recover the original — the formula appears on both sides of the operation,
+the surrounding names are identical, and both readings are honest matches for what you typed.
+
+Measured: three of five hits for such a question were code undoing the operation rather than
+performing it.
+
+**Ask for the consequence rather than the operation.** "Where is the discount applied" has two
+answers in the corpus; "what number goes into the tax computation" has one. The test is whether
+your sentence would still describe the code if the operation ran backwards — if it would, you have
+not yet said which direction you mean.
+
 ### Which language to ask in
 
 Register is one axis, language is another, and on a corpus written in more than one they pull
@@ -107,6 +143,23 @@ there are two kinds of it — by **where** something lives and by **what** it is
 | `types` | node kinds, e.g. files against memory |
 | `scope_id` | a research graph rather than the standing index |
 
+**A corpus can hold two versions of the same framework, and only the path tells them apart.**
+This is the narrowing failure that costs the most, because nothing about the answer looks wrong.
+Index two releases of one library and a question about either matches both: same file paths, same
+symbol names, same prose. Measured on such a corpus, one broad question returned eight hits and
+five of them came from the version that was not being worked on. Two of the eight were *the same
+chunk* in both releases — one identifier apart (`tax_id` against `tax_ids`), every surrounding
+line identical down to the comments, and their scores 0.000013 apart.
+
+Ranking cannot save you here and neither can reading carefully: the excerpt is correct, it is
+simply from the wrong world. **Name which world you mean whenever the index holds more than one.**
+
+```python
+mcp__<engine>__list_folders()                                  # what is indexed, and how many worlds
+mcp__<engine>__search(query="…", folder="/corpus/lib-2.0")     # by path
+mcp__<engine>__search(query="…", groups=["current"])           # by tag, once the folders carry one
+```
+
 **Group tags are the one worth knowing about**, because they are the only filter that is not
 derivable from the material itself. A folder can be tagged — by stack, by ownership, by "ours
 against vendored", by anything the corpus owner finds useful — and then one query reaches exactly
@@ -120,6 +173,12 @@ mcp__<engine>__search(query="retry backoff", exclude_groups=["vendored"])
 
 Tags are set on the folder with `update_folder(path, groups=[…])`, and changing them takes effect
 immediately — they are a search-time label, not part of the index, so no reindexing follows.
+
+**Several tags add up rather than narrow down.** `groups=["a", "b"]` answers from folders carrying
+`a` **or** `b`, not from those carrying both — the filter is a union, and asking for two tags
+widens the corpus. Narrowing to an intersection is not something this filter does; reach for
+`folder` when you mean one place. `exclude_groups` beats `groups` where they overlap, and a tag
+that no folder carries matches nothing at all rather than falling through to everything.
 `blast_radius` takes the same `folder` and `groups` narrowing, which is what makes a structural
 lookup of a common name tractable.
 
@@ -256,8 +315,10 @@ to the graph, invisible to unit tests, visible only when someone opens the page.
 narrow. The same name on several types is often one piece of logic copied twice, and reading all
 the definitions is a cheap way to find drift a semantic sweep would not surface.
 
-**Output larger than you want to read** — narrow with `scope`, `folder` or a group tag. There is
-no `limit` here; a structural lookup returns what it found.
+**Output larger than you want to read** — narrow with `folder` or a group tag, both of which cut
+the files scanned. `scope` is not that kind of filter: it selects among definitions and leaves the
+caller list at full length (see below). There is no `limit` here; a structural lookup returns what
+it found.
 
 **What comes back needs reading, not just counting.** Two counters mean different things, one
 flag claims more than it knows, and the `hint` carries the real reason for a zero —
@@ -277,6 +338,17 @@ the textual axis from the start.
 
 **`scope` disambiguates by class or model**, which is worth knowing in a corpus where the same
 method name lives on many types. Where names are already unique, it does nothing for you.
+
+**And it narrows the definitions only — it cannot narrow the callers.** A call site is found by
+name, and a name does not say which type it was called on; resolving that would mean following
+the receiver, which a by-name lookup does not do. So a scoped answer can list call sites belonging
+to other types entirely. On a corpus where one method name lived on twelve models, an answer
+scoped to one of them returned six callers and **not one** of them was on that model — four were
+on other types that define the same name themselves, two could not be decided either way.
+
+The answer labels this rather than hiding it: each caller under a scope carries `scope_relation`,
+and a mixed list raises a `hint`. Read that field before you read the list —
+[response](response.md) § `blast_radius`.
 
 ### Letters — a literal match
 
