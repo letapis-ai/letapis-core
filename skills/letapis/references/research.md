@@ -19,15 +19,17 @@ create a scope  →  wait for it  →  ask it in pieces  →  keep what matters 
 
 ```python
 mcp__<engine>__deep_index(path="/path/to/document.pdf", scope_id="descriptive-name")
-mcp__<engine>__deep_index(path="/path/to/module/", scope_id="auth-module", watch=True)
+mcp__<engine>__deep_index(path="/path/to/module/", scope_id="auth-module")
 ```
 
 **Name the scope for what it holds**, not for the fact that it is research: `auth-module`,
 `vendor-api-manual`, `procurement-act-2026`. Generic names — `temp`, `doc1`, `research` — become
 unreadable the moment there are three of them, and scopes outlive the session that made them.
 
-`watch=True` keeps a folder scope current as its files change, which is what you want for a module
-you are actively working in and not what you want for a fixed document.
+**A scope is a snapshot.** It holds the files as they were when it was built; editing them
+afterwards changes nothing it answers. For a folder you are actively working in, rebuild the scope
+when you want it current — there is no watching option here, and a stale scope answers
+confidently.
 
 ### Wait for it
 
@@ -50,10 +52,16 @@ ordinary indexing, and the reason the operation is worth collecting rather than 
 mcp__<engine>__get_research_structure(scope_id="descriptive-name")
 ```
 
-Where the document has structure — chapters, sections, figures, tables — this returns the tree of
+Where the structure is present — chapters, sections, figures, tables — this returns the tree of
 it. That is the cheapest orientation available: you learn what the document contains and what it
-calls its own parts, which is exactly the vocabulary your queries should use. A scope indexed
-without structure returns nothing here, and that is an answer too.
+calls its own parts, which is exactly the vocabulary your queries should use.
+
+**An empty tree usually says something about the indexer, not about the document.** The basic
+analysis writes chunks and the chain between them; it does not build chapters, sections, figures
+or tables at all. So a 200-page manual with a full table of contents can come back with zero
+chapters beside a healthy chunk count, and nothing is wrong. Read the emptiness as "this scope has
+no structure", never as "this document has none" — and get your orientation by querying the
+document's own opening pages instead.
 
 ### Ask it in pieces
 
@@ -127,7 +135,7 @@ their own organisation near the front. Then walk the sections one at a time, the
 the cross-cutting topics that are scattered on purpose: penalties, deadlines, exceptions,
 definitions.
 
-**An unfamiliar module.** Index the folder with `watch=True`, find the entry points, follow the
+**An unfamiliar module.** Index the folder, find the entry points, follow the
 dependencies outward, then look for the patterns that repeat — the base classes, the route
 declarations, the places where the same shape appears three times.
 
@@ -136,9 +144,39 @@ chapter topic in that vocabulary, then extract the definitions. Save the concept
 outside the book as findings; leave the rest in the scope.
 
 
+## What the scope does not contain at all
+
+**Only the text layer is indexed.** Whatever a document says in pictures — an icon standing for a
+key, a label on a diagram, a value on a drawing, a dimension on a figure, any page of a scan with
+no recognition layer behind it — is not in the corpus. Not ranked low: absent. No phrasing reaches
+it, and no amount of rephrasing will.
+
+**The tell is not an empty answer. It is a hole inside a passage that came back.** A document
+being read this way produced:
+
+> take power off to the controller; then supply power again and keep on pushing ▮ for about
+> 5 seconds
+
+The search worked exactly as it should — that is the right passage, the one an expert would point
+at. The answer to the question asked ("which button") was never in the corpus, because on the page
+it is a drawing. The sentence arrives with a gap where its subject should be, and reads as *hold
+[nothing] for five seconds*.
+
+**So: when a retrieved sentence loses its object, stop querying and look at the page.** Render it
+and read it yourself. Rephrasing is the wrong instinct here and costs the most time, because every
+new query returns the same passage with the same hole, which feels like the search failing when it
+is the corpus not holding the thing.
+
+The same applies to the answer that is *almost* right: a passage naming a part number, a wiring
+colour or a terminal, where the identifier itself sits in the illustration.
+
 ## When the answers are wrong
 
 The knobs are the same ones ordinary search uses, and they behave the same way here —
 [search](search.md) § Narrowing. The one specific to this page: an empty result where the scope
 should have material usually means the scope is gone or the indexing never finished, and
 `list_research_graphs` says which.
+
+That is a different symptom from the one above, and worth telling apart: **nothing came back** is
+a question about the scope; **something came back with a gap in it** is a question about what the
+page holds.
