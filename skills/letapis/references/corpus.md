@@ -52,6 +52,52 @@ mcp__<engine>__ignore_patterns()     # all layers, each one named and explained
 are indexed as eagerly as sources, so look at what is in there before adding it — that is part of
 the job rather than a precaution. The moment of adding is also the cheapest moment to narrow it.
 
+**Adding a folder is three steps, and the first one is not `index_folder`.**
+
+1. **Look at what is there.** The folder sits on the engine's filesystem, not yours, so its own
+   instrument is what shows you: `workspace_browse(path=…)` (§ Bringing material onto the engine).
+   A listing on your own machine describes a different directory that happens to share a name.
+2. **Choose which of the two selectors fits — they are not interchangeable** (below).
+3. **Index, and read what comes back.** The engine judges your patterns against the folder's real
+   files and names the ones that add nothing (§ Ask before you write).
+
+**Two selectors, and the choice is made from what you know about the tree.**
+
+| Selector | Reach for it when | Why |
+|---|---|---|
+| `file_patterns` — name what you take | you do not know the contents, but you know what you took the folder **for** | a list of what you do not want is never complete on an unfamiliar tree: every pass turns up a kind of clutter the last one had no reason to expect |
+| `ignore_patterns` — name what you skip | the tree is yours or familiar, and the surplus is a short, known list | everything is worth having except the build and output directories you can name — and a whitelist here would silently cut material you did want |
+
+**Neither is the default.** A whitelist on a tree you know well throws away the file types you
+forgot to list; a blacklist on a tree you do not know keeps whatever you failed to anticipate. The
+question to answer before choosing is simply which of the two lists you can actually write.
+
+**They combine, and often should.** Naming extensions still leaves directories that consist of
+exactly those extensions — `tests/`, `fixtures/`, `reports/` — so a whitelist and a few ignores in
+the same call is an ordinary shape, not a contradiction.
+
+```python
+mcp__<engine>__index_folder(
+    path="/path/on/the/engine",
+    file_patterns=["*.py", "*.md"],          # what this folder was taken for
+    ignore_patterns=["tests/", "reports/"],  # directories made of exactly those
+)
+```
+
+**What guessing costs, measured on one third-party repository over three passes:**
+
+| Pass | What was declared | What was indexed |
+|---|---|---|
+| first | nothing | 568 files, 31 571 chunks — benchmark runs and model weights among them |
+| second | ignore rules for the clutter that first pass revealed | still 2 011 chunks of built JavaScript, from six files |
+| third | `*.py`, `*.md` | 272 files, 1 624 chunks |
+
+**The middle pass is the argument.** The ignore rules were written by the same person who then
+wrote the whitelist, after having seen the first result — and they still missed a whole category.
+Not for want of care: there is nothing to guess an unfamiliar tree's contents *from*. The third
+pass did not need to guess, because it asked a different question — not "what is in here that I
+do not want", but "what did I come here for".
+
 **Ask before you write.** Most patterns written into a folder by hand turn out to add nothing:
 either a layer above already catches what they catch, or nothing in that folder matches them at
 all. Writing them costs nothing and is easy to keep doing for years, since the layers above are
