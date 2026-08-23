@@ -66,15 +66,37 @@ the job rather than a precaution. The moment of adding is also the cheapest mome
 | Selector | Reach for it when | Why |
 |---|---|---|
 | `file_patterns` — name what you take | you do not know the contents, but you know what you took the folder **for** | a list of what you do not want is never complete on an unfamiliar tree: every pass turns up a kind of clutter the last one had no reason to expect |
-| `ignore_patterns` — name what you skip | the tree is yours or familiar, and the surplus is a short, known list | everything is worth having except the build and output directories you can name — and a whitelist here would silently cut material you did want |
+| `ignore_patterns` — name what you skip | the tree is yours or familiar, and the surplus is a short, known list | everything is worth having except the build and output directories you can name — and a whitelist here would cut material you did want |
 
 **Neither is the default.** A whitelist on a tree you know well throws away the file types you
 forgot to list; a blacklist on a tree you do not know keeps whatever you failed to anticipate. The
 question to answer before choosing is simply which of the two lists you can actually write.
 
-**They combine, and often should.** Naming extensions still leaves directories that consist of
-exactly those extensions — `tests/`, `fixtures/`, `reports/` — so a whitelist and a few ignores in
-the same call is an ordinary shape, not a contradiction.
+**A whitelist matches the file NAME, not its path.** `*.py` works; `src/*.py` matches nothing at
+all — directories are not its business (see below), so a path-shaped pattern has nothing it could
+ever match. The mistake is easy to make and easy to catch: it turns every file in the folder away,
+so the `pattern_misses` below comes back equal to the whole tree.
+
+**Neither selector discards in silence, but they account for it differently, and the difference
+matters.** The answer from `index_folder` carries `pattern_misses` — how many files the whitelist
+turned away — whenever that is not zero. Read it: a number far larger than you expected means the
+pattern is narrower than you meant, and it is the cheapest correction you will ever get.
+
+The blacklist reports `ignored_files` and `ignored_dirs`, and the second one is a count of
+**directories, not of what was in them**. A pruned tree is not walked, so its contents are never
+numbered — deliberately, since walking a vendored dependency directory to number what you skipped
+costs more than knowing. So: after a whitelist you know exactly what you lost; after a blacklist
+you know how many doors you closed, not what was behind them.
+
+**They combine because they work at different levels, not because it happens to be convenient.**
+The blacklist is applied to every entry before anything asks whether it is a file or a directory,
+so a matched directory is skipped *and never descended into*. The whitelist is consulted only for
+files. Neither can do the other's job: a whitelist cannot stop a walk, and a blacklist cannot say
+what a folder was taken for.
+
+The practical consequence is the shape you will want most often. Naming extensions still leaves
+directories made of exactly those extensions — `tests/`, `fixtures/`, `reports/` — and only the
+blacklist can cut those, because only it reaches directories.
 
 ```python
 mcp__<engine>__index_folder(
