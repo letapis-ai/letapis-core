@@ -56,12 +56,15 @@ Where the structure is present — chapters, sections, figures, tables — this 
 it. That is the cheapest orientation available: you learn what the document contains and what it
 calls its own parts, which is exactly the vocabulary your queries should use.
 
-**An empty tree usually says something about the indexer, not about the document.** The basic
-analysis writes chunks and the chain between them; it does not build chapters, sections, figures
-or tables at all. So a 200-page manual with a full table of contents can come back with zero
-chapters beside a healthy chunk count, and nothing is wrong. Read the emptiness as "this scope has
-no structure", never as "this document has none" — and get your orientation by querying the
-document's own opening pages instead.
+**An empty tree names its own cause — read `empty_because` instead of guessing.** The basic
+analysis writes chunks and the chain between them and no structure nodes, and the answer says
+which case you are in: `not_built` (this scope was indexed without structure — a 200-page manual
+with a full table of contents comes back this way beside a healthy chunk count, and nothing is
+wrong), `none_found` (structure was built and the document yielded none), or `unknown` (an older
+scope that carries no mark — the engine honestly cannot tell). Sections whose chapter is missing
+are not dropped: they come back in `unparented_sections`, and `stats.truncated` says when a count
+hit the query ceiling. On `not_built`, get your orientation by querying the document's own
+opening pages instead.
 
 ### Ask it in pieces
 
