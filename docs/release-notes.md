@@ -82,15 +82,3 @@ kit, beside `run.sh` and `RUN.txt`, and carry over whatever is new.
   already running, and covers both busy states — watched, and still in its first pass — rather
   than only the first. A call that names no settings remains the ordinary way to pick up a
   running pass, and is not an error.
-
-## Known limits of this version
-
-- Only the text layer of a document is indexed. Whatever a page says in pictures — an icon
-  standing for a key, a label on a diagram, a value on a drawing, a scan with no recognition
-  layer — is not in the corpus. The tell is a hole inside a passage that came back, not an
-  empty answer.
-- A service header longer than the chunk budget still yields a chunk without content.
-- PDF and Word files are cut by length alone.
-- `deep_index` builds chunks and the chain between them and nothing else: no chapter, section,
-  figure or table nodes. `get_research_structure` on such a scope returns an empty tree however
-  well the document is organised, and now says `not_built` when it does.
