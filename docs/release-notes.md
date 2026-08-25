@@ -7,6 +7,15 @@ alone", not as "re-cut everything", so nothing happens on its own: the folder ke
 from the old cut until you run `force_reindex` on it. Upgrading from 26.822.1 or 26.823.1 needs
 no reindex — this version does not touch the cutter.
 
+**Check your config against the one this version ships.** Keys are added and renamed between
+versions, and a config that has fallen behind will not tell you so. The engine reads a key it
+does not recognise and drops it — deliberately, so that upgrading is never met by a refusal over
+a line that merely stopped meaning anything — and the price of that kindness is silence: a
+setting renamed since your version, or one added after it, simply has no effect, and nothing
+says a word. No command checks this for you (`letapis doctor` repairs memory records, not
+configuration). Diff your own `config.yaml` against the `config.yaml` shipped at the top of the
+kit, beside `run.sh` and `RUN.txt`, and carry over whatever is new.
+
 ## What changed
 
 - **`deep_index` reports the work this run did, not the size of the scope.** Running it a
