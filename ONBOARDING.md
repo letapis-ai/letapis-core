@@ -393,6 +393,51 @@ own login, and updates arrive through the panel's **Update** button
 
 ---
 
+## 9a. One setting worth checking before you index
+
+If you installed before 2026-08-27, your `config.yaml` may carry a value that leaves the
+embedder no room to work. It takes half a minute to check.
+
+Open your engine config — the panel wrote it at the path shown on the Engine card — and look at
+the `embeddings:` block:
+
+```yaml
+embeddings:
+  token_batch_size: 2048        # <- this one
+  chars_per_token: 2
+  chunk_size: 1024
+```
+
+**The rule.** Those three numbers decide one thing between them:
+
+```
+window = token_batch_size × chars_per_token
+```
+
+and every chunk, **plus a context prefix the engine adds in front of it (up to 192 characters)**,
+has to fit inside that window. A chunk that outgrows the window is refused by name — the engine
+treats it as a wiring fault rather than trimming your text silently.
+
+With `chunk_size: 1024` the arithmetic is:
+
+| `token_batch_size` | window | chunk + prefix | verdict |
+|---|---|---|---|
+| 512 | 1024 | up to 1216 | **too tight** — the prefix has nowhere to go |
+| 2048 | 4096 | up to 1216 | fine, roughly threefold headroom |
+
+**If yours says 512, change it to 2048 and restart the engine from the panel.** Nothing else in
+the block needs touching, and nothing needs reindexing: this value does not change how text is
+cut, only how much of it travels in one request.
+
+**It is not tied to the embedder's own flags.** You may have seen `--batch-size 512` in
+`embedder.sh` and assumed the two must match. They do not: that flag sizes an internal pass
+inside the server, not the input it accepts. Measured on llama-server 10360 with
+`--batch-size 512`, an input of 2668 tokens was accepted and returned a vector, with the server
+none the worse. Leave the launch flags exactly as the panel wrote them — each is there to keep
+the server alive under indexing load.
+
+Full reference: [`docs/EMBEDDING_SETTINGS.md`](docs/EMBEDDING_SETTINGS.md).
+
 ## 10. Before you index your first folder
 
 A folder is taken whole. Build output, vendored copies and generated files are indexed as eagerly

@@ -36,7 +36,10 @@ embeddings:
   api_url: http://127.0.0.1:12436
   model: harrier-0.6b           # the alias the embedder was started with, not a file path
   dimensions: 1024              # [default] must match the model; changing it means reindexing everything
-  token_batch_size: 512         # tokens per request to the embedder
+  # WINDOW = token_batch_size * chars_per_token, and a chunk plus its context prefix
+  # (up to 192 chars) must fit inside it: 2048 * 2 = 4096 for a 1024-char chunk.
+  # Not tied to the server's --batch-size — see docs/EMBEDDING_SETTINGS.md.
+  token_batch_size: 2048        # tokens per request to the embedder
   chars_per_token: 2            # [default] how text length is estimated before tokenising
   chunk_size: 1024              # [default] characters per chunk; with the ratio above, ~512 tokens
   chunk_overlap: 128            # [default] characters shared between neighbouring chunks
