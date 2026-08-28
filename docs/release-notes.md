@@ -9,6 +9,52 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.828.3
+
+### A folder names how its files are read
+
+A watched folder can name a lens, and both halves of the engine answer to that name: the one
+that reads links and the one that cuts files into chunks. Set it with `update_folder`:
+
+    update_folder(path="…/magento2/app/code", parser="magento")
+
+The engine refuses a name it does not know and tells you what it has. Parsers and lenses are
+listed separately, because a name can be known to one side and not the other. `magento` is the
+name for a Magento tree; `odoo-xml` and `xml` were already there.
+
+### Magento's wiring is part of the call map
+
+Under the `magento` lens, `blast_radius` reads the wiring the framework declares in markup.
+A `preference` in `di.xml` binds an interface to a class, and the map follows it. A plugin
+class named `afterSave` resolves to the `save` it wraps. No file spells that link out; the name
+is the only place it is written.
+
+### Templates are code
+
+A `.phtml` template answers as a `.php` file does. A method called from inside `<?php … ?>`
+comes back as a caller, with the template's path and line. A name written in the surrounding
+HTML is not a call and is not reported.
+
+Templates are also cut by their own markup now, so a search hit lands on a whole insert, not
+half of one.
+
+### Magento's XML is cut by its declarations
+
+A chunk of `di.xml`, `events.xml`, `webapi.xml` or a layout file is a declaration with its own
+name — `preference`, `type`, `virtualType`, `plugin`, `event`, `observer`, `route`, `block`,
+`container`, `referenceContainer` and the rest. A search result says which declaration it came
+from instead of showing an unnamed piece of markup.
+
+Layout nests a block inside a block, and the name follows the nesting the whole way down:
+`content.category.products.category.product.list`. A declaration deep in a layout file carries
+its own name rather than riding inside its ancestor.
+
+Chunks already in the index keep the shape they were cut into. Files this release reads
+differently get re-cut on the next pass over their folder; the rest are skipped. Restarting the
+engine after an install normally starts that pass.
+
+If a folder you named `magento` still comes back as unnamed markup, run `force_reindex` on it.
+
 ## 26.828.2
 
 ### The call map reads PHP
