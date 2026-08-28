@@ -21,12 +21,18 @@ from letapis_mcp.config import Config
 # readers (search is the incident tool). Everything else still heals the pool on
 # failure but is NOT retried — the caller gets guidance and its next call runs
 # on the fresh pool.
+#
+# Every name here must be one the engine actually declares. Two were not, and a dead
+# name in a set like this is worse than an absent one: it reads to everyone after as
+# «this tool exists and is safe to retry», and neither half is true.
+# `reference_stats` named the stored-reference mechanism removed in Plan 36.1;
+# `vector_search_nodes` is the kernel HANDLER's name — the tool has always been called
+# `search`. Checked against the engine rather than from memory: `GET /api/v1/tools` on
+# :3131 lists 49 tools and neither of those is among them `[проверено чтением, 26.08]`.
 _RETRY_SAFE_TOOLS = frozenset(
     {
         "search",
-        "vector_search_nodes",
         "blast_radius",
-        "reference_stats",
         "workspace_browse",
     }
 )
@@ -46,6 +52,10 @@ class letapisClient:
         self.config = config
         self._client: httpx.AsyncClient | None = None
         self._tool_routes: dict[str, tuple[str, str]] = {}  # name -> (method, endpoint)
+        self.retry_safe_not_declared: tuple[str, ...] = ()
+        """Names in `_RETRY_SAFE_TOOLS` the engine did not declare, filled by
+        `_load_routes`. Empty is also the answer before any map has been built — see
+        there for why an unbuilt map must not be read as «everything is dead»."""
         # Test seam: inject an httpx.MockTransport to simulate stale/dead sockets.
         # None in production → the default transport. Preserved across _reset_pool
         # so a recreated pool keeps the same (mock) transport in tests.
@@ -117,7 +127,18 @@ class letapisClient:
         return response.json()
 
     async def _load_routes(self) -> None:
-        """Load tool routes from server."""
+        """Load tool routes from server, and check our own lists against them.
+
+        The route map is built from `GET /api/v1/tools`, so at this moment every real
+        tool name is in hand — which is the only moment `_RETRY_SAFE_TOOLS` can be
+        judged at all. The proxy cannot import the kernel's registry (another tree) and
+        its own tests stand up no engine, so «compare two lists inside the code» is not
+        available here. Comparing OUR list against WHAT THE ENGINE ANSWERED is, and it
+        costs one set difference on a call that already happened.
+
+        Stage 58.33 found three dead names in that set by hand, one after another. A
+        check that only a person performs is a check that runs when someone remembers.
+        """
         try:
             result = await self.get_tools()
             tools = result.get("tools", [])
@@ -129,9 +150,26 @@ class letapisClient:
                 if name and endpoint:
                     self._tool_routes[name] = (method, endpoint)
 
+            # Judged only against a map that actually got built: an empty map means the
+            # engine did not answer, and calling every name dead on that basis would
+            # turn one outage into a page of false alarms.
+            self.retry_safe_not_declared = (
+                tuple(sorted(_RETRY_SAFE_TOOLS - set(self._tool_routes)))
+                if self._tool_routes
+                else ()
+            )
+
             sys.stderr.write(
                 f"[letapis-mcp] Loaded {len(self._tool_routes)} tool routes\n"
             )
+            if self.retry_safe_not_declared:
+                sys.stderr.write(
+                    "[letapis-mcp] WARNING: named retry-safe but not declared by "
+                    f"letapis-core: {', '.join(self.retry_safe_not_declared)}. "
+                    "These names answer to nothing — a dead entry there reads as "
+                    "«this tool exists and is safe to retry», and neither half is "
+                    "true. Remove them from _RETRY_SAFE_TOOLS.\n"
+                )
             sys.stderr.flush()
         except httpx.ConnectError:
             sys.stderr.write("[letapis-mcp] Error loading tool routes: connection refused\n")
@@ -158,6 +196,22 @@ class letapisClient:
             await self._load_routes()
 
         if name not in self._tool_routes:
+            if name in _RETRY_SAFE_TOOLS:
+                # The proxy's own list disagrees with the engine, and this is the one
+                # moment a person is looking straight at it. Said here rather than in
+                # `letapis_status`, which is only ever listed while the engine is
+                # DOWN — a fact that can only be learned from a live tool map cannot
+                # be delivered by a tool that exists only when there is no map.
+                return {
+                    "error": f"Unknown tool: {name}",
+                    "stale_proxy_list": "_RETRY_SAFE_TOOLS",
+                    "message": (
+                        f"'{name}' is named retry-safe by this proxy but letapis-core "
+                        "does not declare it, so nothing answers to it. This is a "
+                        "stale list in the proxy, not a missing engine feature — "
+                        "remove the name from _RETRY_SAFE_TOOLS."
+                    ),
+                }
             return {"error": f"Unknown tool: {name}"}
 
         method, endpoint = self._tool_routes[name]
@@ -183,7 +237,17 @@ class letapisClient:
                 elif method == "PATCH":
                     response = await self.client.patch(endpoint, json=arguments)
                 elif method == "DELETE":
-                    response = await self.client.delete(endpoint)
+                    # Through `request`, because `client.delete()` takes no body at
+                    # all: the old call dropped every argument that had not already
+                    # been substituted into the URL, and dropped it silently — the
+                    # answer came back successful with the narrowing gone. The branch
+                    # is dead today (the engine declares no DELETE tool), so this is
+                    # a trap being closed, not a symptom being treated: the first
+                    # tool declared on this method would have lost its arguments with
+                    # nowhere to learn it from.
+                    response = await self.client.request(
+                        "DELETE", endpoint, json=arguments
+                    )
                 else:
                     return {"error": f"Unsupported method: {method}"}
 
@@ -252,18 +316,25 @@ class letapisClient:
     # File Content (special case - returns bytes, not JSON)
     # =========================================================================
 
-    async def fetch_file(self, path: str) -> bytes:
+    async def fetch_file(self, path: str, reveal: list[str] | None = None) -> bytes:
         """Fetch file content from letapis-core.
 
         Args:
             path: Remote file path
+            reveal: Hidden folders this call may read from (Stage 69.1). Left OUT of
+                the query string when nothing was asked for, rather than sent empty:
+                the route reads an absent parameter as «the originals» and would have
+                to be taught to read a blank one the same way, in a second place.
 
         Returns:
             File content as bytes
         """
+        params: dict[str, Any] = {"path": path}
+        if reveal:
+            params["reveal"] = reveal
         response = await self.client.get(
             "/api/v1/files/content",
-            params={"path": path},
+            params=params,
         )
         response.raise_for_status()
         return response.content

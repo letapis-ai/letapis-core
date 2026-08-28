@@ -82,27 +82,27 @@ class PathHandler:
         cache_path.write_bytes(content)
         return cache_path
 
-    def resolve_path(self, remote_path: str) -> str:
-        """Resolve remote path to local path.
+    def cached_path(self, remote_path: str) -> str | None:
+        """This file's earlier DOWNLOAD, if the proxy holds one — never a mapping.
 
-        Tries:
-        1. Path mapping (if configured)
-        2. Cache (if file was fetched)
-        3. Returns original path (caller can try fetch_file)
+        The other half of what `resolve_path` used to answer in one breath. The two are
+        different facts and license different conclusions:
 
-        Args:
-            remote_path: Path as returned by letapis-core
+        * a mapping says the head already holds this tree on its own disk — it could
+          open the file with no proxy at all, and the engine has no say in that;
+        * a cache hit says the proxy downloaded the file at some earlier moment, under a
+          permission asked THEN. It is a snapshot, and it may be stale.
 
-        Returns:
-            Local path (mapped, cached, or original)
+        Fused, both arrived as a bare string and nothing said which. That is how
+        «nothing enters the cache without the engine granting a read» came to be read as
+        an argument about both — and the half it was false about was the half nobody
+        could see. The leak of round 3 lived behind that sentence for three review
+        rounds.
+
+        `resolve_path` is not renamed but GONE. A name promising «this only names, it
+        does not grant» is a promise the next reader may skip, and a fused answer would
+        still not say WHICH fact answered — which is the defect itself, not its label. A
+        door that is not there cannot be walked through by somebody in a hurry.
         """
-        # Try mapping first
-        if mapped := self.map_path(remote_path):
-            return mapped
-
         cache_path = self.get_cache_path(remote_path)
-        if cache_path.exists():
-            return str(cache_path)
-
-        # Return original - caller should use fetch_file if needed
-        return remote_path
+        return str(cache_path) if cache_path.exists() else None

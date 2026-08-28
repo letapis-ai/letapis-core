@@ -57,6 +57,7 @@ Use when Read tool fails on a path from search results.
 
 Args:
     path: Remote file path
+    reveal: Hidden folders this call may read from (see the field description)
 
 Returns:
     Local path to cached file
@@ -65,6 +66,15 @@ Returns:
         "type": "object",
         "properties": {
             "path": {"type": "string", "description": "Remote file path"},
+            # Stage 69.1. Declared HERE and nowhere else: this tool is the proxy's own,
+            # not one of the engine's, so it does not inherit the engine's schema the
+            # way the other seven surfaces do. A parameter missing from this dict does
+            # not exist for the head that calls the tool.
+            "reveal": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Hidden folders THIS call may read from, by absolute path. A folder marked hidden in the engine is indexed like any other and answers nobody who did not name it here, so a copy of a tree made for one piece of work stays out of everyone else's results. Omit it and you read the originals, never a copy; a path inside a hidden folder you did not name is refused exactly as an unindexed path is. `list_folders` marks which folders are hidden.",
+            },
         },
         "required": ["path"],
     },
@@ -280,20 +290,48 @@ async def _handle_fetch_file(arguments: dict[str, Any]) -> dict[str, Any]:
     if not path:
         return {"status": "error", "error": "Path required"}
 
+    # `None` rather than `[]` when nothing was asked for: an empty list is a caller
+    # saying «reveal these none», and the engine would have to tell that from silence
+    # for no reason at all.
+    reveal = arguments.get("reveal") or None
+
     paths = get_paths()
 
-    # Check if already cached or mapped
-    local_path = paths.resolve_path(path)
-    if local_path != path:
+    # A MAPPING is answered here, and only a mapping. It says «the engine's /a/b is my
+    # /x/y» — this head's own configuration about a tree already on this head's disk,
+    # which it can open without a proxy at all. Hiding governs what the ENGINE hands
+    # out; it cannot govern a filesystem somebody already has.
+    if mapped := paths.map_path(path):
         return {
             "status": "success",
-            "local_path": local_path,
+            "local_path": mapped,
             "cached": True,
         }
 
+    # The CACHE is not answered here, and that is the whole of Stage 69.1 on this
+    # surface. A cached file is one the engine handed over once, to one request that
+    # named what it needed; answering a later request out of it makes permission a
+    # property of this process's history rather than of the request being answered,
+    # and the engine's own rule says the opposite — a call that names nothing gets the
+    # originals, under every circumstance. The leak needed no bad faith: the second
+    # answer looked exactly like the first, and the only thing missing from it was the
+    # question nobody asked.
+    #
+    # Deciding it here instead would be worse in a quieter way: this proxy would hold a
+    # second copy of a rule that lives in the engine, and the two would part company
+    # the first time a folder's mark changed. Stamping the cache entry with the scope
+    # that filled it has the same disease with a longer fuse — the entry outlives the
+    # mark that justified it, and goes on demanding a `reveal` nobody needs any more,
+    # or granting one everybody now does.
+    #
+    # The price is a round trip per repeat call of the same path, paid in full and on
+    # purpose. `fetch_file` is called about once per path — an agent fetches to get a
+    # local name and then reads that name — so this buys correctness with a cost the
+    # surface barely feels.
+
     # Fetch from server
     try:
-        content = await get_client().fetch_file(path)
+        content = await get_client().fetch_file(path, reveal=reveal)
         cache_path = paths.save_to_cache(path, content)
         return {
             "status": "success",
@@ -332,16 +370,36 @@ def _transform_search_results(result: dict[str, Any]) -> dict[str, Any]:
 
     Works with both compact (path only) and verbose (path + absolute_path) formats.
     Adds local_path only when it differs from path (i.e., mapping found).
+
+    This one reads the cache and is still safe, which is worth saying since the same
+    read is a leak one function up (Stage 69.1). The difference is what it decides:
+    here nothing is granted, only NAMED. Every path it touches is already in the
+    engine's own answer, and the engine applied visibility before answering — so this
+    can hand a local name to a file the caller was already given, and to no other.
+
+    The two local answers are asked SEPARATELY and the winner is named in
+    `local_path_source`. They are different facts: a mapping is the head's own tree,
+    openable without this proxy at all; a cache hit is a copy downloaded earlier and
+    possibly stale. Fused into one string, `local_path` meant «somewhere local» and a
+    head could not tell live source from an old download — the same fusion that let the
+    cache read as a permission for three review rounds.
     """
     paths = get_paths()
     if "results" in result:
         for item in result["results"]:
             # Compact uses "path", verbose also has "absolute_path"
             path = item.get("absolute_path") or item.get("path")
-            if path:
-                local = paths.resolve_path(path)
-                if local != path:
-                    item["local_path"] = local
+            if not path:
+                continue
+            local, source = paths.map_path(path), "mapping"
+            if local is None:
+                local, source = paths.cached_path(path), "cache"
+            # `local != path` keeps an answer that resolves to the same name off the
+            # item: naming it would claim a local copy distinct from the engine's, and
+            # there is none.
+            if local is not None and local != path:
+                item["local_path"] = local
+                item["local_path_source"] = source
     return result
 
 

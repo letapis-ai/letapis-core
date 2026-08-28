@@ -141,25 +141,40 @@ class TestPathCache:
 
 
 class TestPathResolution:
-    """Test resolve_path priority."""
+    """The two local answers, asked apart (69.1, round-5 tail).
 
-    def test_resolve_uses_mapping_first(self, tmp_path: Path) -> None:
-        """resolve_path should prefer mapping over cache."""
+    These three used to test `resolve_path`, which answered «mapped, cached or
+    original» as one bare string. The fusion is gone, so what they pinned is asked of
+    the two methods that replaced it — and the PRIORITY they pinned moved with it, to
+    the caller, where it is now visible in the answer instead of buried in a helper.
+    """
+
+    def test_mapping_and_cache_answer_independently(self, tmp_path: Path) -> None:
+        """What `test_resolve_uses_mapping_first` pinned, now stated as two facts.
+
+        A file both mapped AND cached is the case the old priority existed for: the
+        mapping is the head's live tree, the cache is an older download of the same
+        path, and they can differ in content. Both answer now, and the caller decides —
+        see `test_the_search_answer_prefers_the_mapping` below for which it picks.
+        """
         local_dir = tmp_path / "local"
         local_dir.mkdir()
-        (local_dir / "file.py").write_text("local content")
+        (local_dir / "file.py").write_text("live content")
 
         config = Config()
         config.paths.mapping = [PathMapping(remote="/remote", local=str(local_dir))]
         config.paths.fetch.cache_dir = tmp_path / "cache"
 
         handler = PathHandler(config)
-        result = handler.resolve_path("/remote/file.py")
+        handler.save_to_cache("/remote/file.py", b"an older download")
 
-        assert result == str(local_dir / "file.py")
+        assert handler.map_path("/remote/file.py") == str(local_dir / "file.py")
+        assert handler.cached_path("/remote/file.py") == str(
+            tmp_path / "cache" / "remote" / "file.py"
+        )
 
-    def test_resolve_falls_back_to_cache(self, tmp_path: Path) -> None:
-        """resolve_path should use cache if mapping doesn't match."""
+    def test_the_cache_answers_when_no_mapping_matches(self, tmp_path: Path) -> None:
+        """Formerly `test_resolve_falls_back_to_cache`."""
         config = Config()
         config.paths.mapping = []
         config.paths.fetch.cache_dir = tmp_path / "cache"
@@ -167,16 +182,23 @@ class TestPathResolution:
         handler = PathHandler(config)
         handler.save_to_cache("/remote/file.py", b"cached")
 
-        result = handler.resolve_path("/remote/file.py")
+        assert handler.map_path("/remote/file.py") is None
+        assert handler.cached_path("/remote/file.py") == str(
+            tmp_path / "cache" / "remote" / "file.py"
+        )
 
-        assert result == str(tmp_path / "cache" / "remote" / "file.py")
+    def test_neither_answers_for_an_unknown_path(self, tmp_path: Path) -> None:
+        """Formerly `test_resolve_returns_original_if_no_match`.
 
-    def test_resolve_returns_original_if_no_match(self) -> None:
-        """resolve_path should return original path if nothing matches."""
+        `None` rather than the path echoed back, and that is the improvement: the old
+        answer returned the remote path itself, so «I have no local copy» and «the local
+        copy happens to sit at the same name» were the same string.
+        """
         config = Config()
         config.paths.mapping = []
+        config.paths.fetch.cache_dir = tmp_path / "cache"
 
         handler = PathHandler(config)
-        result = handler.resolve_path("/unknown/path/file.py")
 
-        assert result == "/unknown/path/file.py"
+        assert handler.map_path("/unknown/path/file.py") is None
+        assert handler.cached_path("/unknown/path/file.py") is None

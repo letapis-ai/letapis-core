@@ -320,15 +320,36 @@ paths:
 
 ### Path Handling
 
-When letapis-core returns file paths in search results:
+Two different things ask about a path, and they answer differently. Reading this as one
+chain is what let a cached file stand in for permission once already, so the split is
+spelled out.
 
-1. **Path Mapping** - If path matches a mapping, returns local path
-2. **Cache Lookup** - If file was fetched before, returns cached path
-3. **Original Path** - Returns as-is (use `fetch_file` tool to download)
+**Naming a path in a search result.** letapis-core has already decided what the caller
+may see, so this only puts a local name on what it returned:
+
+1. **Path Mapping** - If path matches a mapping, adds the local path
+2. **Cache Lookup** - If the file was fetched before, adds the cached path
+3. **Otherwise** - the remote path is left as it is (use `fetch_file` to download)
 
 Example: letapis-core returns `/workspace/project/src/main.py`
 - With mapping `/workspace/project` -> `/Users/you/project`
 - Returns `/Users/you/project/src/main.py`
+
+**Asking for a file with `fetch_file`.** Here the cache is NOT consulted, and that is
+deliberate:
+
+1. **Path Mapping** - answered locally. A mapping is your own configuration about a tree
+   already on your own disk, which you could open without this proxy at all.
+2. **letapis-core** - everything else is asked of the engine, on every call, including a
+   file you have already fetched. A cached file is one the engine handed to ONE earlier
+   request; answering a later one out of it would make permission a property of this
+   process's history instead of the request being answered — and a folder marked hidden
+   in the engine would come back to a call that never named it. The price is a round
+   trip per repeat fetch of the same path, paid on purpose.
+
+A folder the engine marks hidden answers nobody who did not name it in `reveal`; pass it
+to `fetch_file` to read from your own working copy. `list_folders` shows which folders are
+hidden and what each supersedes.
 
 ## Available Tools
 
@@ -342,7 +363,7 @@ Example: letapis-core returns `/workspace/project/src/main.py`
 | `list_folders` | List all watched folders |
 | `get_indexing_progress` | Get indexing progress |
 | `ena_get_context` | Get episodic memories and context |
-| `fetch_file` | Download file from letapis-core to local cache |
+| `fetch_file` | Download file from letapis-core to local cache. Takes `reveal` — hidden folders this call may read from |
 
 ## Architecture
 
