@@ -23,6 +23,7 @@ an answer you did not expect.**
 | Memory has grown large — what is worth keeping? | a read-only audit of the episodes | [hygiene](references/hygiene.md) |
 | The audit found something broken — how is it mended? | `letapis doctor`, a command of the engine | [hygiene](references/hygiene.md) |
 | Should this folder be indexed? Should this doc stop appearing? | index and visibility management | [corpus](references/corpus.md) |
+| I work on a branch in a copy of the tree — how does the engine see mine and not everyone else's? | a hidden folder standing in for the trunk | [worktree](references/worktree.md) |
 | Search is coming back wrong or empty and I do not know why | diagnosis from inside the session | [admin](references/admin.md) |
 | What do these fields in the answer mean? | reading a result properly | [response](references/response.md) |
 
@@ -107,6 +108,9 @@ them all.
   when a ranked answer cannot be the answer, and reading a result properly.
 - **[references/corpus.md](references/corpus.md)** — what the corpus is made of: what is indexed,
   adding and fetching material, following background jobs, retiring what should stop surfacing.
+- **[references/worktree.md](references/worktree.md)** — working on a branch in a copy of the
+  tree while the corpus holds both states: a hidden folder that stands in for the trunk, what
+  every call must name to see its own copy, and the one failure that looks like a normal answer.
 - **[references/response.md](references/response.md)** — what an answer carries besides its text:
   the hint that says the semantic half did not run, what the graph's flags actually claim, when
   structural context is a map and when it is noise.
