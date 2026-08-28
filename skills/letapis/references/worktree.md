@@ -138,6 +138,7 @@ The expensive part is the environment, not the tree.
 | Refusal | What it means |
 |---|---|
 | `supersedes` refused by name | only a hidden folder may declare one, never itself, never a relative path, and never a tree nobody watches |
+| `supersedes_from_inactive` | watching this copy is stopped, so nothing reveals it and nothing can be substituted. Start watching it again — `index_folder` on the folder reactivates it — and set the pair then |
 | settings refused while a pass is running | a long pass is reading this folder's settings; stop it, change them, start again |
 | `unknown_settings` | a name this surface does not read. Nothing was written, and the answer lists what it does read |
 | empty `results` with a `hint` | the answer outgrew the limit and was spilled to a file. Read it with `fetch_file` rather than reading the emptiness as "nothing found" |
