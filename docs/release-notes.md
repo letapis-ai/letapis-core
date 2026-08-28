@@ -13,45 +13,40 @@ at the top of the kit, beside `run.sh`, and carry over what is new.
 
 ### Work on a branch in a copy of the tree
 
-A copy of a repository can now be indexed without appearing in anyone else's answers. Register
-it as a watched folder with `hidden: true` and `supersedes: "<the watched trunk>"`; name it in
-`reveal` on each call and you get your copy, while the trunk it stands in for drops out of that
-one answer. Everybody else keeps getting the trunk.
+A copy of a repository is indexed without appearing in anyone else's answers. Register it as a
+watched folder with `hidden: true` and `supersedes: "<the watched trunk>"`, then name it in
+`reveal` on each call: you get your copy, and the trunk it stands in for drops out of that one
+answer. Everybody else gets the trunk.
 
-The full procedure — registering, asking, catching up, retiring the copy — is in the skill room
-`skills/letapis/references/worktree.md`.
+The whole procedure is in `skills/letapis/references/worktree.md`: registering the copy, asking
+while you work, catching up with the trunk, retiring it.
 
-### Cleanup judges a file by the folder that owns it
+### The folder that owns a file decides its fate
 
-`cleanup_orphaned_files` used to judge a file by the first watched folder whose path was a
-prefix of its own. Where watched folders nest, the inner folder's rules never applied, and its
-files were swept by the outer folder's rules instead. The owning folder is now the one that
-decides, and both `index_folder` and `update_folder` judge the pair of marks the same way.
+`cleanup_orphaned_files` judges a file by the watched folder that owns it, which is the
+innermost one whose path covers it. Where folders nest, the inner rules govern the inner files.
+`index_folder` and `update_folder` judge the marks by the same rule.
 
-### Narrowing the cleanup to one folder now works
+### Cleanup narrows to the folder you name
 
-`cleanup_orphaned_files` declares a `path`. The parameter did not reach the handler, so a call
-that narrowed the sweep to one folder swept the whole store — successfully, and without saying
-so. If you have been avoiding the tool for that reason, it now does what it offers.
+Pass `path` to `cleanup_orphaned_files` and the sweep covers that folder alone. Ask
+`get_indexing_progress` about a research scope with `scope_id` and the answer is about that
+scope.
 
-The same defect is closed on `get_indexing_progress.scope_id`, which asked about a research
-scope and answered about everything.
+### One question per key in the visibility note
 
-### The visibility note answers one question per key
+`visibility.hidden_folders` names the hidden folders kept out of this answer.
+`superseded_by_reveal` names the trunk your copy stood in for, and appears only when a
+substitution happened. You act on them differently: a hidden folder opens when you name it in
+`reveal`, while a superseded trunk returns as soon as you stop revealing.
 
-`visibility.hidden_folders` carried two different meanings depending on whether `reveal` was
-used. It now means one thing — hidden folders kept out of this answer — and the trunk your copy
-stood in for is reported separately as `superseded_by_reveal`, present only when a substitution
-happened.
+### Refusals with a name
 
-### Refusals that used to be silence
+`supersedes` is accepted when it names a watched tree and comes from a folder whose watch is
+running. Otherwise the call is refused by name, `supersedes_unwatched` or `supersedes_from_inactive`,
+and nothing is written.
 
-`supersedes` naming a tree nobody watches, or naming it from a folder whose watch is stopped, is
-refused by name (`supersedes_unwatched`, `supersedes_from_inactive`) instead of being accepted
-with a substitution that does nothing.
-
-`ena_correct_fact` now declares `context`, which its handler always read. `get_knowledge_graph`
-no longer offers `depth`: nothing read it, and a multi-hop walk is not implemented.
+`ena_correct_fact` takes `context`, the same free-form payload `ena_add_episode` takes.
 
 ## Recall takes a projects filter
 
