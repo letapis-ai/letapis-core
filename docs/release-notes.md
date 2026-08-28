@@ -9,6 +9,25 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.828.2
+
+### The call map reads PHP
+
+`blast_radius` answers on PHP. A `.php` file yields definitions and calls the way a Python one
+does: functions, methods, and the four type declarations (class, interface, trait, enum). A
+declaration with no body is a definition too, so a call by name reaches the interface that
+states the contract as well as the class that implements it.
+
+The map reads a bare call, a namespaced call, `$this->x()`, `Klass::y()`, `$x?->y()` and
+`new Klass()`. It leaves out a callee with no static name: `$fn()`, `$obj->{$method}()`,
+`$obj->{CONSTANT}()`. Those names are decided while the code runs, and taking the written one
+would claim a call to a method that need not exist.
+
+PHP symbols keep their own namespace, so a `save` in PHP does not collide with a `save` in
+Python, TypeScript, C, Swift or Rust.
+
+The map covers `.php`. A `.phtml` template yields no definitions or calls.
+
 ## 26.828.1
 
 ### Work on a branch in a copy of the tree
