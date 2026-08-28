@@ -18,6 +18,15 @@ states of one file never arrive together.
 None of this is remembered between calls. A call that does not name the copy gets the trunk. That
 is the default, and it is what everyone else keeps getting.
 
+## Making the copy
+
+```bash
+git worktree add -b <branch> ../_copies/<name> main
+```
+
+The copy shares the repository's object store, so the tree itself is cheap. Its environment is
+not: a virtual environment is not carried over, and the first command run in the copy builds one.
+
 ## Registering the copy
 
 ```
@@ -39,8 +48,8 @@ rather than typing the one you are standing in, and the refusal will not come up
 
 `supersedes` also closes exactly one path: the one you named. If the same tree is watched a second
 time, by a folder nested inside it for instance, that second record is untouched and its files
-arrive alongside your copy. Look at how many watches cover your trunk before you rely on the
-substitution.
+arrive alongside your copy. `list_folders` lists every watch with its path; count the ones whose
+path is your trunk or sits inside it before you rely on the substitution.
 
 Both marks sit on the watch root and cover the tree below it. A watched folder nested inside
 answers for itself.
@@ -71,7 +80,7 @@ Omit `reveal` and you get the trunk. Not an error, not an empty result: a plausi
 the older state of your code. This is how the arrangement fails, and the results themselves will
 not tell you — but the answer will, if you look at the right field. `visibility.revealed` is
 empty when you named nothing, and `visibility.hidden_folders` then lists your copy among the
-folders kept out. That is the whole check, and it costs one glance.
+folders kept out.
 
 `reveal` admits the copy. It does not narrow the answer down to it. `blast_radius` has its own
 `folder` for that, and without it you get callers from the whole corpus in one list, other
@@ -91,8 +100,8 @@ revealing.
 
 ## Catching up with the trunk
 
-Merge the trunk into the copy the way you normally would. The watcher picks the changed files up
-on its own, the folder needs no re-registering, and the merge disturbs neither mark.
+Merge the trunk into the copy, standing in the copy: `git merge main`. The watcher picks the
+changed files up on its own, the folder needs no re-registering, and the merge disturbs neither mark.
 
 ## Retiring the copy
 
@@ -106,10 +115,17 @@ not a dead carrier, so episodes and findings are counted and left alone. Files o
 touched. The call has no way back; when you want something reversible, `forget_folder` hides
 rather than deletes.
 
-Then remove the working tree. Two things catch people out. Removal refuses while modified or
-untracked files are still there, and in a copy anyone has worked in they nearly always are,
-starting with its virtual environment; forcing it takes the directory down with everything unsaved
-inside. And the branch outlives the working tree. Deleting one does not delete the other.
+Then remove the working tree and its branch:
+
+```bash
+git worktree remove ../_copies/<name>
+git branch -d <branch>
+```
+
+The removal refuses while modified or untracked files remain, and in a copy anyone has worked in
+they nearly always do, starting with its virtual environment. `--force` takes the directory down
+with everything unsaved in it, so read what is there before reaching for it. The branch outlives
+the working tree: `-d` deletes a merged branch and refuses an unmerged one.
 
 ## What the copy does not buy you
 
@@ -119,7 +135,7 @@ run. The full run on the branch is still owed before anything merges.
 
 ## What it costs
 
-Measured on a trial corpus of roughly six thousand nodes per tree.
+Per tree, on a corpus of roughly six thousand nodes.
 
 | Item | Cost |
 |---|---|
