@@ -69,8 +69,10 @@ blast_radius(symbol="…", reveal=["<copy>"], folder="<copy>")
 ```
 
 Omit `reveal` and you get the trunk. Not an error, not an empty result: a plausible answer about
-the older state of your code, with nothing in it to tell you so. This is how the arrangement
-fails, and it fails quietly.
+the older state of your code. This is how the arrangement fails, and the results themselves will
+not tell you — but the answer will, if you look at the right field. `visibility.revealed` is
+empty when you named nothing, and `visibility.hidden_folders` then lists your copy among the
+folders kept out. That is the whole check, and it costs one glance.
 
 `reveal` admits the copy. It does not narrow the answer down to it. `blast_radius` has its own
 `folder` for that, and without it you get callers from the whole corpus in one list, other
