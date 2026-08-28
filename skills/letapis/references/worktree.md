@@ -5,9 +5,8 @@ half-finished code in their answers. A copy of the repository gives you that iso
 can index the copy like any other folder, so search and the call graph still see what you are
 doing.
 
-Those two things used to be in tension. They are reconciled by visibility rather than versioning:
-the index stays flat, two states of the same code live as two watched folders, and which one
-answers is decided per call.
+What reconciles isolation with visibility is not versioning: the index stays flat, two states of
+the same code live as two watched folders, and which one answers is decided per call.
 
 ## The shape of it
 
