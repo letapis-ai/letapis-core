@@ -106,7 +106,7 @@ mcp__<engine>__index_folder(
 )
 ```
 
-**What guessing costs, measured on one third-party repository over three passes:**
+**What guessing costs — one unfamiliar repository, three passes:**
 
 | Pass | What was declared | What was indexed |
 |---|---|---|
@@ -139,7 +139,12 @@ stack the engine has never heard of, look at what its build writes and name it y
 output of that kind runs to tens of thousands of indexable files, and it competes with your
 sources in the results rather than sitting quietly beneath them.
 
-**Layers only add up**: nothing set globally can be cancelled for one folder.
+**A folder can overrule the machine.** The lists are glued in one order — the built-in list, the
+machine's config, then the folder's own rules — and the last line that matches wins, so a folder
+cancels a pattern from either list above it by writing `!<pattern>` among its own. Two things no
+`!` reaches: the version control directories, which sit below the folder, and the sets matching by
+file extension or file name, which are not part of the pattern list at all. `ignore_patterns()`
+names every layer and says which of them a folder may overrule.
 
 ### Whether a folder grows memory
 

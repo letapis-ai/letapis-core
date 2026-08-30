@@ -60,10 +60,10 @@ satisfied by any number of good hits, because its whole content is **all of them
 list is truncated by construction. Asking it of search gives you an answer that looks complete and
 is not.
 
-The shape of the failure, measured: a query for one attribute value returned ten hits out of
-twenty-six candidates, and two of the ten were near-misses matching the shape of the line rather
-than the value. The full set came from an exhaustive pass — twenty-five occurrences across
-twenty-one modules — and no rephrasing of the query would have produced it.
+The shape of the failure: a query for one attribute value returns a handful of hits out of
+several times as many candidates, and some of what it does return are near-misses matching the
+shape of the line rather than the value. The full set only comes from an exhaustive pass, and no
+rephrasing of the query produces it.
 
 **When the answer is a count, stop searching and enumerate.** Search is how you find *where* to
 enumerate; the literal axis is how you enumerate (§ Letters — a literal match). The give-away is
@@ -81,8 +81,8 @@ equally well. Ask where a discount is *applied to a price* and you can get back 
 divide it out again to recover the original — the formula appears on both sides of the operation,
 the surrounding names are identical, and both readings are honest matches for what you typed.
 
-Measured: three of five hits for such a question were code undoing the operation rather than
-performing it.
+Most of what such a question returns can be code undoing the operation rather than performing
+it — both readings are honest matches for what you typed.
 
 **Ask for the consequence rather than the operation.** "Where is the discount applied" has two
 answers in the corpus; "what number goes into the tax computation" has one. The test is whether
@@ -103,9 +103,10 @@ corpus that answers it.
   description of what the thing does — the identifier exists in the source and not in the
   documentation, so the keyword arm has something to catch on.
 
-Measured on our corpus: one question about file handlers returned **zero** `.py` files asked in
-the prose language and **seven** asked in English. The failure is quiet — a fluent, plausible
-answer built entirely from documentation, with the implementation never considered.
+On a corpus whose code is written in English and whose prose is not, the same question asked in
+each language reaches different material: the prose language finds the documentation, English
+finds the implementation. The failure is quiet — a fluent, plausible answer built entirely from
+documentation, with the implementation never considered.
 
 ### `instruction` — the same query, a different facet
 
@@ -146,10 +147,9 @@ there are two kinds of it — by **where** something lives and by **what** it is
 **A corpus can hold two versions of the same framework, and only the path tells them apart.**
 This is the narrowing failure that costs the most, because nothing about the answer looks wrong.
 Index two releases of one library and a question about either matches both: same file paths, same
-symbol names, same prose. Measured on such a corpus, one broad question returned eight hits and
-five of them came from the version that was not being worked on. Two of the eight were *the same
-chunk* in both releases — one identifier apart (`tax_id` against `tax_ids`), every surrounding
-line identical down to the comments, and their scores 0.000013 apart.
+symbol names, same prose. A broad question on such a corpus returns most of its hits from
+the release you are not working on, and some of them are *the same chunk* in both — one identifier
+apart, every surrounding line identical down to the comments, the two scores a millionth apart.
 
 Ranking cannot save you here and neither can reading carefully: the excerpt is correct, it is
 simply from the wrong world. **Name which world you mean whenever the index holds more than one.**

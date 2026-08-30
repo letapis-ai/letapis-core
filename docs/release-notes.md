@@ -9,6 +9,139 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.830.2
+
+**A pass** is the engine reading a folder and bringing the index up to date with it. One runs
+when a watched file changes, one runs on a timer every five minutes, and you can start one
+yourself with `index_folder`. A pass only ever *adds and refreshes*; taking entries out is a
+separate job — see the section on removing files.
+
+**Calls** are written as `name(argument=…)`. That is the tool name your client shows, and each
+one has an HTTP address given next to it the first time it appears.
+
+---
+
+### Read first: one change can alter what your corpus holds
+
+#### A `.gitignore` in a watched folder no longer affects indexing
+
+**Your corpus will grow.** Everything a `.gitignore` was keeping out becomes eligible on the
+next pass — for many folders that is `data/`, `dist/`, fixtures, generated files. If any of it
+should stay out, move those patterns into the folder's own rules **before** the next pass runs,
+not after: once entries are in, taking them out is a second job.
+
+    update_folder(path="…/your-folder", ignore_patterns=["build/", "fixtures/"])
+    POST /api/v1/files/update
+
+`ignore_patterns` replaces the folder's list — it does not append to it. Read the current one
+first if the folder already has rules.
+
+A `!` line that used to let something back in has the same meaning written among the folder's
+rules. Write it there and it keeps working.
+
+    folder_rules(path="…/your-folder")
+    GET /api/v1/files/folder-rules?path=…/your-folder
+
+That answer names every rule dropping files in this folder and which layer carries it, so you
+can see what your folder is left with before anything runs.
+
+---
+
+### What decides whether a file is indexed
+
+Three lists of patterns, glued into one in this order, and **the last line that matches wins** —
+so a rule written lower overrules the same rule written higher:
+
+    1. the engine's built-in list
+    2. your config
+    3. the folder's own rules      ← lowest, so a `!` here overrules the two above
+
+Two more things drop files and are **not** part of that list, so no `!` reaches them: the VCS
+directories (`.git/`, `.svn/`, `.hg/`), which sit below the folder, and the sets matching by file
+extension, by file name, or by a substring that marks a secret. `ignore_patterns()`
+(`GET /api/v1/files/ignore-patterns`) lists every layer and says which of them a folder may
+overrule.
+
+#### One folder needs the file type your config excludes everywhere
+
+Write the cancellation among that folder's own rules, prefixed with `!`:
+
+    update_folder(path="…/vendor-docs", ignore_patterns=["!*.md"])
+
+That folder keeps them; every other folder still drops them. There is no separate field for
+this and no list of allowed values to pick from — a `!` line is an ordinary rule that happens to
+sit lower than what it overrules.
+
+A rule carried by more than one layer is only cancellable when every one of them is. `.DS_Store`
+is carried by three, so a `!` on it does nothing.
+
+#### A file is on disk and search does not find it
+
+    folder_rules(path="…/addons_oca")
+
+Next to each dropping rule the answer names the layers it came from. That is which one caught
+your file.
+
+#### You added an exclusion and the files are still in the index
+
+A pass will not remove them. Entries already in the index stay until you sweep them out:
+
+    cleanup_orphaned_files()
+    POST /api/v1/files/cleanup
+
+It drops index entries nothing currently backs — a file gone from disk, or a file excluded by
+that folder's current rules. Your files on disk are never touched.
+
+---
+
+### Everything else
+
+#### A file is in the index but searching it returns nothing
+
+The next ordinary pass over its folder reads the file again and fills it in, with no reindex by
+hand.
+
+#### You want to tell a folder how to read its files and do not know the names
+
+Name one you know is not there, and the refusal tells you what is:
+
+    update_folder(path="…/your-folder", parser="no-such-name")
+    → error: unknown_parser, with known_parsers and known_lenses in the answer
+
+Parsers cut files into chunks; lenses read the links between them. A name may be registered as
+one, the other, or both. Nothing is written when the name is unknown, so the folder keeps the
+setting it had.
+
+What your engine has depends on the build it was made from, so the refusal is the list.
+
+#### You ask what the engine is busy with and get thousands of lines back
+
+    list_operations(active=true)
+    GET /api/v1/operations?active=true
+
+`active` narrows the answer to work that is queued or running. Without it you get every
+operation the engine remembers; when that does not fit in one answer, the engine writes it to a
+file on its own disk and hands you the path.
+
+The summary of a finished operation is in `result`. If your code reads it from `detail.result`,
+move to `result`: it is there for every ending except `ERROR`, which carries `error` and nothing
+else. A run someone stopped still hands you the summary it had by then.
+
+#### One pass over your Odoo folders will be slow after this upgrade
+
+Files in a folder you named `odoo-xml` are read again once, on the first ordinary pass after you
+install. Nothing to do on your side. Folders named anything else are untouched.
+
+#### Files that failed to get embeddings take a long time to retry
+
+The retry pass asks for everything waiting at once instead of one file at a time, so it spends
+its time on the work rather than on round-trips to the embedding service.
+
+#### A pass over a large folder takes longer than the work in it
+
+The search for records whose file is gone runs on its own schedule, so an ordinary pass reads
+only what it removes.
+
 ## 26.828.3
 
 ### A folder names how its files are read

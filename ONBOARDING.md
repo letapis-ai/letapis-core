@@ -31,7 +31,7 @@ stays silent. You never need to type an FYI box for the installation to succeed.
 |---|---|---|
 | **OS** | macOS **13.0** or newer | the panel's minimum system version |
 | **Chip** | Apple silicon | the models run on the GPU through Metal |
-| **Memory** | **16 GB** or more | the two models together hold roughly 5.5 GB resident (see [models.md](docs/models.md)); the engine and Qdrant want their share on top |
+| **Memory** | **16 GB** or more | the two models together hold roughly 3 GB resident (see [models.md](docs/models.md)); the engine and Qdrant want their share on top |
 | **Disk** | **~10 GB** to install, plus room for the index | Docker Desktop is ~4 GB of it, the two models ~1.2 GB, the Qdrant image ~300 MB. Already have Docker or Podman? Then 4 GB is enough to install the rest. The index grows under Qdrant as the engine feeds it — plan for that separately |
 | **Docker Desktop** *or* **Podman** | one of them installed | Qdrant runs as a container, and either runtime can run it |
 | **llama.cpp** | installed | both models run under its `llama-server` |
@@ -447,8 +447,9 @@ Junk of that kind does not sit quietly at the bottom of the results; it competes
 you wanted.
 
 **The built-in exclusions are deliberately basic.** They cover what nearly every tree has —
-version control, `node_modules`, Python caches and virtualenvs, `build/`, `dist/`, `target/`,
-`out/`, editor droppings — plus a set of binary extensions refused by name. They carry **nothing**
+`node_modules`, Python caches and virtualenvs, `build/`, `dist/`, `target/`, `out/`, editor
+droppings — plus a set of binary extensions refused by name, and the version control directories
+in a layer of their own that nothing overrules. They carry **nothing**
 for Xcode, Java, .NET, Go, mobile toolchains or your framework's cache directory, and that is a
 decision rather than an oversight: an engine that shipped a list for every stack would impose it
 on everyone who does not use them.
@@ -485,8 +486,15 @@ everything indexed from it. Fencing either off is one line.
       config file (step 3 wrote it) and restart the engine. Use this for what every folder on
       this machine should skip — your sync tool's droppings, your own toolchain's caches.
 
-**Layers only add up.** A pattern set globally cannot be cancelled for one folder, so keep the
-global list to what is genuinely machine-wide and let each folder carry its own.
+**A folder can overrule the machine.** The lists are glued in one order — the built-in list, your
+config, then the folder's own rules — and the last line that matches wins. A folder cancels a
+pattern from either list above it by writing `!<pattern>` among its own rules. Still keep the
+global list to what is genuinely machine-wide: a cancellation is worth writing once, not in every
+folder.
+
+Two things no `!` reaches: the version control directories, which sit below the folder on purpose,
+and the sets matching by file extension or file name, which are not part of the pattern list at
+all. `ignore_patterns()` names every layer and says which of them a folder may overrule.
 
 **Already indexed the junk?** Add the pattern, then force a reindex of that folder. Changing the
 patterns stops new files arriving; it does not remove what is already stored.
