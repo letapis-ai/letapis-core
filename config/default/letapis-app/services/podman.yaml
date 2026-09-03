@@ -1,0 +1,14 @@
+# Podman — the other container runtime, and the same story as docker.yaml: laid down ready,
+# pointed at by nothing.
+#
+# It is named `Podman machine` rather than a daemon because on macOS there is no permanent
+# daemon at all: the work is held by a virtual machine, which the start line brings up and
+# `podman info` asks about. The card is named after what it controls.
+id: podman
+name: Podman machine
+health:
+  kind: command
+  command: podman info
+start: podman machine start
+restart_policy: manual
+requires_runtime: podman

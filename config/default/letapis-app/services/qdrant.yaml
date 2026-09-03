@@ -1,16 +1,28 @@
-# Qdrant — the vector database. The panel starts the container if it exists and creates it
-# if it does not; the named volume is what keeps your index across restarts.
-# Removing that volume deletes the index — reindexing is the only way back.
+# Qdrant — the vector database, run from a native binary.
+#
+# The binary is not in the kit: there is no Homebrew formula, so you unpack the release archive
+# for your machine into the path `bin` names below, the same way you install the engine and the
+# model weights.
+#
+# Both parameters are paths and both are read by qdrant.sh. Everything else about Qdrant — where
+# the storage goes, which ports it binds — lives in the config `config` names, which the panel
+# wrote for you on first launch and never touches again. Moving the storage means moving the
+# corpus: stop Qdrant, move the directory, change the line there.
 id: qdrant
 name: Qdrant
 health:
   kind: http
   url: http://127.0.0.1:6333/healthz
-start: docker start letapis-qdrant || docker run -d --name letapis-qdrant -p 6333:6333 -p 6334:6334 -v letapis_qdrant_storage:/qdrant/storage qdrant/qdrant
+start: nohup bash ~/.config/letapis-app/services/qdrant.sh &
 restart_policy: manual
 stop:
-  kind: docker
-  container: letapis-qdrant
+  kind: port
+  port: 6333
 logs:
-  kind: docker
-  container: letapis-qdrant
+  kind: file
+  path: /tmp/letapis-qdrant.log
+config:
+  file: ~/.config/letapis-app/services/qdrant.yaml
+  params:
+    bin: ~/.local/letapis-qdrant/bin/qdrant
+    config: ~/.local/letapis-qdrant/config.yaml

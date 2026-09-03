@@ -1,0 +1,26 @@
+# Qdrant in a container — the alternative to the native card, and nothing points at this file
+# until you say so. Swap it for `qdrant.yaml` in services.yaml; the two never stand together,
+# because they are one service on one port.
+#
+# The id is `qdrant` here as well, on purpose: it is the same database, the same port and the
+# same row in the panel. Only the file name differs, so that there is something to exchange.
+#
+# `{{runtime}}` is filled in with whatever container runtime the machine has — the panel picks
+# it and writes it into the commands before running them. The named volume is what keeps your
+# index across restarts; removing it deletes the index, and reindexing is the only way back.
+id: qdrant
+name: Qdrant
+health:
+  kind: http
+  url: http://127.0.0.1:6333/healthz
+start: '{{runtime}} start letapis-qdrant || {{runtime}} run -d --name letapis-qdrant -p 6333:6333 -p 6334:6334 -v letapis_qdrant_storage:/qdrant/storage qdrant/qdrant'
+restart_policy: manual
+stop:
+  kind: container
+  container: letapis-qdrant
+  runtime: '{{runtime}}'
+logs:
+  kind: container
+  container: letapis-qdrant
+  runtime: '{{runtime}}'
+requires_runtime: any

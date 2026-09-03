@@ -1,5 +1,10 @@
-# Docker daemon — not ours, but Qdrant runs inside it, so the panel watches it too.
+# Docker daemon — not ours, and nothing points at this file by default. It belongs with
+# qdrant-docker.yaml: add both to services.yaml if you want Qdrant in a container and a row
+# that shows whether the daemon is up.
+#
 # Health is a command rather than a URL: the daemon has no HTTP endpoint worth asking.
+# `requires_runtime` keeps the row off a machine that has no Docker — a card nothing can serve
+# would sit red forever on a perfectly working install.
 id: docker
 name: Docker daemon
 health:
@@ -7,3 +12,4 @@ health:
   command: docker info
 start: open -a Docker
 restart_policy: manual
+requires_runtime: docker
