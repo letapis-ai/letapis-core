@@ -30,5 +30,15 @@ exec >> "$LOG" 2>&1
   exit 1
 }
 
-# Paths inside the config are absolute, so cwd does not decide where the storage lands.
+# INTO OUR OWN DIRECTORY BEFORE THE EXEC. Qdrant writes a `.qdrant-initialized` marker into the
+# CURRENT directory. Started by the panel, that directory is `/`: the panel pins it there when it
+# launches a service, deliberately, because a parent can carry a working directory that has since
+# been deleted — and the same note says scripts cd themselves. `/` is read-only, so the marker
+# cannot be written and Qdrant complains into the log on a perfectly good start. Started by hand
+# instead — which is what happens while setting the machine up — the marker lands in whatever
+# directory you were standing in, which is somebody else's. The install directory is ours and is
+# writable, and it answers both.
+#
+# Paths inside the config are absolute, so this does not decide where the storage lands.
+cd "$(dirname "$LETAPIS_SVC_CONFIG")" || exit 1
 exec "$LETAPIS_SVC_BIN" --config-path "$LETAPIS_SVC_CONFIG"
