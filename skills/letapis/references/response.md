@@ -129,12 +129,33 @@ in the excerpt.
 
 | Field | What it actually tells you |
 |---|---|
-| `symbol_found_on_disk` | **reads as a claim about the disk; is a claim about the parser.** A name written in a language with no extractor returns `false` while sitting in the files many times over |
+| `symbol_found_on_disk` | **reads as a claim about the disk; is a claim about the parser.** A name written in a language with no extractor returns `false` while sitting in the files many times over — `unread` below is what tells you that is what happened |
 | `hint` | the one that carries the real reason — that the extension has no extractor, that module-level names are a blind spot. Without it the flag above misleads |
 | `caller_count` vs `call_site_count` | distinct callers against distinct places. One caller invoking a symbol three times reads as `1` and `3`; take the first for "one place" and you miss two |
 | `definitions` | **count them yourself.** More than one definition of the same name is worth reading whichever language you are in |
 | `ambiguous` | fires when a name lives on several *types*. In languages where free functions all sit at module level it stays `false` even with several definitions — so it is not a general duplicate detector |
 | `scope_relation` | present on each caller **when a scope was given**. `scope` selects among definitions and cannot select among callers, so the list can hold call sites belonging to other types; this field says which is which |
+
+**Four fields name what the lookup did NOT read, and they are what turns a zero into an answer.**
+
+| Field | What it claims |
+|---|---|
+| `unread` | an extension with no extractor: `{extension, files, with_the_name}` — how many such files were scanned and how many of them carry your name. A non-zero `with_the_name` means the empty `callers` speaks only for what was read |
+| `unparsed` | files that were opened and whose reader gave up, counted per extension. Different from `unread`: there the language is unknown, here the file is |
+| `skipped_on_purpose` | parts a reader ignores by design — a docstring, a comment block. Declared rather than left invisible |
+| `mentions` · `mention_count` | places where the name stands inside a **string** rather than in a call. Never promoted to a call: what a string means is the caller's business |
+
+A zero beside four empty fields is a zero about the whole folder. A zero beside a non-empty one is
+a zero about a part of it, and the field says which part.
+
+**`registrations` and `named_at` — the edge a call graph cannot see.**
+
+Some code is never called by name: it is put into a registry under a string key, and whoever wants
+it names the key. `registrations` answers from both ends — ask the symbol and you learn its key,
+ask the key and you learn what answers to it. `named_at` is where that key is written in markup,
+with `named_at_count` for the total before the list is capped.
+
+**Zero callers beside a registration reads "reached the other way", not "unused".**
 
 **`scope_relation` has three values, and the third is the one that matters.**
 

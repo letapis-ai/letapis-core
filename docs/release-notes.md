@@ -9,6 +9,109 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.904.1
+
+### A zero from the call map says what it did not read
+
+`blast_radius` used to answer an unknown name and a name it could not read the same way: an empty
+`callers` list. Those are different facts, and the answer now separates them.
+
+    "callers": [], "caller_count": 0,
+    "unread": [{"extension": ".abap", "files": 757, "with_the_name": 1}],
+    "hint": "NOT READ: 757 `.abap` files here have no extractor, and 1 of them
+             carry this name, so the zero above speaks only for what was read."
+
+`unread` names an extension the engine has no reader for, how many such files sit in the scanned
+folders, and how many of them carry the name you asked about. A non-zero `with_the_name` means the
+empty `callers` above is about what was read, not about your codebase.
+
+`unparsed` is the neighbouring case: files that were opened and whose reader gave up. A zero beside
+an empty `unparsed` and an empty `unread` is a zero about the whole folder.
+
+### A name met inside a string is a mention, not a call
+
+A framework often reaches code by writing its name as text — a command name, a registry key, an
+event. The call graph cannot see that by construction, and until now the answer swallowed it.
+
+Those places come back in `mentions`, with `mention_count` for the total before the list is capped:
+
+    "mentions": [{"file": "src/app/commands.ts", "line": 42, "kind": "string"}],
+    "mention_count": 3
+
+A mention is never promoted to a call. What a string *means* is the caller's business; this field
+says only that the name is written there.
+
+### A class reached through a registry is an edge, not a silence
+
+Some code is never called by name — it is put into a registry under a string key, and whoever wants
+it names the key. `registrations` answers from both ends: give it the symbol and you learn the key
+it is registered under; give it the key and you learn what answers to it.
+
+    "registrations": [{"key": "product.template", "symbol": "ProductTemplate",
+                       "via": "_name", "file": "models/product.py", "line": 18}]
+
+`named_at` is the other half — the places in markup that write that key, with `named_at_count` for
+the total. Zero callers beside a registration reads "reached the other way", not "unused".
+
+### What the reader skipped on purpose says so
+
+A reader that deliberately ignores part of a file — a docstring, a comment block — now declares it
+in `skipped_on_purpose` instead of leaving the omission invisible. What is missing from an answer
+and why is part of the answer.
+
+### The engine answers in English
+
+Diagnostics, hints and refusal messages come back in English throughout.
+
+## 26.831.1
+
+### A PDF with bookmarks now gives you its table of contents
+
+Ask a research scope for its structure and you get the chapters and sections the document carries
+in its own bookmarks, with the nesting you can rebuild from them.
+
+    get_research_structure(scope_id="…")
+
+A book-sized tree does not fit in one answer: the engine writes it to a file on its own disk and
+hands you the path. Follow it.
+
+Sections come back in one list per chapter, each with `level`, `order` and `file_path`. A
+section's parent is the nearest preceding entry of a smaller level. Order runs per document, so
+in a scope holding two files `order` 5 can be followed by `order` 0 — that is the second document
+starting.
+
+**Only PDF bookmarks are read.** A `.docx`, an `.epub`, a markdown file never carried an outline,
+and no re-indexing gives them one. Figures and tables are not built for anyone.
+
+### An empty structure tree tells you which of four things happened
+
+`empty_because` separates four facts:
+
+| Value | What it means |
+|---|---|
+| `none_found` | bookmarks were read and there are none: a scan, or a PDF published without them |
+| `read_failed` | the bookmarks are there and reading them failed: whether this document has a structure is unknown. `message` names the files and the error, and the scope is worth re-indexing |
+| `not_built` | no file here carries an outline at all — wrong format for a tree |
+| `unknown` | the scope was indexed before any of this existed |
+
+### Your scope was indexed by an older version
+
+`structure_needs_reindex` tells you when the tree holds nodes this engine did not write.
+Re-indexing does not clear them — delete the scope and index it again.
+
+### An answer that did not fit names the parameters of the tool you called
+
+When a reply is too large, the engine hands back its size and an address instead of the body. That
+refusal now also lists what the tool you called actually accepts, read from its own schema:
+
+    … This tool takes: kind, active.
+
+Narrow with those. They differ per tool — `list_operations` takes `kind` and `active`, memory
+recall takes `query`, `limit`, a date window and more — so the names in the refusal are the ones
+that will work on the call you just made.
+
+A path that belongs to no tool — the file channel, a panel route — lists none.
+
 ## 26.830.2
 
 **A pass** is the engine reading a folder and bringing the index up to date with it. One runs

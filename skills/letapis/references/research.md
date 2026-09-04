@@ -52,19 +52,49 @@ ordinary indexing, and the reason the operation is worth collecting rather than 
 mcp__<engine>__get_research_structure(scope_id="descriptive-name")
 ```
 
-Where the structure is present — chapters, sections, figures, tables — this returns the tree of
-it. That is the cheapest orientation available: you learn what the document contains and what it
-calls its own parts, which is exactly the vocabulary your queries should use.
+Chapters and sections come from the outline the document carries in itself. Today that means the
+bookmarks of a PDF and nothing else: a `.docx`, an `.epub`, a markdown file never had one to
+begin with, and no amount of re-indexing gives them a tree. Figures and tables are not built at
+all, by anyone, ever.
 
-**An empty tree names its own cause — read `empty_because` instead of guessing.** The basic
-analysis writes chunks and the chain between them and no structure nodes, and the answer says
-which case you are in: `not_built` (this scope was indexed without structure — a 200-page manual
-with a full table of contents comes back this way beside a healthy chunk count, and nothing is
-wrong), `none_found` (structure was built and the document yielded none), or `unknown` (an older
-scope that carries no mark — the engine honestly cannot tell). Sections whose chapter is missing
-are not dropped: they come back in `unparented_sections`, and `stats.truncated` says when a count
-hit the query ceiling. On `not_built`, get your orientation by querying the document's own
-opening pages instead.
+When a tree is there, it is the cheapest orientation you can get: you learn what the document
+contains and what it calls its own parts, which is the vocabulary your queries should use.
+
+**A real book does not fit in one answer.** A 370-page guide comes back as 142 KB of tree, and
+the engine answers `answer_too_large` with a path instead. That path is on the ENGINE's disk, not
+yours: fetch it with `fetch_file`, which brings the file to you and returns a local path. Opening
+the path directly happens to work against a local engine and finds nothing against a remote one.
+
+**An empty tree names its own cause in `empty_because`.** Four answers, and they mean different
+things:
+
+| Value | What it means | What to do |
+|---|---|---|
+| `none_found` | the bookmarks were read and there are none: a scan, a PDF published without them | nothing. This document is flat; query it by content |
+| `read_failed` | the bookmarks are there and reading them failed, so whether the document has a structure is unknown — it is neither flat nor unindexed. `message` names the files and the error | re-index the scope. This one is worth retrying: the same file can read fine on a later pass |
+| `not_built` | no file in this scope carries an outline at all: everything here is `.docx`, `.md`, or another format that has none | nothing. Wrong format for a tree |
+| `unknown` | the scope was indexed before any of this existed and carries no record of how | delete the scope and index it again. Re-indexing alone reports success and changes nothing: an unchanged file is skipped before its outline is reached |
+
+**Two fields answer what prose cannot.** `chapter_order_complete` says whether every chapter and
+section carries the order of its own document; it is `null` when the scope holds no chapters and
+no sections. `message` carries a sentence when there is something to say about the
+scope, and is absent when there is not. `structure_needs_reindex` is true when the tree holds nodes this indexer did not
+write — nodes left by an older engine, which you will only ever see on a corpus carried over from
+one. Re-indexing does not clear them: structure is removed by file path when a file goes, and those
+nodes carry none. Delete the scope and index it again.
+
+**The tree below a chapter is flat, and you rebuild the nesting yourself.** Sections come back in
+one list per chapter, each carrying `level`, `order` and `file_path`. The rule is the one the
+writer used: a section's parent is the nearest preceding entry of a smaller level, and the
+chapter itself is where the walk starts. Sections whose chapter is missing are not in that list
+at all; they come back in `unparented_sections`, where the rule has nothing to anchor to.
+
+Order runs per document, and inside one chapter's list the file is always the same, so nothing
+jumps there. Two documents meet in the list of CHAPTERS, and they look like a repeated zero: both
+top chapters carry `order: 0`, and `file_path` is what tells them apart.
+
+`stats.truncated` is true when a count stopped at the query ceiling, so the numbers under it are
+floors rather than totals.
 
 ### Ask it in pieces
 
