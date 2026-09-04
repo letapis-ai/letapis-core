@@ -80,13 +80,17 @@ the row.
 | Button | Does | Absent when |
 |---|---|---|
 | ▶ **Start** | runs the card's start command | the service is healthy, or has no start command |
-| ■ **Stop** | stops this card's process | the card has no stop strategy, or the port is held by someone else |
+| ■ **Stop** | stops this card's process | the card has no stop strategy, or — on a checked row — the port is held by someone else |
 | ↻ **Restart** | stop, pause, start | the card cannot do both halves |
 | **Logs** | opens the service's log | the card declares no log |
 | ✎ **Edit config** | opens the file the card points at | the card points at no file |
 
 A Start that would collide with a port already in use is refused before it is attempted, and the
 message names the occupant.
+
+**On a row that is not checked, Stop means "kill what is listening on that port".** It has no way
+to tell your service from a stranger that took the port, so it stops whichever it finds. Which
+rows those are, and why: the note under [When everything is red](#when-everything-is-red).
 
 ## Row notes during an action
 

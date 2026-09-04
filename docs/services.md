@@ -153,8 +153,14 @@ attributed to either.
 
 **A card that runs a container is outside this check entirely.** The port is held by the
 container runtime's own process, not by the program inside it, so the panel cannot say whether
-what answers is yours. That is a property of containers, not a gap to be filled: the container
-Qdrant card lights from the port, as every card did before this check existed.
+what answers is yours. That is a property of containers rather than a gap to be filled, and the
+container Qdrant card lights from the port alone.
+
+**So there are two kinds of row, and the difference is worth keeping in mind.** On a checked row
+— the engine, Qdrant — green means the process on the port is the one this card started. On an
+unchecked row it means only that something answers at that address. When a service refuses to
+start while its row stays green, its log is what tells you which case you are in: see
+[panel.md](panel.md).
 
 ## Common changes
 
