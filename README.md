@@ -21,8 +21,8 @@ in order, with a box to tick at every step. The pages below are the long version
 | Go back to a previous engine version | [docs/updating.md](docs/updating.md) |
 | See what changed in this version | [docs/release-notes.md](docs/release-notes.md) |
 
-**Installing from nothing?** Start with the panel instead: it brings up your container runtime, Qdrant and the
-two model servers, and this repository picks up from there:
+**Installing from nothing?** Start with the panel instead: it brings up Qdrant and the two model
+servers, and this repository picks up from there:
 [letapis-ai/letapis-panel](https://github.com/letapis-ai/letapis-panel).
 
 ## The MCP proxy

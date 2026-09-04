@@ -100,11 +100,15 @@ at a time.
 
 Work from the bottom of the stack up — each service depends on the ones started before it:
 
-1. **Docker daemon** or **Podman machine** grey or red → that runtime is not running. The panel
-   shows a card only for a runtime that is actually installed, so you see the one you have.
-2. **Qdrant** red → the runtime is up but the container is not; press Start.
-3. **Embedder / Reranker** red → open the row's log. The scripts fail loudly and name the cause
+1. **Qdrant** red → open the row's log. The script says which file it could not find: the
+   binary, if the archive was never unpacked into `~/.local/letapis-qdrant/bin/`, or the
+   configuration beside it.
+
+   A *green* Qdrant row is worth one caveat: the lamp asks 6333 and believes whoever answers.
+   If something else on the machine was already holding that port, the row is green about a
+   program that is not yours, and `/tmp/letapis-qdrant.log` ends with `Address already in use`.
+2. **Embedder / Reranker** red → open the row's log. The scripts fail loudly and name the cause
    ([models.md](models.md)).
-4. **letapis-core** red → open `/tmp/letapis-core.log`. The engine is the only piece that can
+3. **letapis-core** red → open `/tmp/letapis-core.log`. The engine is the only piece that can
    also be *alive but not licensed*: that is a green lamp with work refused, and it belongs to
    [licence.md](licence.md), not here.

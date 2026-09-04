@@ -32,61 +32,30 @@ stays silent. You never need to type an FYI box for the installation to succeed.
 | **OS** | macOS **13.0** or newer | the panel's minimum system version |
 | **Chip** | Apple silicon | the models run on the GPU through Metal |
 | **Memory** | **16 GB** or more | the two models together hold roughly 3 GB resident (see [models.md](docs/models.md)); the engine and Qdrant want their share on top |
-| **Disk** | **~10 GB** to install, plus room for the index | Docker Desktop is ~4 GB of it, the two models ~1.2 GB, the Qdrant image ~300 MB. Already have Docker or Podman? Then 4 GB is enough to install the rest. The index grows under Qdrant as the engine feeds it — plan for that separately |
-| **Docker Desktop** *or* **Podman** | one of them installed | Qdrant runs as a container, and either runtime can run it |
+| **Disk** | **~1.6 GB** to install, plus room for the index | the two models ~1.2 GB, the engine ~240 MB, Qdrant ~70 MB, the panel ~20 MB, llama.cpp ~20 MB. Add another ~240 MB when the first engine update fills the second slot. The index grows in `~/.letapis/qdrant/` as the engine feeds it — plan for that separately |
 | **llama.cpp** | installed | both models run under its `llama-server` |
-| **Homebrew** | installed | how llama.cpp gets onto the machine |
+| **uv** | installed | how the MCP proxy runs (step 9) |
+| **Homebrew** | installed | how llama.cpp and uv get onto the machine |
 
 - [ ] a terminal you are willing to paste three commands into. There is no installer, on purpose:
       you see what happens on your machine, and when something goes wrong you know which step.
 
 ---
 
-## 1. Two dependencies
+## 1. Three dependencies
 
-The panel supervises your container runtime and the model servers; it does not install them.
+The panel supervises the model servers and the database; it does not install them.
 
 - [ ] **Homebrew** — not part of macOS. If `brew --version` does not answer, install it from
       [brew.sh](https://brew.sh) and follow the "Next steps" it prints (on Apple silicon it asks
       you to put `/opt/homebrew/bin` on your `PATH`, and `brew` does not work until you do).
 - [ ] **llama.cpp** — `brew install llama.cpp`
-- [ ] **A container runtime.** Qdrant runs as a container, so the machine needs something to run
-      containers with. Either Docker or Podman will do, and you do not need both. The panel looks
-      for what is installed and shows a card for the one it finds, so there is nothing to
-      configure by hand.
-
-      **Docker Desktop** — download it from
-      [docker.com](https://www.docker.com/products/docker-desktop/) and open it once so it can
-      finish its own setup. If you install it through Homebrew instead
-      (`brew install --cask docker-desktop`), it will ask for your **admin password** partway
-      through, because it puts its credential helper on the system path. That is expected, and it
-      needs a terminal you can type into.
-
-      **Podman** — there are two ways in, and they leave you at different points.
-
-      Through [Podman Desktop](https://podman-desktop.io): install the application, open it, and
-      let it install the Podman engine and create the machine when it offers to. Installing the
-      application by itself is not enough — it is a window onto the runtime rather than the
-      runtime, and it keeps the engine's installer inside itself until you go through that step.
-
-      Through Homebrew: `brew install podman` puts the engine on the machine and stops there. It
-      does not create the virtual machine, so you have to do that yourself:
-
-      ```bash
-      podman machine init          # create the virtual machine — once, and it takes a few minutes
-      podman machine start         # start it — after a reboot as well
-      ```
-
-      Podman on macOS has no daemon that runs all the time: containers run inside that virtual
-      machine, and nothing works until it exists and is running. The panel's Podman card starts
-      an existing machine when you press Start, but it cannot create one — if you skip
-      `podman machine init`, the card stays red and Start answers `VM does not exist`.
+- [ ] **uv** — `brew install uv`. Step 9 runs the MCP proxy with it.
 
 **Worked?**
 
 ```bash
-brew --version && llama-server --version && \
-  { docker info >/dev/null 2>&1 || podman info >/dev/null 2>&1; } && echo "all three answer"
+brew --version && llama-server --version && uv --version && echo "all three answer"
 ```
 
 ---
@@ -106,32 +75,40 @@ There is no window until you ask for one: click the icon, or pick **Show Panel**
 
 ## 3. What the first launch made for you
 
-You do not have to do anything here: read it, tick it, move on. The panel wrote two things and
-will never touch either again:
+You do not have to do anything here: read it, tick it, move on. The panel wrote three things and
+will never touch any of them again:
 
-- [ ] `~/.config/letapis-app/` — the five service cards it starts things from. **Yours** from now
+- [ ] `~/.config/letapis-app/` — the service cards it starts things from. **Yours** from now
       on: change a port or a path and the panel obeys ([services.md](docs/services.md));
 
   ```
   ~/.config/letapis-app/
   ├── services.yaml            the list of services, in start order
   └── services/
-      ├── docker.yaml          one card per service…
-      ├── qdrant.yaml
+      ├── qdrant.yaml          one card per service…
       ├── embedder.yaml
       ├── reranker.yaml
       ├── letapis-bin.yaml
-      ├── embedder.sh          …and the two launch scripts
-      └── reranker.sh
+      ├── qdrant.sh            …and the three launch scripts
+      ├── embedder.sh
+      ├── reranker.sh
+      ├── qdrant-docker.yaml   …and three cards nothing points at — see "Qdrant in a container"
+      ├── docker.yaml
+      └── podman.yaml
   ```
 
 - [ ] `~/.config/letapis/config.yaml` — the **engine's** configuration, already pointing at the
       services you are about to start. Without it the engine refuses to start, and nothing else
       on the machine creates it.
+- [ ] `~/.local/letapis-qdrant/config.yaml` — **Qdrant's** configuration: where it keeps the
+      index and which ports it binds. The panel wrote it beside where the binary goes, at the
+      same moment it made the Qdrant card, because it is the only one that knows those numbers.
+      You do not write this file, and you do not need to wait for it — it is there now, before
+      the binary it belongs to.
 
 **Want to see what a working machine actually runs?** [`config/default/`](config/default/) in
-this repository holds the same files as they are on ours: both the cards and the engine's
-config, with every value commented. What the panel writes is deliberately shorter: it fills in
+this repository holds the same files as they are on ours: the cards, the engine's config and
+Qdrant's, with every value commented. What the panel writes is deliberately shorter: it fills in
 what your machine needs and leaves the rest to the engine's own defaults.
 
 Take them, take a few lines out of them, or ignore them entirely. They are a reference, not a
@@ -140,23 +117,47 @@ matter more than they look — on stock defaults that server reserves memory for
 times larger than ours and aborts under indexing load — and the panel writes them for you.
 Nothing here needs copying.
 
-> **Both are written on a first launch — one where `~/.config/letapis-app/` does not yet exist.**
-> A panel that already has its cards leaves both files alone: they are yours, and it will not
-> write over your edits. To start from scratch, remove `~/.config/letapis-app/` and
-> `~/.config/letapis/` before launching — that throws away any service cards you had changed.
+> **When each of the three appears is not the same question, and the panel never writes over
+> one that is there.**
+>
+> The cards and the engine's config come from a launch that finds no `~/.config/letapis-app/` at
+> all. A panel that already has cards leaves both alone: they are yours.
+>
+> Qdrant's config goes by its card, not by the launch. The panel writes it in the run where it
+> creates `services/qdrant.yaml` itself — the launch above on a fresh machine, or a later one
+> where a card you never had is added. A card that was already on disk is somebody's else work,
+> and the panel writes nothing beside it.
+>
+> To start from scratch, remove `~/.config/letapis-app/` and `~/.config/letapis/` before
+> launching — that throws away any service cards you had changed.
 
-**Worked?** The panel window shows **five rows**, and all of them except Docker are red. That is
-correct; nothing else is installed yet.
+**Worked?** The panel window shows **four rows**, all of them red. That is correct; nothing they
+start is installed yet.
 
 ---
 
 ## 4. Qdrant
 
-The database the engine keeps its index in. You do not create the container by hand.
+The database the engine keeps its index in. One download and one unpack, the same shape as the
+models in step 5 and the engine in step 6.
 
-- [ ] Make sure Docker Desktop is running (the Docker row is green).
-- [ ] Press **Start** on the Qdrant row. The first Start creates the container and its storage
-      volume; every later Start just starts it again.
+There is no Homebrew formula for it, so you take the archive from its Releases.
+
+- [ ] Download the build for Apple silicon and unpack it where the card looks for it:
+
+```bash
+mkdir -p ~/.local/letapis-qdrant/bin
+
+curl -L -o /tmp/qdrant.tar.gz \
+  https://github.com/qdrant/qdrant/releases/latest/download/qdrant-aarch64-apple-darwin.tar.gz
+
+tar -xzf /tmp/qdrant.tar.gz -C ~/.local/letapis-qdrant/bin
+```
+
+- [ ] Press **Start** on the Qdrant row.
+
+Its configuration is already there — `~/.local/letapis-qdrant/config.yaml`, written by the panel
+in step 3. It says where the index lives and which ports to bind, and you do not have to touch it.
 
 **Worked?**
 
@@ -164,21 +165,21 @@ The database the engine keeps its index in. You do not create the container by h
 curl -s 127.0.0.1:6333/healthz          # healthz check passed
 ```
 
-**FYI — you do not type this.** It is the whole of what **Start** does, no magic behind it. Run it
-yourself only if the button stayed silent:
+**That check is answered by whatever holds the port**, and on a machine where 6333 was already
+busy it will be something other than the Qdrant you just installed. The panel's lamp reads the
+same address and goes green on the same stranger. The one place that tells you apart is the log:
 
 ```bash
-docker start letapis-qdrant || docker run -d --name letapis-qdrant \
-  -p 6333:6333 -p 6334:6334 -v letapis_qdrant_storage:/qdrant/storage \
-  qdrant/qdrant
+grep -c "Address already in use" /tmp/letapis-qdrant.log     # 0 if the port was yours
 ```
 
-Then press **Logs** on the row: a port already taken, or an image that could not be pulled, says
-so in as many words. Both are about your machine, not about the panel: a container of another
-project may already be holding 6333.
+If the row stays red, press **Logs** on it. The script names what is missing in as many words:
+`binary not executable` means the unpack did not land where the card looks, `no config` means the
+configuration file is not there.
 
-> **Your index lives in the volume `letapis_qdrant_storage`.** Removing the container is
-> harmless. Removing that volume throws away everything the engine indexed.
+> **Your index lives in `~/.letapis/qdrant/storage`.** It is an ordinary folder; you can open it
+> in Finder. Deleting it throws away everything the engine indexed, and re-indexing is the only
+> way back. Replacing the Qdrant binary does not touch it.
 
 ---
 
@@ -309,13 +310,12 @@ Every refusal this step can produce, and what each one asks you to do: [licence.
 
 ---
 
-## 8. Five green
+## 8. Four green
 
-- [ ] The panel shows five green rows. Confirm by hand if you like:
+- [ ] The panel shows four green rows. Confirm by hand if you like:
 
 | Row | Port | Check |
 |---|---|---|
-| Docker daemon | — | `docker info` |
 | Qdrant | 6333 | `curl -s 127.0.0.1:6333/healthz` |
 | Embedder | 12436 | `curl -s 127.0.0.1:12436/v1/models` |
 | Reranker | 8086 | `curl -s 127.0.0.1:8086/health` |
@@ -352,6 +352,107 @@ it and the stack works out of the box, which is why it ships this way.
 
 ---
 
+## Qdrant in a container instead
+
+letapis installs Qdrant as an ordinary program, and the container path is not the default. It
+is still supported, and this section goes both ways: **[to the container](#moving-to-the-container)**
+if you want it, **[off it](#moving-off-the-container)** if you are on one already. They are not
+the same amount of work, and each says its own price below.
+
+Two things hold for both, and they are the only two.
+
+**One Qdrant line in the list, exchanged rather than added.** Port 6333 belongs to one program at
+a time. A second line leaves two cards fighting over the port, and the row that loses sits red
+with nothing to explain it.
+
+**The same order around the swap: Stop, swap, ↻, Start.** Stop the Qdrant you are leaving before
+you touch any file — it is holding 6333, and the one you are moving to cannot have the port while
+it is up. Press **↻** at the top of the window afterwards: that is what makes the panel re-read
+the list from disk, and without it the window goes on showing the card it loaded at launch
+([services.md](docs/services.md)). On a service row **↻** means something else — Restart.
+
+Skip the Stop and you land in the trap from step 4, harder than anyone else can: the new Qdrant
+fails to bind, the one you were leaving answers `healthz` from the same port, and the row goes
+green about the program you were trying to get rid of. `grep -c "Address already in use"
+/tmp/letapis-qdrant.log` is what tells them apart.
+
+### Moving to the container
+
+**What you need:** Docker Desktop or Podman installed, and `qdrant-docker.yaml` in your
+`services/`. On an install made from this page it is there — the panel wrote all three container
+cards at step 3 and points at none of them, so there is no yaml to write. If it is not there,
+your install predates those cards; copy it, and the runtime card you want, out of
+[`config/default/letapis-app/services/`](config/default/letapis-app/services/).
+
+- [ ] Press **Stop** on the Qdrant row first, and check the port is free:
+      `lsof -nP -iTCP:6333 -sTCP:LISTEN` should answer nothing.
+- [ ] In `~/.config/letapis-app/services.yaml`, replace the Qdrant line:
+
+```yaml
+services:
+- conf: ~/.config/letapis-app/services/qdrant-docker.yaml   # was qdrant.yaml
+- conf: ~/.config/letapis-app/services/embedder.yaml
+```
+
+- [ ] Add `docker.yaml` (or `podman.yaml`) above it if you want a row showing whether the runtime
+      itself is up. That one is an addition, not an exchange — it is a different service.
+- [ ] Press **↻**, then **Start** on the Qdrant row.
+
+The Qdrant row now starts a container instead. **Your index does not come with it.** The native
+index is a folder, `~/.letapis/qdrant/storage`; the container keeps its own in a runtime volume,
+`letapis_qdrant_storage`, and starts empty. Re-index, or copy the folder across yourself. Either
+way it is a copy.
+
+### Moving off the container
+
+**What you need:** the Qdrant binary, and — if your install predates the native path — three
+files out of this repository. No container runtime is needed to leave one; you already have the
+one you are leaving.
+
+**Whether the three files apply to you is worth one look.** If `services/` holds `qdrant.sh`
+next to the cards, your install is a recent one: all three container cards are there, and this is
+one line in the list, the same as the other direction. If there is no `qdrant.sh`, your
+`services/qdrant.yaml` is itself the container card — that is what the panel wrote at the time —
+and the native card, its script and Qdrant's own configuration were never put on your machine.
+The panel will not add them now: it does not write over cards it once made.
+
+The rest of this section is written for that second case, three files copied from
+[`config/default/`](config/default/) in this repository:
+
+- [ ] Press **Stop** on the Qdrant row. A container the panel did not stop keeps running and
+      keeps 6333, and the native Qdrant you are about to install will not get the port. Check:
+      `lsof -nP -iTCP:6333 -sTCP:LISTEN` answers nothing.
+- [ ] Install the Qdrant binary — step 4, the download and unpack part.
+- [ ] Copy the native card and its script into your configuration, over the container card:
+
+```bash
+cp config/default/letapis-app/services/qdrant.yaml ~/.config/letapis-app/services/qdrant.yaml
+cp config/default/letapis-app/services/qdrant.sh   ~/.config/letapis-app/services/qdrant.sh
+```
+
+- [ ] Copy Qdrant's own configuration and **put your own home directory in it** — Qdrant does not
+      expand `~`, and a path with one in it makes a folder called `~`:
+
+```bash
+mkdir -p ~/.local/letapis-qdrant
+cp config/default/letapis-qdrant/config.yaml ~/.local/letapis-qdrant/config.yaml
+$EDITOR ~/.local/letapis-qdrant/config.yaml     # /Users/you/... → your home
+```
+
+- [ ] Drop the runtime's own card from `services.yaml` if you had one. The Qdrant line already
+      points at `qdrant.yaml`, so it needs no edit.
+- [ ] Press **↻**, then **Start** on the Qdrant row. You replaced a file the panel had already
+      read, so without ↻ it starts the card it still remembers — the container one.
+
+On an install that already has `qdrant.sh`, none of the copying applies: `qdrant-docker.yaml`
+out of the list, `qdrant.yaml` in, with the same Stop and ↻ around it. The binary is on the
+machine from step 4.
+
+Here too the index stays where it was. The volume keeps what it has, and the native side starts
+with an empty folder.
+
+---
+
 ## 9. Point your assistant at it
 
 This is what the whole stack is for. The MCP proxy asks the engine what it can do and passes it
@@ -359,14 +460,15 @@ through, so nothing here needs updating when the engine learns something new.
 
 - [ ] Install the proxy. There are two ways, and they differ in more than typing:
 
-      **Clone the repository**, then start it from there:
+      **Clone this repository**, then start it from there:
 
       ```bash
-      uv run --project <where-you-cloned>/letapis-mcp letapis-mcp
+      git clone https://github.com/letapis-ai/letapis-core.git ~/letapis-core
+      uv run --project ~/letapis-core/letapis-mcp letapis-mcp
       ```
 
       Versions come from the lock file, and it runs with no network at all. The price is a
-      repository you keep on the machine.
+      repository you keep on the machine — put it wherever you like and change the path to match.
 
       **Straight from git**, nothing to clone:
 

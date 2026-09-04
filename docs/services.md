@@ -23,7 +23,6 @@ the database comes before the models and the models before the engine:
 autostart:
   boot_stack: true
 services:
-  - conf: ~/.config/letapis-app/services/docker.yaml
   - conf: ~/.config/letapis-app/services/qdrant.yaml
   - conf: ~/.config/letapis-app/services/embedder.yaml
   - conf: ~/.config/letapis-app/services/reranker.yaml
@@ -70,14 +69,16 @@ config:
 | `config.file` | what the pencil button opens |
 | `config.params` | key/value pairs handed to the start command as environment, upper-cased and prefixed: `port: '8086'` arrives as `LETAPIS_SVC_PORT=8086` |
 
-## Docker or Podman
+## Cards that run a container
 
-The panel works with either container runtime and shows a card only for the one that is actually
-installed — a runtime you do not have does not sit there as a red lamp. If both are installed,
-both cards appear.
+Qdrant runs as an ordinary program by default, and no card in the list needs a container runtime.
+Three cards that do are written into `services/` all the same, with nothing pointing at them:
+`qdrant-docker.yaml`, `docker.yaml` and `podman.yaml`. Putting one in the list is how you turn
+that path on — [ONBOARDING.md](../ONBOARDING.md) walks both directions.
 
 A card that runs a container does not name the runtime itself. It writes `{{runtime}}`, and the
-panel substitutes whichever runtime it found:
+panel substitutes whichever runtime it found — either one works, and a machine with both gets the
+one the panel prefers:
 
 ```yaml
 id: qdrant
@@ -88,24 +89,33 @@ health:
   url: http://127.0.0.1:6333/healthz
 start: '{{runtime}} start letapis-qdrant || {{runtime}} run -d --name letapis-qdrant …'
 stop:
-  kind: docker                                 # the container form; the runtime is filled in
+  kind: container
   container: letapis-qdrant
+  runtime: '{{runtime}}'                       # the marker belongs here too
 logs:
-  kind: docker
+  kind: container
   container: letapis-qdrant
+  runtime: '{{runtime}}'
 ```
 
-`kind: docker` keeps its spelling for configurations written before Podman was supported: an
-existing file goes on working untouched, and the runtime is filled in by the panel rather than
-by the word in the file.
+**The marker has to be in every place the runtime is named**, `stop` and `logs` included. A card
+that writes `{{runtime}}` in its start line and a fixed runtime in `stop` starts under either
+engine and then refuses to stop under one of them.
+
+`kind: docker` is the older spelling, still read so that a file written before Podman was
+supported goes on working. It is not the same as `kind: container`: it means docker
+specifically, and it takes no `runtime` field. On a machine with only Podman a card written that
+way starts fine and cannot be stopped, because Stop runs `docker` and there is no docker. Writing
+a container card today, use `kind: container` with the marker.
 
 Podman on macOS has no daemon that runs all the time. Its work is done by a virtual machine,
 which has to be running before containers will start, and the Podman card starts that machine
 (`podman machine start`) when you press Start.
 
 A card whose runtime is not installed is not shown at all, and it does not turn the menu-bar icon
-red — an absent runtime is not a broken service. When the panel finds a runtime it has no card
-for, it adds one; the cards you already have are never rewritten.
+red — an absent runtime is not a broken service. That is what keeps a container card harmless on
+a machine with no runtime: put `qdrant-docker.yaml` in the list without Docker or Podman
+installed, and the row simply is not there. The cards you already have are never rewritten.
 
 **The panel does not interpret `params`.** It passes them through; the script decides what a
 key means and which flag it becomes, so changing a model runtime is an edit to a `.sh` file,
@@ -165,7 +175,7 @@ If a file has a syntax error the panel says so rather than starting with half a 
 
 | Service | Port | Bound to |
 |---|---|---|
-| Qdrant | 6333 REST, 6334 gRPC | all interfaces (Docker publishes them) |
+| Qdrant | 6333 REST, 6334 gRPC | whatever its own config binds — `~/.local/letapis-qdrant/config.yaml` |
 | Embedder | 12436 | `127.0.0.1` — the card's `host` |
 | Reranker | 8086 | `127.0.0.1` — the card's `host` |
 | letapis-core | 3131 | whatever its own configuration says |
