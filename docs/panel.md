@@ -119,9 +119,10 @@ Work from the bottom of the stack up — each service depends on the ones starte
    binary, if the archive was never unpacked into `~/.local/letapis-qdrant/bin/`, or the
    configuration beside it.
 
-   A *green* Qdrant row is worth one caveat: the lamp asks 6333 and believes whoever answers.
-   If something else on the machine was already holding that port, the row is green about a
-   program that is not yours, and `/tmp/letapis-qdrant.log` ends with `Address already in use`.
+   A Qdrant row that is *neither* red nor green — the note says the port is held by another
+   process — means exactly that: something else took 6333 before Qdrant could. The panel checks
+   this row against the directory the card installs into, so it will not call a stranger yours.
+   `/tmp/letapis-qdrant.log` ends with `Address already in use`.
 2. **Embedder / Reranker** red → open the row's log. The scripts fail loudly and name the cause
    ([models.md](models.md)).
 3. **letapis-core** red → open `/tmp/letapis-core.log`. The engine is the only piece that can

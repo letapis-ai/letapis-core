@@ -27,3 +27,11 @@ config:
   params:
     bin: ~/.local/letapis-qdrant/bin/qdrant
     config: ~/.local/letapis-qdrant/config.yaml
+# WHERE THIS CARD'S PROGRAM IS INSTALLED, and the panel checks against it. The health probe asks
+# an address, and an address answers for whoever holds it: a Qdrant that failed to bind leaves
+# 6333 to a stranger, and without this line the lamp goes green on the stranger's `healthz` and
+# Stop kills whatever is listening.
+#
+# The same directory `bin` above points into. Move the binary and move this with it.
+owner_exe_roots:
+- ~/.local/letapis-qdrant
