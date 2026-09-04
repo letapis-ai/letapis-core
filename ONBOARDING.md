@@ -354,30 +354,35 @@ it and the stack works out of the box, which is why it ships this way.
 
 ## Qdrant in a container instead
 
-By default Qdrant runs as an ordinary program on your Mac, and the container path is not used.
-It is still there: on an install made from this page the panel wrote its cards into `services/`
-at step 3 and points at none of them, so turning it on is an edit to the list and no yaml of your
-own. Coming the other way, off a container you have been running for a while, costs a little
-more — the second half of this section says what.
+letapis installs Qdrant as an ordinary program, and the container path is not the default. It
+is still supported, and this section goes both ways: **[to the container](#moving-to-the-container)**
+if you want it, **[off it](#moving-off-the-container)** if you are on one already. They are not
+the same amount of work, and each says its own price below.
 
-Both directions are the same edit, and both need Docker Desktop or Podman installed first.
+Two things hold for both, and they are the only two.
 
-**One line, exchanged, not added.** Port 6333 belongs to one program at a time, so the list holds
-one Qdrant line. Adding a second leaves two cards fighting over the port, and the row that loses
-sits red with nothing to explain it.
+**One Qdrant line in the list, exchanged rather than added.** Port 6333 belongs to one program at
+a time. A second line leaves two cards fighting over the port, and the row that loses sits red
+with nothing to explain it.
 
-**The order below is the point of it.** Stop the Qdrant you are leaving before you swap anything:
-it is holding 6333, and the one you are moving to cannot have the port while it is up. Press
-**↻** at the top of the window afterwards — that is what makes the panel re-read the list from
-disk; without it the window goes on showing the card it loaded at launch
-([services.md](docs/services.md)).
+**The same order around the swap: Stop, swap, ↻, Start.** Stop the Qdrant you are leaving before
+you touch any file — it is holding 6333, and the one you are moving to cannot have the port while
+it is up. Press **↻** at the top of the window afterwards: that is what makes the panel re-read
+the list from disk, and without it the window goes on showing the card it loaded at launch
+([services.md](docs/services.md)). On a service row **↻** means something else — Restart.
 
-Skip the stop and you land in the trap from step 4, and you land in it harder than anyone: the
-new Qdrant fails to bind, the old one answers `healthz` from the same port, and the row goes
-green about the program you were trying to leave. `grep -c "Address already in use"
+Skip the Stop and you land in the trap from step 4, harder than anyone else can: the new Qdrant
+fails to bind, the one you were leaving answers `healthz` from the same port, and the row goes
+green about the program you were trying to get rid of. `grep -c "Address already in use"
 /tmp/letapis-qdrant.log` is what tells them apart.
 
 ### Moving to the container
+
+**What you need:** Docker Desktop or Podman installed, and `qdrant-docker.yaml` in your
+`services/`. On an install made from this page it is there — the panel wrote all three container
+cards at step 3 and points at none of them, so there is no yaml to write. If it is not there,
+your install predates those cards; copy it, and the runtime card you want, out of
+[`config/default/letapis-app/services/`](config/default/letapis-app/services/).
 
 - [ ] Press **Stop** on the Qdrant row first, and check the port is free:
       `lsof -nP -iTCP:6333 -sTCP:LISTEN` should answer nothing.
@@ -400,13 +405,19 @@ way it is a copy.
 
 ### Moving off the container
 
-**If you installed letapis before the native path existed, the exchange has nothing to exchange
-with.** Your `services/qdrant.yaml` is the container card — that is what the panel wrote at the
-time — and the native card, its script and Qdrant's own configuration were never put on your
-machine. The panel will not add them now: it does not write over cards it once made.
+**What you need:** the Qdrant binary, and — if your install predates the native path — three
+files out of this repository. No container runtime is needed to leave one; you already have the
+one you are leaving.
 
-So this direction is three files you copy, and they are all in this repository, in
-[`config/default/`](config/default/):
+**Whether the three files apply to you is worth one look.** If `services/` holds `qdrant.sh`
+next to the cards, your install is a recent one: all three container cards are there, and this is
+one line in the list, the same as the other direction. If there is no `qdrant.sh`, your
+`services/qdrant.yaml` is itself the container card — that is what the panel wrote at the time —
+and the native card, its script and Qdrant's own configuration were never put on your machine.
+The panel will not add them now: it does not write over cards it once made.
+
+The rest of this section is written for that second case, three files copied from
+[`config/default/`](config/default/) in this repository:
 
 - [ ] Press **Stop** on the Qdrant row. A container the panel did not stop keeps running and
       keeps 6333, and the native Qdrant you are about to install will not get the port. Check:
@@ -433,9 +444,9 @@ $EDITOR ~/.local/letapis-qdrant/config.yaml     # /Users/you/... → your home
 - [ ] Press **↻**, then **Start** on the Qdrant row. You replaced a file the panel had already
       read, so without ↻ it starts the card it still remembers — the container one.
 
-Coming from a fresh install instead, where all three cards are already in `services/`? Then it
-really is one line: `qdrant-docker.yaml` out, `qdrant.yaml` in, and the same order around it —
-Stop, swap, ↻, Start.
+On an install that already has `qdrant.sh`, none of the copying applies: `qdrant-docker.yaml`
+out of the list, `qdrant.yaml` in, with the same Stop and ↻ around it. The binary is on the
+machine from step 4.
 
 Here too the index stays where it was. The volume keeps what it has, and the native side starts
 with an empty folder.
