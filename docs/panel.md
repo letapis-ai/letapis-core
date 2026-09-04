@@ -39,6 +39,17 @@ In the middle three cases the row's Stop and Restart buttons are gone. That is d
 those buttons act on *this card's* process, and the panel has just told you the process on the
 port is not it.
 
+**Not every row is checked this way, and it is worth knowing which.** The check needs the card to
+say where its program is installed, which the engine's and Qdrant's cards do. The embedder and
+the reranker run `llama-server` out of your `PATH`, so their rows go green for whoever holds
+12436 or 8086 — and a card that runs a container is outside the check by construction, because
+the port is held by the runtime rather than by the program inside it
+([services.md](services.md)).
+
+On a row that is not checked, a green lamp means *something answers at that address*. If a
+service refuses to start while its row stays green, read its log: the start script says what
+went wrong, and `Address already in use` is what a port taken by someone else looks like.
+
 ### Version, on the engine row
 
 | Shows | Means |
