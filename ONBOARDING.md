@@ -107,8 +107,8 @@ will never touch any of them again:
       the binary it belongs to.
 
 **Want to see what a working machine actually runs?** [`config/default/`](config/default/) in
-this repository holds the same files as they are on ours: both the cards and the engine's
-config, with every value commented. What the panel writes is deliberately shorter: it fills in
+this repository holds the same files as they are on ours: the cards, the engine's config and
+Qdrant's, with every value commented. What the panel writes is deliberately shorter: it fills in
 what your machine needs and leaves the rest to the engine's own defaults.
 
 Take them, take a few lines out of them, or ignore them entirely. They are a reference, not a
@@ -117,10 +117,19 @@ matter more than they look — on stock defaults that server reserves memory for
 times larger than ours and aborts under indexing load — and the panel writes them for you.
 Nothing here needs copying.
 
-> **Both are written on a first launch — one where `~/.config/letapis-app/` does not yet exist.**
-> A panel that already has its cards leaves both files alone: they are yours, and it will not
-> write over your edits. To start from scratch, remove `~/.config/letapis-app/` and
-> `~/.config/letapis/` before launching — that throws away any service cards you had changed.
+> **When each of the three appears is not the same question, and the panel never writes over
+> one that is there.**
+>
+> The cards and the engine's config come from a launch that finds no `~/.config/letapis-app/` at
+> all. A panel that already has cards leaves both alone: they are yours.
+>
+> Qdrant's config goes by its card, not by the launch. The panel writes it in the run where it
+> creates `services/qdrant.yaml` itself — the launch above on a fresh machine, or a later one
+> where a card you never had is added. A card that was already on disk is somebody's else work,
+> and the panel writes nothing beside it.
+>
+> To start from scratch, remove `~/.config/letapis-app/` and `~/.config/letapis/` before
+> launching — that throws away any service cards you had changed.
 
 **Worked?** The panel window shows **four rows**, all of them red. That is correct; nothing they
 start is installed yet.
@@ -376,9 +385,36 @@ way it is a copy.
 
 ### Moving off the container
 
-Same edit, the other way: `qdrant-docker.yaml` out, `qdrant.yaml` in, and the runtime's own card
-out if you added one. Install the Qdrant binary first (step 4): the native card starts a program
-that has to be on the machine.
+**If you installed letapis before the native path existed, the exchange has nothing to exchange
+with.** Your `services/qdrant.yaml` is the container card — that is what the panel wrote at the
+time — and the native card, its script and Qdrant's own configuration were never put on your
+machine. The panel will not add them now: it does not write over cards it once made.
+
+So this direction is three files you copy, and they are all in this repository, in
+[`config/default/`](config/default/):
+
+- [ ] Install the Qdrant binary — step 4, the download and unpack part.
+- [ ] Copy the native card and its script into your configuration, over the container card:
+
+```bash
+cp config/default/letapis-app/services/qdrant.yaml ~/.config/letapis-app/services/qdrant.yaml
+cp config/default/letapis-app/services/qdrant.sh   ~/.config/letapis-app/services/qdrant.sh
+```
+
+- [ ] Copy Qdrant's own configuration and **put your own home directory in it** — Qdrant does not
+      expand `~`, and a path with one in it makes a folder called `~`:
+
+```bash
+mkdir -p ~/.local/letapis-qdrant
+cp config/default/letapis-qdrant/config.yaml ~/.local/letapis-qdrant/config.yaml
+$EDITOR ~/.local/letapis-qdrant/config.yaml     # /Users/you/... → your home
+```
+
+- [ ] Drop the runtime's own card from `services.yaml` if you had one. The Qdrant line already
+      points at `qdrant.yaml`, so it needs no edit.
+
+Coming from a fresh install instead, where all three cards are already in `services/`? Then it
+really is one line: `qdrant-docker.yaml` out, `qdrant.yaml` in.
 
 Here too the index stays where it was. The volume keeps what it has, and the native side starts
 with an empty folder.

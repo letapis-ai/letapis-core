@@ -5,9 +5,10 @@
 # model weights.
 #
 # Both parameters are paths and both are read by qdrant.sh. Everything else about Qdrant — where
-# the storage goes, which ports it binds — lives in the config `config` names, which the panel
-# wrote for you on first launch and never touches again. Moving the storage means moving the
-# corpus: stop Qdrant, move the directory, change the line there.
+# the storage goes, which ports it binds — lives in the config `config` names. The panel writes
+# that file in the run where it creates THIS card, and never touches it again; a card it finds
+# already on disk gets nothing written beside it. Moving the storage means moving the corpus:
+# stop Qdrant, move the directory, change the line there.
 id: qdrant
 name: Qdrant
 health:

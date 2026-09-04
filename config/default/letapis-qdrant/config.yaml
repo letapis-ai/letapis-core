@@ -1,0 +1,19 @@
+# Qdrant's own configuration — where it keeps the index and which ports it binds.
+#
+# On a fresh install you never see this file being made: the panel writes it beside the binary
+# at the moment it creates the Qdrant card, because it is the only one that knows the numbers.
+# It is here for the case where nobody wrote it for you — coming back to the native path from a
+# container, where the panel has no card of its own to create.
+#
+# THE PATHS MUST BE ABSOLUTE. Qdrant does not expand `~`: written that way, it makes a folder
+# literally called `~` in whatever directory it started from. Put your own home in.
+#
+# The ports have to agree with the Qdrant card in `../letapis-app/services/qdrant.yaml`: the
+# panel's lamp asks the first one, and the engine's config points at it too.
+
+storage:
+  storage_path: /Users/you/.letapis/qdrant/storage
+  snapshots_path: /Users/you/.letapis/qdrant/snapshots
+service:
+  http_port: 6333
+  grpc_port: 6334
