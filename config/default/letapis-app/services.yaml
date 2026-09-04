@@ -9,11 +9,11 @@
 #
 # `services/` holds more cards than this list names — docker.yaml, podman.yaml and
 # qdrant-docker.yaml are laid down ready to use and pointed at by nothing. They are the
-# container path, which is no longer the default: Qdrant runs from a native binary because on
-# macOS a container puts its storage behind a virtual-machine file layer, and a memory-mapped
-# database wants the real one.
+# container path, and it is a choice rather than the default: Qdrant runs from a native binary
+# because on macOS a container puts its storage behind a virtual-machine file layer, and a
+# memory-mapped database wants the real one.
 #
-# TURNING THE CONTAINER PATH BACK ON IS AN EXCHANGE, NOT AN ADDITION. Port 6333 is one port,
+# TURNING THE CONTAINER PATH ON IS AN EXCHANGE, NOT AN ADDITION. Port 6333 is one port,
 # so exactly one Qdrant line belongs here: replace `qdrant.yaml` below with
 # `qdrant-docker.yaml`. Add `docker.yaml` (or `podman.yaml`) as well if you want to watch the
 # runtime's own state — the panel hides a runtime card on a machine that does not have it.

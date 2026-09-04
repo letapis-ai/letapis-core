@@ -1,7 +1,10 @@
 # Updating, rolling back, uninstalling
 
-**Two programs update themselves; the panel supervises one of them.** The panel replaces its own
-`.app` from its own channel. The engine replaces its own installed copy — on a Mac that is the
+**Two programs update themselves; the panel supervises one of them.** Qdrant and the two models
+are not among them: they are ordinary downloads, and you replace them yourself. The section at
+the bottom says how.
+
+The panel replaces its own `.app` from its own channel. The engine replaces its own installed copy — on a Mac that is the
 whole `letapis.app` directory, not a single file — downloading, checking and installing it
 exactly as it does on a Linux server where no panel exists. The panel's part is to ask
 it to, and then to restart it, which is the one thing a running program cannot do for itself.
@@ -127,9 +130,7 @@ Nothing is installed outside your home directory and `/Applications`, and nothin
 system service. Removing it is removing files, in this order:
 
 ```bash
-# 1. Quit the panel from its menu-bar menu, and stop what it was supervising.
-#    Use the runtime you installed — docker or podman; the commands are the same either way.
-docker stop letapis-qdrant
+# 1. Stop every row from the panel window, then quit the panel from its menu-bar menu.
 
 # 2. The app.
 rm -rf /Applications/letapis-app-rs.app
@@ -140,28 +141,51 @@ rm -rf ~/.config/letapis-app
 # 4. The engine and its configuration.
 rm -rf ~/.local/letapis-core ~/.config/letapis
 
-# 5. The models, if you want the disk back.
+# 5. Qdrant, and the models, if you want the disk back.
+rm -rf ~/.local/letapis-qdrant
 rm -f ~/models/harrier-oss-v1-0.6b-Q8_0.gguf ~/models/Qwen3-Reranker-0.6B.Q8_0.gguf
 ```
 
-**The index is separate, and outlives all of the above.** It lives in a volume of your container
-runtime — `docker` below, `podman` if that is the one you use; the two take the same arguments:
+**The index is separate, and outlives all of the above.** It is a folder:
 
 ```bash
-docker rm letapis-qdrant                       # the container — harmless, rebuilt on demand
-docker volume rm letapis_qdrant_storage        # the index itself — NOT recoverable
+rm -rf ~/.letapis/qdrant                       # the index itself — NOT recoverable
 ```
 
-A volume belongs to the runtime that created it. If you switch from one runtime to the other, the
-old index stays where it was and the new runtime starts empty — moving it is a copy, not a
-setting.
+Remove it only when you mean to lose everything the engine indexed. Re-indexing a large corpus is
+measured in hours.
 
-Remove the volume only when you mean to lose everything the engine indexed. Re-indexing a large
-corpus is measured in hours.
+Running Qdrant in a container instead? Then the index is in a runtime volume rather than that
+folder, and it goes with `docker volume rm letapis_qdrant_storage` (`podman` takes the same
+arguments). A volume belongs to the runtime that made it: switching runtimes leaves the old index
+where it was and starts the new one empty.
 
 **Reinstalling** is this page's opposite read backwards, with one shortcut: if you kept
-`~/.config/letapis-app/` and the container volume, a fresh panel picks up your existing cards and
+`~/.config/letapis-app/` and `~/.letapis/qdrant/`, a fresh panel picks up your existing cards and
 your existing index, and the stack comes up where it left off. If you are moving to a new
 machine, the new one has to be logged in on its own — see [licence.md](licence.md). Do not carry
 the engine's data directory across: both machines would work until the licence string is renewed,
 and then one of them stops, unpredictably.
+
+## Qdrant and the models
+
+Neither updates itself, and nothing here updates them for you. Both are files you downloaded; you
+replace one by downloading a newer file over it.
+
+**Qdrant.** Stop its row in the panel, unpack the new archive over
+`~/.local/letapis-qdrant/bin/`, press Start. The index is not in there — it lives in
+`~/.letapis/qdrant/`, separately, and survives the swap. So does the configuration beside the
+binary, which is yours once the panel has written it.
+
+```bash
+curl -L -o /tmp/qdrant.tar.gz \
+  https://github.com/qdrant/qdrant/releases/latest/download/qdrant-aarch64-apple-darwin.tar.gz
+tar -xzf /tmp/qdrant.tar.gz -C ~/.local/letapis-qdrant/bin
+```
+
+Running it in a container instead? Then it is `docker pull qdrant/qdrant` and a restart of the
+row, and the volume holding the index is untouched by that too.
+
+**The models.** Download the newer weights under the names the cards expect, and restart the two
+rows. Changing an embedder for one that produces vectors of a different width is a different
+operation and costs a re-index — [models.md](models.md) says why.
