@@ -56,7 +56,7 @@ config:
     alias: qwen3-reranker-0.6b
     port: '8086'
     host: 127.0.0.1
-    ctx: '4096'
+    ctx: '8192'
 ```
 
 | Field | What it decides |
