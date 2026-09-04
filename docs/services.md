@@ -185,7 +185,13 @@ get a service running somewhere the panel is not looking.
 `services.yaml` in the position you want it started. Nothing else is needed: the panel has no
 list of known services.
 
-**Remove one.** Delete its line from `services.yaml`. The card file can stay; nothing reads it.
+**Remove one.** Delete its `conf:` line from `services.yaml` — and leave its name in `seeded:`
+below. The card file can stay; nothing loads it once the pointer is gone.
+
+That second half is the one that bites. The name is in the file twice, and the two places are not
+the same thing: `services:` is your list, `seeded:` is the panel's memory of what it wrote here
+itself. Clearing the name from `seeded:` as well tells the panel it never laid that card, so it
+lays it again on the next launch. The file says so at the top, in the note the panel writes.
 
 ## After editing
 
