@@ -1,8 +1,16 @@
-# The index the panel reads: which services exist and in what order they start.
+# The panel's service index. It has two halves, and only one of them is yours.
 #
-# Order matters — the database comes before the models and the models before the engine.
-# `boot_stack: true` means the panel brings the whole stack up when it launches; set it false
-# and the rows stay grey until you press Start.
+# `services:` is yours — which cards run and in what order. Order matters: the database comes
+# before the models and the models before the engine. `boot_stack: true` means the panel brings
+# the whole stack up when it launches; set it false and the rows stay grey until you press Start.
+#
+# `seeded:` is the panel's own memory: every card it has ever written here itself. A file seeded
+# on your machine carries that list; this sample does not, because nothing has been written for
+# anybody yet. It is the only thing that tells "the person removed this" apart from "we never
+# laid it", and without it a card you delete comes back on the next launch.
+#
+# SO TO REMOVE A CARD FOR GOOD: delete its `conf:` line, and LEAVE its name in `seeded:`.
+# Clearing the name as well reads as "never laid it", and the card comes back.
 #
 # Paths may use `~`; the panel expands it. It writes this file with absolute paths when it
 # seeds a fresh install, which is the same thing spelled the long way.
