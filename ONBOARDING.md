@@ -355,8 +355,10 @@ it and the stack works out of the box, which is why it ships this way.
 ## Qdrant in a container instead
 
 By default Qdrant runs as an ordinary program on your Mac, and the container path is not used.
-It is still there: the panel wrote its cards into `services/` in step 3 and points at none of
-them, so switching is an edit to the list, not yaml you have to write.
+It is still there: on an install made from this page the panel wrote its cards into `services/`
+at step 3 and points at none of them, so turning it on is an edit to the list and no yaml of your
+own. Coming the other way, off a container you have been running for a while, costs a little
+more — the second half of this section says what.
 
 Both directions are the same edit, and both need Docker Desktop or Podman installed first.
 
@@ -364,8 +366,21 @@ Both directions are the same edit, and both need Docker Desktop or Podman instal
 one Qdrant line. Adding a second leaves two cards fighting over the port, and the row that loses
 sits red with nothing to explain it.
 
+**The order below is the point of it.** Stop the Qdrant you are leaving before you swap anything:
+it is holding 6333, and the one you are moving to cannot have the port while it is up. Press
+**↻** at the top of the window afterwards — that is what makes the panel re-read the list from
+disk; without it the window goes on showing the card it loaded at launch
+([services.md](docs/services.md)).
+
+Skip the stop and you land in the trap from step 4, and you land in it harder than anyone: the
+new Qdrant fails to bind, the old one answers `healthz` from the same port, and the row goes
+green about the program you were trying to leave. `grep -c "Address already in use"
+/tmp/letapis-qdrant.log` is what tells them apart.
+
 ### Moving to the container
 
+- [ ] Press **Stop** on the Qdrant row first, and check the port is free:
+      `lsof -nP -iTCP:6333 -sTCP:LISTEN` should answer nothing.
 - [ ] In `~/.config/letapis-app/services.yaml`, replace the Qdrant line:
 
 ```yaml
@@ -376,7 +391,7 @@ services:
 
 - [ ] Add `docker.yaml` (or `podman.yaml`) above it if you want a row showing whether the runtime
       itself is up. That one is an addition, not an exchange — it is a different service.
-- [ ] Stop the native Qdrant from its row, then reopen the panel window.
+- [ ] Press **↻**, then **Start** on the Qdrant row.
 
 The Qdrant row now starts a container instead. **Your index does not come with it.** The native
 index is a folder, `~/.letapis/qdrant/storage`; the container keeps its own in a runtime volume,
@@ -393,6 +408,9 @@ machine. The panel will not add them now: it does not write over cards it once m
 So this direction is three files you copy, and they are all in this repository, in
 [`config/default/`](config/default/):
 
+- [ ] Press **Stop** on the Qdrant row. A container the panel did not stop keeps running and
+      keeps 6333, and the native Qdrant you are about to install will not get the port. Check:
+      `lsof -nP -iTCP:6333 -sTCP:LISTEN` answers nothing.
 - [ ] Install the Qdrant binary — step 4, the download and unpack part.
 - [ ] Copy the native card and its script into your configuration, over the container card:
 
@@ -412,9 +430,12 @@ $EDITOR ~/.local/letapis-qdrant/config.yaml     # /Users/you/... → your home
 
 - [ ] Drop the runtime's own card from `services.yaml` if you had one. The Qdrant line already
       points at `qdrant.yaml`, so it needs no edit.
+- [ ] Press **↻**, then **Start** on the Qdrant row. You replaced a file the panel had already
+      read, so without ↻ it starts the card it still remembers — the container one.
 
 Coming from a fresh install instead, where all three cards are already in `services/`? Then it
-really is one line: `qdrant-docker.yaml` out, `qdrant.yaml` in.
+really is one line: `qdrant-docker.yaml` out, `qdrant.yaml` in, and the same order around it —
+Stop, swap, ↻, Start.
 
 Here too the index stays where it was. The volume keeps what it has, and the native side starts
 with an empty folder.
