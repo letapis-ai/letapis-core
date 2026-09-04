@@ -39,6 +39,17 @@ In the middle three cases the row's Stop and Restart buttons are gone. That is d
 those buttons act on *this card's* process, and the panel has just told you the process on the
 port is not it.
 
+**Not every row is checked this way, and it is worth knowing which.** The check needs the card to
+say where its program is installed, which the engine's and Qdrant's cards do. The embedder and
+the reranker run `llama-server` out of your `PATH`, so their rows go green for whoever holds
+12436 or 8086 — and a card that runs a container is outside the check by construction, because
+the port is held by the runtime rather than by the program inside it
+([services.md](services.md)).
+
+On a row that is not checked, a green lamp means *something answers at that address*. If a
+service refuses to start while its row stays green, read its log: the start script says what
+went wrong, and `Address already in use` is what a port taken by someone else looks like.
+
 ### Version, on the engine row
 
 | Shows | Means |
@@ -69,13 +80,17 @@ the row.
 | Button | Does | Absent when |
 |---|---|---|
 | ▶ **Start** | runs the card's start command | the service is healthy, or has no start command |
-| ■ **Stop** | stops this card's process | the card has no stop strategy, or the port is held by someone else |
+| ■ **Stop** | stops this card's process | the card has no stop strategy, or — on a checked row — the port is held by someone else |
 | ↻ **Restart** | stop, pause, start | the card cannot do both halves |
 | **Logs** | opens the service's log | the card declares no log |
 | ✎ **Edit config** | opens the file the card points at | the card points at no file |
 
 A Start that would collide with a port already in use is refused before it is attempted, and the
 message names the occupant.
+
+**On a row that is not checked, Stop means "kill what is listening on that port".** It has no way
+to tell your service from a stranger that took the port, so it stops whichever it finds. Which
+rows those are, and why: the note under [When everything is red](#when-everything-is-red).
 
 ## Row notes during an action
 
@@ -104,9 +119,10 @@ Work from the bottom of the stack up — each service depends on the ones starte
    binary, if the archive was never unpacked into `~/.local/letapis-qdrant/bin/`, or the
    configuration beside it.
 
-   A *green* Qdrant row is worth one caveat: the lamp asks 6333 and believes whoever answers.
-   If something else on the machine was already holding that port, the row is green about a
-   program that is not yours, and `/tmp/letapis-qdrant.log` ends with `Address already in use`.
+   A Qdrant row that is *neither* red nor green — the note says the port is held by another
+   process — means exactly that: something else took 6333 before Qdrant could. The panel checks
+   this row against the directory the card installs into, so it will not call a stranger yours.
+   `/tmp/letapis-qdrant.log` ends with `Address already in use`.
 2. **Embedder / Reranker** red → open the row's log. The scripts fail loudly and name the cause
    ([models.md](models.md)).
 3. **letapis-core** red → open `/tmp/letapis-core.log`. The engine is the only piece that can

@@ -121,7 +121,8 @@ installed, and the row simply is not there. The cards you already have are never
 key means and which flag it becomes, so changing a model runtime is an edit to a `.sh` file,
 never to the panel.
 
-Two more fields appear only on the engine card:
+Two more fields appear on the cards that can tell their own process apart — the engine's and
+Qdrant's:
 
 | Field | What it decides |
 |---|---|
@@ -137,6 +138,29 @@ directory. Both answers come from the panel's backend; neither reads a name.
 copy of the engine binary launched from somewhere else has the same process name, and killing
 it because the name matched would be a coin flip. See [panel.md](panel.md) for what the panel
 shows when the port is held by something it does not recognise.
+
+**Which cards have the check, and which cannot.** A card can name install roots when the program
+it starts lives somewhere the card itself decides. That is true of the engine and of Qdrant —
+both are unpacked into a directory the card names. It is not true of the embedder and the
+reranker: they run `llama-server`, which comes from your `PATH`, and the kit cannot know whether
+that is Homebrew's copy, a build of your own, or something else. Those two rows still light from
+the port alone, so a stranger holding 12436 or 8086 lights them.
+
+If you pinned `llama-server` with a `bin:` parameter (below), you know where it lives and can add
+`owner_exe_roots` to match. The two model cards would then need different roots — two cards
+claiming the same tree is a configuration the panel warns about, because a process could be
+attributed to either.
+
+**A card that runs a container is outside this check entirely.** The port is held by the
+container runtime's own process, not by the program inside it, so the panel cannot say whether
+what answers is yours. That is a property of containers rather than a gap to be filled, and the
+container Qdrant card lights from the port alone.
+
+**So there are two kinds of row, and the difference is worth keeping in mind.** On a checked row
+— the engine, Qdrant — green means the process on the port is the one this card started. On an
+unchecked row it means only that something answers at that address. When a service refuses to
+start while its row stays green, its log is what tells you which case you are in: see
+[panel.md](panel.md).
 
 ## Common changes
 
