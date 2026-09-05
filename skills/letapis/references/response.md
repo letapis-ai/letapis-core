@@ -108,14 +108,48 @@ what tells you otherwise, and it arrives without being asked for.
 
 | Key | What it says |
 |---|---|
-| `section` | the heading the excerpt sits under |
-| `section_path` | the headings from the page title down to that one |
-| `position` | `"7 of 43"` — which of the page's headings this one is |
-| `before` / `after` | the neighbouring headings **by document order** — the heading the reader passed, and the next one in the document |
+| `section` | the nearest heading above the excerpt, **at whatever level** — on a page with subheadings this is the subheading, not the section a reader would say it belongs to |
+| `section_path` | the chain of enclosing headings down to that one, starting at the page title when the page has one |
+| `position` | `"7 of 43"` — the heading above the excerpt is the 7th of the page's 43. It counts headings, not text: "1 of 3" can be nine tenths of the page or two lines |
+| `before` / `after` | the headings either side of that one in the outline, **by document order and at any level** — read the section below, because neither is necessarily a section beside yours |
 | `section_continues` | `true`, and never anything else: the excerpt stopped before its own section did |
 
 **`after` is the one to read first.** `"7 of 43"` with an `after` naming a heading you have not
 seen means you are holding a fragment. Deciding to open the file is what this field is for.
+
+### The outline is one flat list, so `after` can be inside your own section
+
+The index stores one entry per heading, every level in the same list, in the order the document
+writes them. A `###` sits in that list next to the `##` above it, and the answer never says which
+level an entry has. `before` and `after` are simply the entries either side of yours.
+
+So one `after` covers two situations that read nothing alike on the page:
+
+```
+## Shift handover            <- the excerpt is here, and `section` names this
+...
+### Checking the shift log   <- `after` names THIS: a subheading of your own section
+...
+## Escalation                <- on another page, `after` would name a heading like this
+                                one instead: the next section beside yours
+```
+
+`before` mirrors this from the other side, and there the giveaway is visible: for an excerpt under
+a subheading, the previous entry in the outline is the heading that CONTAINS it, so `before`
+repeats the second-to-last name in your own `section_path`. That is the outline being read in
+document order, not a duplicate.
+
+Both `after` cases come back as a bare string, and nothing distinguishes them.
+`after: "Checking the shift log"` does not say the page has moved on from shift handover — it says the next heading in the file is
+that one, and here it is part of what you were reading. Read `after` as "there is more, and it is
+called X", never as "your section has ended".
+
+**What ends a section is decided by the outline of the material, and in markdown any heading ends
+the one before it.** So `section_continues` compares your excerpt against the text up to the NEXT
+HEADING, not up to the end of the `##` block a reader would call the section. On a page with
+subheadings, no `section_continues` means "you read as far as the next heading" — which can be a
+small part of the section as the page reads. In parsed code, where the outline genuinely nests, a
+class runs to the end of the class and the key means what it looks like.
 
 **A key you cannot see is the part to get right.** Each one goes missing in more states than the
 one it was added for, and the second state is where a confident misreading comes from:
@@ -141,6 +175,26 @@ file, so there is nothing to name; when the file has no headings for a reader to
 which is the ordinary answer for data files; when the corpus was indexed before outlines were
 stored and has none to answer from; and when the lookup that fetches them fails. None of these is
 an error, and none of them says the page is short.
+
+### It describes the page's shape, and nothing about what is written there
+
+Every key here is about SHAPE: which headings the page has, how many, which one the excerpt fell
+under. None of them is about the text inside those sections. The one piece of content that does
+leak through is a heading's wording, and a heading is the label the author chose for a section,
+not a description of what ended up in it.
+
+That distinction is easy to lose, because the field arrives looking like knowledge. Holding
+`position: "1 of 3"` and `after: "Escalation"`, it is a short step to a confident-sounding claim
+about a page never opened: that the material is short, that some subject is not covered, that the
+rest of it is about escalation. Nothing in the answer supports any of that. `position` counts
+headings rather than lines, so "1 of 3" measures no proportion of anything; and a heading is a
+promise the section may or may not keep.
+
+This is a failure that has actually happened: a reader who would otherwise have opened the page,
+or said nothing at all, instead built a statement on `"1 of 3"` about content they had never
+seen. The field answers one question — is this an excerpt, and does the page go on — and the
+move it is there to prompt is opening the file. If you catch yourself saying what an unread
+section contains, this field did not tell you.
 
 **How good the naming is depends entirely on the material:**
 
