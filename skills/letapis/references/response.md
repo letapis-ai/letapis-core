@@ -175,6 +175,21 @@ it changes an answer.
 Which also means the silence is doing work, and copying these keys into your own summary as
 `false` throws that work away.
 
+**How you can tell what a missing key means differs between them, and one way is sturdier than
+the other.** For `section_end_unknown` and `outline_truncated` the keys around them move with the
+state: `section_continues: true` on a neighbouring hit, `position` shifting to `"8 of at least
+2000"` — an empty place is legible against a full one.
+
+`after_is_inside_this_section` has no such neighbour. `after` reads the same in both worlds, and
+nothing else in the answer moves with it, so its absence is readable on one thing only: the key's
+name makes sense the first time you meet it. A name comes with the answer; this page has to have
+been read beforehand. If you have never seen the key, you read `after` as the next section along
+— which is right — and the day the key does appear, it tells you the rest without sending you
+here.
+
+That is the thinner of the two grounds, and it is a bet on the name being obvious rather than an
+argument. Worth knowing which of the two you are relying on when you read an absence.
+
 **A key you cannot see is the part to get right.** Each one goes missing in more states than the
 one it was added for, and the second state is where a confident misreading comes from:
 
