@@ -120,13 +120,17 @@ to open the file is what this field is for.
 
 **`section_continues` guards `after` from being over-read.** `after` is true about the document
 and can mislead about the reading: it names a heading lying past however much of the current
-section went unread. When the key is there, your own section still has text in it; when it is
-absent, you reached that section's end.
+section went unread. The key present says your own section still has text in it.
 
-**An absent key means there is nothing to put in it, never an error.** No heading follows, no
-heading precedes, nothing encloses. One shape looks odd until you know it: an excerpt from above
-the first heading — a page's frontmatter or preamble — carries `position: "start of page, 43
-sections"` and `after` alone, because it sits in no section at all.
+The key absent is the weaker claim, and it covers two states: the excerpt reached its section's
+end, or the stored chunk carried no end line to compare against. The second is what a corpus
+indexed by an older engine looks like; anything a current engine indexed carries that line, and
+there an absent key is the end of the section and nothing else.
+
+**A missing heading key is not an error either.** No heading follows, no heading precedes,
+nothing encloses — the key is simply not there. One shape looks odd until you know it: an excerpt
+from above the first heading — a page's frontmatter or preamble — carries
+`position: "start of page, 43 sections"` and `after` alone, because it sits in no section at all.
 
 **How good the naming is depends entirely on the material:**
 
