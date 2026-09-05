@@ -106,31 +106,41 @@ page and you will write, in perfect good faith, things the page does not say —
 a summary drifts from its source, and one that rereading the summary never catches. This field is
 what tells you otherwise, and it arrives without being asked for.
 
-| Key | What it tells you |
+| Key | What it says |
 |---|---|
 | `section` | the heading the excerpt sits under |
 | `section_path` | the headings from the page title down to that one |
-| `position` | `"7 of 43"` — where that heading falls among the page's headings |
-| `before` / `after` | the neighbouring headings **by document order** — what the reader passed, and what the reader would meet next |
-| `section_continues` | present, and only ever `true`, when the excerpt stopped before its own section did |
+| `position` | `"7 of 43"` — which of the page's headings this one is |
+| `before` / `after` | the neighbouring headings **by document order** — the heading the reader passed, and the next one in the document |
+| `section_continues` | `true`, and never anything else: the excerpt stopped before its own section did |
 
 **`after` is the one to read first.** `"7 of 43"` with an `after` naming a heading you have not
-seen means you are holding a fragment; the same field absent means the page ends here. Deciding
-to open the file is what this field is for.
+seen means you are holding a fragment. Deciding to open the file is what this field is for.
 
-**`section_continues` guards `after` from being over-read.** `after` is true about the document
-and can mislead about the reading: it names a heading lying past however much of the current
-section went unread. The key present says your own section still has text in it.
+**A key you cannot see is the part to get right.** Each one goes missing in more states than the
+one it was added for, and the second state is where a confident misreading comes from:
 
-The key absent is the weaker claim, and it covers two states: the excerpt reached its section's
-end, or the stored chunk carried no end line to compare against. The second is what a corpus
-indexed by an older engine looks like; anything a current engine indexed carries that line, and
-there an absent key is the end of the section and nothing else.
+| Key | Absent when | What its absence does NOT say |
+|---|---|---|
+| `section`, `section_path` | the excerpt sits above the page's first heading — frontmatter, a preamble — and in no other case | not that the page is unstructured |
+| `position` | never, as long as the field itself is there. Above the first heading it takes its other shape, `"start of page, 43 sections"` | — |
+| `before` | this IS the page's first heading, or the excerpt sits above it | not that no text precedes the excerpt |
+| `after` | no FURTHER HEADING follows in the document | **not that the page ends here.** Body text under the last heading runs on for as long as it likes, and nothing in this field measures it |
+| `section_continues` | three states, not one: the excerpt reached its section's end; the stored chunk carried no end line to compare against; or the excerpt has no enclosing section at all, being above the first heading | in the last two, not that anything was checked |
 
-**A missing heading key is not an error either.** No heading follows, no heading precedes,
-nothing encloses — the key is simply not there. One shape looks odd until you know it: an excerpt
-from above the first heading — a page's frontmatter or preamble — carries
-`position: "start of page, 43 sections"` and `after` alone, because it sits in no section at all.
+The middle `section_continues` state is what a corpus indexed by an older engine looks like;
+anything a current engine indexed carries that line, and there the absent key does mean the end
+of the section.
+
+`position` and `after` are counted over the headings the index actually stored, which is every
+heading of any ordinary page — the store keeps up to two thousand per file.
+
+**The whole field can be absent, and that is a different fact from a missing key.** It happens
+when the hit IS the file rather than a piece of it — a whole-file hit has no place inside the
+file, so there is nothing to name; when the file has no headings for a reader to be placed among,
+which is the ordinary answer for data files; when the corpus was indexed before outlines were
+stored and has none to answer from; and when the lookup that fetches them fails. None of these is
+an error, and none of them says the page is short.
 
 **How good the naming is depends entirely on the material:**
 
@@ -143,9 +153,7 @@ from above the first heading — a page's frontmatter or preamble — carries
 | data files | the field may be absent altogether |
 
 **Judge it per hit rather than trusting it per corpus.** When the section names read like fragments
-of source, it is the parser talking; fall back to reading. When the field is missing entirely, that
-is a third outcome and not an error — a corpus indexed before the outline was stored has no
-outline to answer from, and says so by silence.
+of source, it is the parser talking; fall back to reading.
 
 `structural_context: false` switches the whole field off, and that also spares the one extra store
 round-trip it costs. Worth doing when you are scanning a list of paths and never intend to read a
