@@ -111,7 +111,8 @@ what tells you otherwise, and it arrives without being asked for.
 | `section` | the nearest heading above the excerpt, **at whatever level** — on a page with subheadings this is the subheading, not the section a reader would say it belongs to |
 | `section_path` | the chain of enclosing headings down to that one, starting at the page title when the page has one |
 | `position` | `"7 of 43"` — the heading above the excerpt is the 7th of the page's 43. It counts headings, not text: "1 of 3" can be nine tenths of the page or two lines |
-| `before` / `after` | the headings either side of that one in the outline, **by document order and at any level** — read the section below, because neither is necessarily a section beside yours |
+| `after` | the next heading in the outline — and it is **often a subheading INSIDE your own section** rather than the next section beside it: the outline is one flat list holding every heading of every level, and the answer never says which level an entry has. Read it as "there is more, and it is called X", never as "your section has ended" |
+| `before` | the previous heading in the outline — **often the heading that CONTAINS your excerpt**, in which case it repeats the second-to-last name in `section_path`. Not necessarily a section beside yours either |
 | `section_continues` | `true`, and never anything else: the excerpt stopped before its own section did |
 
 **`after` is the one to read first.** `"7 of 43"` with an `after` naming a heading you have not
@@ -159,15 +160,26 @@ one it was added for, and the second state is where a confident misreading comes
 | `section`, `section_path` | the excerpt sits above the page's first heading — frontmatter, a preamble — and in no other case | not that the page is unstructured |
 | `position` | never, as long as the field itself is there. Above the first heading it takes its other shape, `"start of page, 43 sections"` | — |
 | `before` | this IS the page's first heading, or the excerpt sits above it | not that no text precedes the excerpt |
-| `after` | no FURTHER HEADING follows in the document | **not that the page ends here.** Body text under the last heading runs on for as long as it likes, and nothing in this field measures it |
+| `after` | no FURTHER HEADING follows in the document — or the file has over 2000 headings and the stored outline was cut short of yours | **not that the page ends here.** Body text under the last heading runs on for as long as it likes, and nothing in this field measures it |
 | `section_continues` | three states, not one: the excerpt reached its section's end; the stored chunk carried no end line to compare against; or the excerpt has no enclosing section at all, being above the first heading | in the last two, not that anything was checked |
 
 The middle `section_continues` state is what a corpus indexed by an older engine looks like;
 anything a current engine indexed carries that line, and there the absent key does mean the end
 of the section.
 
-`position` and `after` are counted over the headings the index actually stored, which is every
-heading of any ordinary page — the store keeps up to two thousand per file.
+**The outline is stored up to 2000 headings per file, and past that limit the field goes wrong
+without saying so.** Every count here — `position`, and whether there is an `after` at all — is
+over the STORED headings, not the page's. So on a file with more than 2000 of them:
+
+- `position` reads `"8 of 2000"` when the page has 2500 headings. The denominator is the limit,
+  not a count of anything on the page.
+- an excerpt from past the 2000th gets the last stored heading as its `section` — a heading it is
+  nowhere near — and no `after` at all, which reads exactly like "no further heading follows"
+  while several hundred do.
+
+Nothing in the answer marks a file as truncated. What protects you is the file itself: 2000
+headings is a generated file, a merged changelog, an export — if the path looks like that,
+distrust the numbers and open it.
 
 **The whole field can be absent, and that is a different fact from a missing key.** It happens
 when the hit IS the file rather than a piece of it — a whole-file hit has no place inside the
