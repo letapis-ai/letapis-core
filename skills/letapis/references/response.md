@@ -111,9 +111,12 @@ what tells you otherwise, and it arrives without being asked for.
 | `section` | the nearest heading above the excerpt, **at whatever level** — on a page with subheadings this is the subheading, not the section a reader would say it belongs to |
 | `section_path` | the chain of enclosing headings down to that one, starting at the page title when the page has one |
 | `position` | `"7 of 43"` — the heading above the excerpt is the 7th of the page's 43. It counts headings, not text: "1 of 3" can be nine tenths of the page or two lines |
-| `after` | the next heading in the outline — and it is **often a subheading INSIDE your own section** rather than the next section beside it: the outline is one flat list holding every heading of every level, and the answer never says which level an entry has. Read it as "there is more, and it is called X", never as "your section has ended" |
+| `after` | the next heading in the outline — and it is **often a subheading INSIDE your own section** rather than the next section beside it: the outline is one flat list holding every heading of every level, and the answer never says which level an entry has. Read it as "there is more, and it is called X", never as "your section has ended" — and when the heading really is nested inside yours, `after_is_inside_this_section` says so |
 | `before` | the previous heading in the outline — **often the heading that CONTAINS your excerpt**, in which case it repeats the second-to-last name in `section_path`. Not necessarily a section beside yours either |
 | `section_continues` | `true`, and never anything else: the excerpt stopped before its own section did |
+| `after_is_inside_this_section` | `true`: the heading `after` names is nested inside the excerpt's own section, so that section has NOT ended |
+| `section_end_unknown` | `true`: the excerpt carried no end line, so whether it read its section out was never established |
+| `outline_truncated` | `true`: the stored outline hit the 2000-heading cap, so every count in this field covers a PART of the file |
 
 **`after` is the one to read first.** `"7 of 43"` with an `after` naming a heading you have not
 seen means you are holding a fragment. Deciding to open the file is what this field is for.
@@ -152,6 +155,26 @@ subheadings, no `section_continues` means "you read as far as the next heading" 
 small part of the section as the page reads. In parsed code, where the outline genuinely nests, a
 class runs to the end of the class and the key means what it looks like.
 
+### Three keys arrive only when the obvious reading is wrong
+
+`after_is_inside_this_section`, `section_end_unknown` and `outline_truncated` are marks, not
+descriptions. Each is present in one state and absent in the other, and the state it marks is the
+one where the reading a stranger brings to the answer is false:
+
+| You see | It means | Without it |
+|---|---|---|
+| `after_is_inside_this_section: true` | the next heading is nested in your own section — it has not ended | `after` is the section beside yours, which is what you assumed |
+| `section_end_unknown: true` | there was no end line to compare, so nobody asked whether you read the section out | you read it out (or `section_continues` says you did not) |
+| `outline_truncated: true` | the outline was cut at the cap; counts here cover part of the file | the outline is the whole file |
+
+They are never sent as `false`. That is deliberate rather than an omission: the unmarked reading
+holds on the great majority of hits, and a key saying so on every hit of every answer would buy
+a reader nothing except the confirmation of what they already had right. The label is spent where
+it changes an answer.
+
+Which also means the silence is doing work, and copying these keys into your own summary as
+`false` throws that work away.
+
 **A key you cannot see is the part to get right.** Each one goes missing in more states than the
 one it was added for, and the second state is where a confident misreading comes from:
 
@@ -160,26 +183,33 @@ one it was added for, and the second state is where a confident misreading comes
 | `section`, `section_path` | the excerpt sits above the page's first heading — frontmatter, a preamble — and in no other case | not that the page is unstructured |
 | `position` | never, as long as the field itself is there. Above the first heading it takes its other shape, `"start of page, 43 sections"` | — |
 | `before` | this IS the page's first heading, or the excerpt sits above it | not that no text precedes the excerpt |
-| `after` | no FURTHER HEADING follows in the document — or the file has over 2000 headings and the stored outline was cut short of yours | **not that the page ends here.** Body text under the last heading runs on for as long as it likes, and nothing in this field measures it |
-| `section_continues` | three states, not one: the excerpt reached its section's end; the stored chunk carried no end line to compare against; or the excerpt has no enclosing section at all, being above the first heading | in the last two, not that anything was checked |
+| `after` | no FURTHER HEADING follows in the stored outline — and `outline_truncated` beside it tells you whether "stored" and "in the file" are the same thing here | **not that the page ends here.** Body text under the last heading runs on for as long as it likes, and nothing in this field measures it |
+| `section_continues` | the excerpt reached its section's end — or it has no enclosing section at all, being above the first heading. The third old state now answers for itself: no end line to compare against arrives as `section_end_unknown: true` | above the first heading, not that anything was checked |
 
-The middle `section_continues` state is what a corpus indexed by an older engine looks like;
-anything a current engine indexed carries that line, and there the absent key does mean the end
-of the section.
+A corpus indexed by an older engine is where the missing end line comes from; on anything a
+current engine indexed the line is there, so `section_end_unknown` is a mark you will rarely see
+and should trust completely when you do.
 
-**The outline is stored up to 2000 headings per file, and past that limit the field goes wrong
-without saying so.** Every count here — `position`, and whether there is an `after` at all — is
-over the STORED headings, not the page's. So on a file with more than 2000 of them:
+**The outline is stored up to 2000 headings per file, and past that limit every count here covers
+part of the file.** `position`, and whether there is an `after` at all, are over the STORED
+headings rather than the page's. The answer says when that has happened:
 
-- `position` reads `"8 of 2000"` when the page has 2500 headings. The denominator is the limit,
-  not a count of anything on the page.
-- an excerpt from past the 2000th gets the last stored heading as its `section` — a heading it is
-  nowhere near — and no `after` at all, which reads exactly like "no further heading follows"
-  while several hundred do.
+- every hit from it carries `outline_truncated: true`, and `position` states what it actually
+  knows: `"8 of 2500"` where the file's heading count was stored, `"8 of at least 2000"` where it
+  was not — an index written before the count existed reads the outline stopping exactly at the
+  cap and reports a floor rather than a number it cannot back.
+- an excerpt from PAST the cut is not placed at all. It carries `outline_truncated: true` and
+  `position: "past the 2000 stored headings"`, and no `section`, `before`, `after` or
+  `section_continues` — because nothing about where it sits is known.
 
-Nothing in the answer marks a file as truncated. What protects you is the file itself: 2000
-headings is a generated file, a merged changelog, an export — if the path looks like that,
-distrust the numbers and open it.
+That second case used to be the field's one outright lie: the excerpt was anchored on the last
+stored heading and came back with somebody else's `section`, `"2000 of 2000"`, and neither
+`after` nor `section_continues` — "the page's last section, read out, nothing follows" with
+hundreds of headings still to come.
+
+One false positive is left and it is declared: a file holding exactly 2000 headings, indexed
+before the count was stored, is reported as cut. It is a generated file either way — an export, a
+merged changelog — and reindexing it makes the answer exact.
 
 **The whole field can be absent, and that is a different fact from a missing key.** It happens
 when the hit IS the file rather than a piece of it — a whole-file hit has no place inside the
