@@ -99,31 +99,53 @@ Three consequences, and skipping any of them makes the number lie:
    differently — never a rule.
 
 
-## `structural_context` — how good it is depends entirely on the material
+## `structural_context` — where the excerpt sits, and whether the page goes on
 
-Each hit carries the section it sits in, the path of parent headings down to it, and the sibling
-headings standing beside it. At its best this is a map: you learn where the hit sits in the
-document and what neighbours it, and decide whether the rest matters without reading the file.
+Every hit is an EXCERPT, and nothing in its text says so. Read one as though it were the whole
+page and you will write, in perfect good faith, things the page does not say — the commonest way
+a summary drifts from its source, and one that rereading the summary never catches. This field is
+what tells you otherwise, and it arrives without being asked for.
 
-At its worst it is noise you pay for in every hit. The shape it takes:
+| Key | What it tells you |
+|---|---|
+| `section` | the heading the excerpt sits under |
+| `section_path` | the headings from the page title down to that one |
+| `position` | `"7 of 43"` — where that heading falls among the page's headings |
+| `before` / `after` | the neighbouring headings **by document order** — what the reader passed, and what the reader would meet next |
+| `section_continues` | present, and only ever `true`, when the excerpt stopped before its own section did |
+
+**`after` is the one to read first.** `"7 of 43"` with an `after` naming a heading you have not
+seen means you are holding a fragment; the same field absent means the page ends here. Deciding
+to open the file is what this field is for.
+
+**`section_continues` guards `after` from being over-read.** `after` is true about the document
+and can mislead about the reading: it names a heading lying past however much of the current
+section went unread. When the key is there, your own section still has text in it; when it is
+absent, you reached that section's end.
+
+**An absent key means there is nothing to put in it, never an error.** No heading follows, no
+heading precedes, nothing encloses. One shape looks odd until you know it: an excerpt from above
+the first heading — a page's frontmatter or preamble — carries `position: "start of page, 43
+sections"` and `after` alone, because it sits in no section at all.
+
+**How good the naming is depends entirely on the material:**
 
 | Material | What you get |
 |---|---|
 | code the extractor parses | function and class names, a true tree — the best case |
-| prose with headings | the heading path and a tree of sections — equally good, often better |
+| prose with headings | the heading path and the page's own sections — equally good, often better |
 | code parsed loosely | an exploded syntax tree: fragments of function bodies and truncated source lines listed as sections |
-| shell and similar | first words of lines as section names, repeated once per occurrence |
+| shell and similar | first words of lines as section names |
 | data files | the field may be absent altogether |
 
 **Judge it per hit rather than trusting it per corpus.** When the section names read like fragments
 of source, it is the parser talking; fall back to reading. When the field is missing entirely, that
-is a third outcome and not an error.
+is a third outcome and not an error — a corpus indexed before the outline was stored has no
+outline to answer from, and says so by silence.
 
-**One genre where it costs more than it saves:** a document whose whole body sits under a single
-heading — some memory episodes are written this way — puts that same block into both the section
-and the heading path. A handful of such hits carries the same text twice, and neither a smaller
-`limit` nor fewer neighbouring chunks helps, because the bulk is in the context field rather than
-in the excerpt.
+`structural_context: false` switches the whole field off, and that also spares the one extra store
+round-trip it costs. Worth doing when you are scanning a list of paths and never intend to read a
+hit through.
 
 ## `blast_radius` — the fields that say what a zero means
 
