@@ -9,6 +9,61 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.905.1
+
+### Every hit says where in the page it sits, without being asked
+
+`structural_context` is on by default. You no longer pass a parameter for it, and answers to
+queries you have not changed will look different because of it.
+
+    "structural_context": {
+      "section": "Rolling back", "section_path": ["Deployment", "Rolling back"],
+      "position": "7 of 43", "before": "Rolling forward", "after": "Checking the log"
+    }
+
+`position` places the excerpt among the page's headings, `before` and `after` name the headings
+either side of it BY DOCUMENT ORDER. An `after` naming a heading you have not seen is what tells
+you that you are holding a fragment rather than the page.
+
+**The list of peer headings is gone.** It grew with the number of headings in somebody else's
+document and answered a question nobody asks of a hit. Anything reading `siblings` will not find
+it; `position` and `after` are what replace it, at a size that does not depend on the page.
+
+### Three marks appear only where the obvious reading would be wrong
+
+| Mark | What it tells you |
+|---|---|
+| `after_is_inside_this_section: true` | that next heading is nested INSIDE your own section, which has therefore not ended |
+| `section_end_unknown: true` | there was no stored end line, so whether the excerpt read its section out was never established |
+| `outline_truncated: true` | the stored outline hit the 2000-heading cap, so every count in this field covers a PART of the file |
+
+None of the three is ever sent as `false`. Their absence is the ordinary case — the section beside
+yours, the section read out, the outline being the whole file — and it holds on nearly every hit.
+Do not turn an absent mark into a `false` when you carry these fields onward: a mark that arrives
+on every hit tells a reader nothing.
+
+### An excerpt from past a truncated outline no longer borrows someone else's heading
+
+On a file with more than 2000 headings, an excerpt from beyond the stored outline used to be
+anchored on the last heading that was stored. It came back with that heading as its `section`,
+`"2000 of 2000"`, and no `after` — "the page's last section, read out, nothing follows" — while
+hundreds of headings still lay ahead. That answer was wrong, not merely thin, and anything written
+from it was wrong too.
+
+Such an excerpt is now not placed at all:
+
+    "structural_context": {"outline_truncated": true,
+                           "position": "past the 2000 stored headings"}
+
+Inside the stored part of such a file, `position` states what it knows: `"8 of 2500"` where the
+file's heading count is available, `"8 of at least 2000"` where it is not.
+
+### The page describing the field has been rewritten
+
+`skills/letapis/references/response.md` now covers what the field does NOT say as carefully as
+what it does — which absences mean what, and why a heading's wording is no evidence about the
+section under it.
+
 ## 26.904.1
 
 ### A zero from the call map says what it did not read
