@@ -35,14 +35,15 @@ stays silent. You never need to type an FYI box for the installation to succeed.
 | **Disk** | **~1.6 GB** to install, plus room for the index | the two models ~1.2 GB, the engine ~240 MB, Qdrant ~70 MB, the panel ~20 MB, llama.cpp ~20 MB. Add another ~240 MB when the first engine update fills the second slot. The index grows in `~/.letapis/qdrant/` as the engine feeds it — plan for that separately |
 | **llama.cpp** | installed | both models run under its `llama-server` |
 | **uv** | installed | how the MCP proxy runs (step 9) |
-| **Homebrew** | installed | how llama.cpp and uv get onto the machine |
+| **ripgrep** | installed | how `blast_radius` finds the files to read |
+| **Homebrew** | installed | how the other three get onto the machine |
 
-- [ ] a terminal you are willing to paste three commands into. There is no installer, on purpose:
+- [ ] a terminal you are willing to paste commands into. There is no installer, on purpose:
       you see what happens on your machine, and when something goes wrong you know which step.
 
 ---
 
-## 1. Three dependencies
+## 1. Four dependencies
 
 The panel supervises the model servers and the database; it does not install them.
 
@@ -51,11 +52,18 @@ The panel supervises the model servers and the database; it does not install the
       you to put `/opt/homebrew/bin` on your `PATH`, and `brew` does not work until you do).
 - [ ] **llama.cpp** — `brew install llama.cpp`
 - [ ] **uv** — `brew install uv`. Step 9 runs the MCP proxy with it.
+- [ ] **ripgrep** — `brew install ripgrep`. The engine runs without it and answers the same
+      thing either way; what changes is how long a wide question takes. Asking `blast_radius`
+      for a name across the whole corpus means finding every file that so much as mentions it,
+      and on a large corpus that search is the bulk of the wait. With `ripgrep` on the `PATH`
+      the engine hands it that search; without, it walks the folders itself and a wide question
+      takes several times longer. A narrowed question — one with a `folder` — is quick either
+      way. Which one answered is in the reply, under `candidate_source`.
 
 **Worked?**
 
 ```bash
-brew --version && llama-server --version && uv --version && echo "all three answer"
+brew --version && llama-server --version && uv --version && rg --version && echo "all four answer"
 ```
 
 ---
