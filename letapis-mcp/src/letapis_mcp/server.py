@@ -408,6 +408,44 @@ def _transform_search_results(result: dict[str, Any]) -> dict[str, Any]:
 # =============================================================================
 
 
+async def probe_engine(client: Any) -> dict[str, Any]:
+    """`GET /tools` once, for everything the startup needs out of it.
+
+    One call, because a second is a second thing that can fail after the first
+    succeeded. It carries the tool count for the startup log and the engine's
+    own account of itself for `initialize`.
+
+    An unreachable engine answers `{}` rather than raising: starting without a
+    backend is settled behaviour here (see `_async_main`), and the session must
+    keep its MCP server even when nothing is behind it.
+    """
+    try:
+        return await client.get_tools()
+    except Exception:
+        return {}
+
+
+def build_initialization_options(instructions: str | None) -> InitializationOptions:
+    """What the client is handed at `initialize`.
+
+    `instructions` is the one piece of the engine's prose that survives tool
+    deferral: a host over its schema budget sends bare tool names, and this
+    string still lands whole. It is written and assembled ENGINE-side — the
+    proxy knows the address and the path mapping, the engine knows the corpus —
+    so nothing here rewrites it. Absent upstream stays absent: `None` keeps the
+    field off the wire instead of showing an empty account as an account.
+    """
+    return InitializationOptions(
+        server_name="letapis",
+        server_version="1.0.0",
+        capabilities=server.get_capabilities(
+            notification_options=NotificationOptions(),
+            experimental_capabilities={},
+        ),
+        instructions=instructions,
+    )
+
+
 async def _async_main(config_path: str | None = None) -> None:
     """Async initialization and run."""
     global _client, _paths, _config, _tools_cache
@@ -425,15 +463,15 @@ async def _async_main(config_path: str | None = None) -> None:
     # server — list_tools serves the degraded letapis_status surface and
     # recovers automatically once the backend comes up. Exiting here left the
     # session with no letapis server at all, unrecoverable without a restart.
-    try:
-        result = await _client.get_tools()
-        tool_count = len(result.get("tools", []))
+    probe = await probe_engine(_client)
+    if probe:
         sys.stderr.write(
-            f"[letapis-mcp] Backend OK: {_config.server.url} ({tool_count} tools)\n"
+            f"[letapis-mcp] Backend OK: {_config.server.url} "
+            f"({len(probe.get('tools', []))} tools)\n"
         )
-    except Exception as e:
+    else:
         sys.stderr.write(
-            f"[letapis-mcp] WARNING: Backend unreachable at {_config.server.url}: {e}. "
+            f"[letapis-mcp] WARNING: Backend unreachable at {_config.server.url}. "
             "Starting anyway — tools will load when letapis-core comes up.\n"
         )
     sys.stderr.flush()
@@ -447,14 +485,7 @@ async def _async_main(config_path: str | None = None) -> None:
             await server.run(
                 read_stream,
                 write_stream,
-                InitializationOptions(
-                    server_name="letapis",
-                    server_version="1.0.0",
-                    capabilities=server.get_capabilities(
-                        notification_options=NotificationOptions(),
-                        experimental_capabilities={},
-                    ),
-                ),
+                build_initialization_options(probe.get("instructions")),
             )
     finally:
         await _client.stop()
