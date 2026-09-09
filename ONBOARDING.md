@@ -466,6 +466,26 @@ with an empty folder.
 This is what the whole stack is for. The MCP proxy asks the engine what it can do and passes it
 through, so nothing here needs updating when the engine learns something new.
 
+### Claude Code: the plugin does all of this
+
+- [ ] Install it, and skip the rest of this step:
+
+      ```
+      /plugin marketplace add letapis-ai/letapis-plugin
+      /plugin install letapis@letapis
+      ```
+
+      The plugin carries the proxy, registers it, and brings two things you would otherwise
+      assemble yourself: a skill on how to ask and how to read an answer, and a hook that has
+      the assistant recall the last few days from memory before it acts. The engine address it
+      uses is `http://localhost:3131`; if yours is elsewhere, change it in the plugin's
+      `.mcp.json`.
+
+      The first session after installing comes up without the tools while `uv` builds the
+      proxy's environment. Restart once and they are there.
+
+### By hand: any other client
+
 - [ ] Install the proxy. There are two ways, and they differ in more than typing:
 
       **Clone this repository**, then start it from there:
