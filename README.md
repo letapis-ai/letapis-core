@@ -1,5 +1,7 @@
 # letapis-core
 
+![How letapis answers](assets/letapis-map.gif)
+
 The engine's public home: how to install it, how to license it, what it expects of the machine,
 and the **MCP proxy**, which is how an assistant talks to it.
 
