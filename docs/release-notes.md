@@ -9,6 +9,88 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.909.1
+
+### A search answer says what answering cost you
+
+Every answer now ends with a `saved` block:
+
+    "saved": {"bytes": 22767, "of": 26568, "files": 2, "basis": "files_read_whole"}
+
+It compares the answer against reading the files it named. Read it as a ceiling rather than a
+saving: the base assumes every named file read in full, and no reader does that. You open one or
+two, and in pieces.
+
+Bytes rather than tokens, because file sizes are known exactly and a token count would be a guess
+against a tokenizer that is not yours.
+
+The field is absent when no named file has a stored size, and when the answer is no smaller than
+the files it stands for. Both mean there is nothing honest to claim.
+
+### `blast_radius` tells reading a name from calling it
+
+Places that read a name rather than call it arrive in `readers`: a constant, an attribute taken
+off an object, a name pulled in by an import. They are grouped by file like `callers`, with the
+enclosing scope and the lines.
+
+The two fields answer different questions. `callers` is who invokes this; `readers` is who depends
+on its value. An empty `callers` beside a non-empty `readers` means the name is depended on and
+not called. It never means nobody uses it: a constant read in twelve files has no callers at all,
+and deleting it on that evidence breaks all twelve.
+
+### A name assigned at module level is a definition
+
+A module-level constant is reported like any other definition, with `defined_on_models` naming the
+module, chains and unpacking included. Ask about one and the answer says where it is defined and,
+through `readers`, everywhere its value is taken.
+
+### "Not found on disk" is said about the disk alone
+
+Eight things narrow a lookup before it reads anything: the `folder` you named, the watch rules of
+the folder itself, an extension with no reader. Each one that fired arrives in `narrowed_by`, as
+`{by, detail, carried_the_name}`.
+
+`carried_the_name` is the part to read. A number means those files were opened and carry your
+name, so the answer may say the name is there. `null` means they were never opened, and the answer
+speaks only for its own reach.
+
+Do not judge by counting empty fields. `narrowed_by` fills while `unread`, `unparsed`,
+`skipped_on_purpose` and `mentions` all stay empty, which is the ordinary shape of a lookup you
+scoped with `folder`. Read `hint` instead: it opens with `NOT FULLY SCANNED` when the zero speaks
+for part of a folder.
+
+### ripgrep finds the files to read, when it is on your PATH
+
+The first phase of a `blast_radius` lookup asks which files carry the name as text. That phase
+goes through ripgrep where it is available, and through the engine's own walk where it is not,
+where it failed, or where it ran out of time. An unscoped lookup over a full corpus went from
+3.3 s to 1.57 s; a scoped one is unchanged. `candidate_source` says which way the answer went.
+
+The answer itself does not change. Ignore rules, the allow list, nested watches and the identifier
+boundary are applied to what ripgrep returns, so both paths agree by construction.
+
+ripgrep is listed among the dependencies in the onboarding. Without it the engine answers the
+same, only slower.
+
+### A Tauri command is one edge, front to back
+
+`invoke("core_update")` in a frontend and the Rust handler behind it are one connection rather
+than two halves that never met. The Rust side reports the command in `registrations`, the frontend
+in `named_at`, with `via: invoke` or `via: listen`.
+
+Where the command name travels in a variable instead of being written out, the two halves stay
+apart and the frontend side arrives as a mention: the literal sits with whoever sends it.
+
+### The engine hands your client an account of itself
+
+`GET /tools` answers `{instructions, tools}`. The `instructions` string is the node's own account
+of what it holds and which tool answers which question, and the proxy passes it to your client at
+the handshake, where it becomes part of the prompt. Its figures about the corpus are read live, so
+it describes the node you are talking to rather than a node in general.
+
+This one needs the proxy updated, not only the engine. A proxy built before the field does not
+read it, everything else keeps working, and nothing tells you the text is missing.
+
 ## 26.905.1
 
 ### Every hit says where in the page it sits, without being asked
