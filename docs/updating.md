@@ -68,6 +68,12 @@ create, said out loud.
 not checked* until something asks, and *update: could not check* if the channel was unreachable.
 "Up to date" is only ever printed for an answer actually received.
 
+**The proxy is a third program, and neither button updates it.** The panel updates the engine and
+itself; the MCP proxy you installed by hand — or through the plugin — is replaced the way you
+installed it: `git pull` in the clone, or a plugin update. It matters when a release changes the
+handshake rather than a tool: the engine's account of itself arrives that way, and an older proxy
+passes on everything except that.
+
 ## When an engine update fails
 
 **Whatever went wrong, you are reading the engine's own words.** The panel does not translate

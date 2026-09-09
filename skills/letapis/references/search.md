@@ -293,8 +293,11 @@ mcp__<engine>__blast_radius(symbol="create", scope="SomeModel")   # scope when t
 ```
 
 It returns exact call sites with file and line, the definitions, and an `ambiguous` flag when the
-name lives on more than one type. It walks edges rather than embeddings, so it is deterministic,
-and it reads the files on disk, so it follows a branch switch without reindexing.
+name lives on more than one type. Beside the callers it reports the places that **read** the name
+rather than call it (`readers`), the places it stands in as a string (`mentions`), the registry
+keys it is reached by (`registrations`), and what the lookup was narrowed by before it began
+(`narrowed_by`). It walks edges rather than embeddings, so it is deterministic, and it reads the
+files on disk, so it follows a branch switch without reindexing.
 
 **Aim at the symbol that carries the impact, not at the facade.** Run it on a widely overridden
 method or a UI-facing entry point and you get hundreds of callers, most of them tests. Run it on
@@ -329,12 +332,14 @@ parser, and a parser covers the languages it was written for. Everything else �
 configuration, templates, generated code — produces no edges at all, and asking the graph about a
 symbol defined in one of them returns zero every time.
 
-**A zero has two readings and they are indistinguishable in the answer:** the name may live as
-*data* rather than as code — a config key, an event name, a value passed around — in which case a
-literal match finds it immediately; or the file may be in a language the parser does not cover, in
-which case the zero is about the parser and nothing about callers. Before reading a zero as "nothing calls
-this", ask what the thing is written in; if the graph does not cover it, the question belongs to
-the textual axis from the start.
+**A zero has several readings, and the answer says which one you are holding.** The name may be
+read rather than called — then `readers` is not empty and the zero means "depended on, not
+called". It may live as *data* — a config key, an event name, a registry key — and then
+`mentions` or `registrations` carries it. The file may be in a language the parser does not cover,
+and `unread` says so. The scan may have been cut short before it began, and `narrowed_by` says by
+what. Read those fields before reading a zero as "nothing calls this"; `hint` names the reason in
+words, and opens with `NOT FULLY SCANNED` when the answer speaks for part of the folder —
+[response](response.md) § `blast_radius`.
 
 **`scope` disambiguates by class or model**, which is worth knowing in a corpus where the same
 method name lives on many types. Where names are already unique, it does nothing for you.

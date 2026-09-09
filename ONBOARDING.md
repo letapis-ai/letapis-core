@@ -464,7 +464,11 @@ with an empty folder.
 ## 9. Point your assistant at it
 
 This is what the whole stack is for. The MCP proxy asks the engine what it can do and passes it
-through, so nothing here needs updating when the engine learns something new.
+through, so a new tool, or a changed description, reaches your client with no work here. **One
+thing does need the proxy itself: the engine's account of what it is for.** The engine hands it
+over at the handshake and the proxy passes it to your client as its instructions — a proxy built
+before that field does not read it, and your assistant goes on working without ever seeing it.
+Update the proxy when you update the engine.
 
 ### Claude Code: the plugin does all of this
 

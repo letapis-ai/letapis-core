@@ -270,18 +270,44 @@ of source, it is the parser talking; fall back to reading.
 round-trip it costs. Worth doing when you are scanning a list of paths and never intend to read a
 hit through.
 
+## `saved` — a ceiling on what answering cost you, not a saving
+
+A search answer closes with what it cost against reading the files instead:
+
+```json
+"saved": {"bytes": 22767, "of": 26568, "files": 2, "basis": "files_read_whole"}
+```
+
+**Read it as a ceiling.** The base assumes every file the answer named was read **in full**, which
+no reader does — you open one or two, and in pieces. The real saving is smaller than the number,
+and by how much depends on how you would have read them.
+
+Bytes, not tokens: file sizes are known exactly, while a token count would be a guess against a
+tokenizer that is not yours.
+
+The field is absent in two cases, and both mean there is nothing honest to claim: no named file
+has a stored size, or the answer is no smaller than the files it stands for.
+
 ## `blast_radius` — the fields that say what a zero means
 
 | Field | What it actually tells you |
 |---|---|
-| `symbol_found_on_disk` | **reads as a claim about the disk; is a claim about the parser.** A name written in a language with no extractor returns `false` while sitting in the files many times over — `unread` below is what tells you that is what happened |
-| `hint` | the one that carries the real reason — that the extension has no extractor, that module-level names are a blind spot. Without it the flag above misleads |
+| `symbol_found_on_disk` | **reads as a claim about the disk; is a claim about what this lookup read.** A name written in a language with no extractor returns `false` while sitting in the files many times over — `unread` and `narrowed_by` below are what tell you that is what happened |
+| `hint` | the one that carries the real reason — an extension with no extractor, or a scan narrowed before it began. It opens with `NOT FULLY SCANNED` when the zero speaks for part of the folder rather than all of it. Without it the flag above misleads |
+| `readers` · `reader_count` | places that **read** the name instead of calling it: a constant, an attribute taken off an object, a name pulled in by an import. Grouped by file like `callers`, with the enclosing scope and the lines |
+| `candidate_source` | which way the files to read were found — `ripgrep` when it is on the `PATH`, a walk of the index otherwise. The answer is the same either way; what changes is how long you wait for it |
 | `caller_count` vs `call_site_count` | distinct callers against distinct places. One caller invoking a symbol three times reads as `1` and `3`; take the first for "one place" and you miss two |
 | `definitions` | **count them yourself.** More than one definition of the same name is worth reading whichever language you are in |
 | `ambiguous` | fires when a name lives on several *types*. In languages where free functions all sit at module level it stays `false` even with several definitions — so it is not a general duplicate detector |
 | `scope_relation` | present on each caller **when a scope was given**. `scope` selects among definitions and cannot select among callers, so the list can hold call sites belonging to other types; this field says which is which |
 
-**Four fields name what the lookup did NOT read, and they are what turns a zero into an answer.**
+**`callers: []` and `readers: []` are different facts, and the pair is the one to read first.**
+`callers` answers "who invokes this"; `readers` answers "who depends on its value". A zero in the
+first beside a non-empty second reads **"depended on, not called"** — never "nobody uses it". A
+constant read in twelve files has no callers at all, and deleting it on that evidence breaks all
+twelve.
+
+**Several fields name what the lookup did NOT read, and they are what turns a zero into an answer.**
 
 | Field | What it claims |
 |---|---|
@@ -289,9 +315,13 @@ hit through.
 | `unparsed` | files that were opened and whose reader gave up, counted per extension. Different from `unread`: there the language is unknown, here the file is |
 | `skipped_on_purpose` | parts a reader ignores by design — a docstring, a comment block. Declared rather than left invisible |
 | `mentions` · `mention_count` | places where the name stands inside a **string** rather than in a call. Never promoted to a call: what a string means is the caller's business |
+| `narrowed_by` | what was cut off **before** the scan: `{by, detail, carried_the_name}` — a `folder` you named and the watched folders left outside it, the watch rules of the folder itself, an extension with no reader. `carried_the_name` says how many of the files it passed over carry your name |
 
-A zero beside four empty fields is a zero about the whole folder. A zero beside a non-empty one is
-a zero about a part of it, and the field says which part.
+A zero beside every one of these empty is a zero about the whole folder. A zero beside a non-empty
+one is a zero about a part of it, and the field says which part. **Do not count the empty fields
+to decide which you are holding** — `narrowed_by` fills while all the others stay empty, and that
+is the ordinary shape of a lookup you scoped with `folder`. Read `hint` instead: it opens with
+`NOT FULLY SCANNED` exactly when the answer speaks for a part.
 
 **`registrations` and `named_at` — the edge a call graph cannot see.**
 
