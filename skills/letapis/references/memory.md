@@ -66,6 +66,45 @@ date. Episodes written directly rather than derived from a document may carry no
 Those are counted here rather than silently dropped, so a non-zero value tells you the window
 gave an answer about part of the corpus and named the rest.
 
+### The last time, rather than the closest match
+
+"What happened last time" is a question about recency, and ranking by similarity answers a
+different one: the record you want is often not the nearest, and a fresh one can rank far down
+behind older records that happen to be closer. `order="t_valid_desc"` puts the newest first.
+
+```python
+mcp__<engine>__ena_get_context(order="t_valid_desc", projects=["my-project"], limit=1)
+mcp__<engine>__ena_get_context(query="the release pipeline", order="t_valid_desc", limit=3)
+```
+
+Without a query the answer is simply the newest records the filters admit. With one, it is the
+newest among the records at or above the memory's confident threshold — the line recall already
+draws between a confident match and a doubtful one — and every record above it is weighed, not
+only the nearest few. An explicit `min_similarity` replaces that floor.
+`projects` and `date_from`/`date_to` narrow either way, and `limit` applies after ordering. The
+default, `order="similarity"`, is unchanged.
+
+**For what a project did last, name it in `projects`, not in the query.** By meaning, one
+project's summary barely differs from another's, so the newest match for such a query is easily
+someone else's. The projects axis draws that line exactly; a query is for a topic that meaning can
+tell apart.
+
+The answer says which floor made a match:
+
+```
+order.by                  t_valid_desc
+order.similarity_floor    0.5
+order.floor_set_by        confident_threshold
+order.candidates          412
+order.undated_not_placed  0
+```
+
+`floor_set_by` names where the floor came from: `confident_threshold` from the memory
+configuration by default, `min_similarity` when you passed one. Passed below the barrier's own
+floor, it is the barrier that decides, and the answer says `barrier`. `undated_not_placed` counts records
+with no readable date — a newest-first order has no position for them, so they are named here
+rather than dropped in silence. Without a query only `by` and `undated_not_placed` appear.
+
 ### Check memory before acting on a plan
 
 A task list says "build X"; memory may say X was reconsidered. Later decisions override earlier
