@@ -47,7 +47,10 @@ is derived. Removing episodes is a decision about the record, and it belongs wit
 
 ## Changing things
 
-Four operations change state, and three of them destroy data that has to be rebuilt:
+Four operations change state, and three of them destroy data that has to be rebuilt. Three also
+run in the background — `cleanup_orphaned_files`, `force_reindex` and `remove_folder` hand back an
+`operation_id` and go on working after the call returns, so what the corpus answers in between is
+neither the old state nor the new one:
 
 | Operation | What it does | Cost of being wrong |
 |---|---|---|

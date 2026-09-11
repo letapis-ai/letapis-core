@@ -271,7 +271,8 @@ mcp__<engine>__list_workspace_folders()                                      # w
 ```
 
 **A clone is not an index.** Fetching a repository puts files on the node; the engine only answers
-about them after `index_folder`. The reverse trap costs more: a watched clone that nobody pulls
+about them once `index_folder` has *finished* — the call starts a pass and returns, and a query
+sent while it runs comes back partial and looks complete (§ Long jobs run in the background). The reverse trap costs more: a watched clone that nobody pulls
 answers confidently from the state it had when it arrived — the index is fresh, the source is
 stale, and nothing in the answer says so. `git_status` is what tells you which.
 
