@@ -29,15 +29,28 @@ not: a virtual environment is not carried over, and the first command run in the
 
 ## Registering the copy
 
+Two calls, and the order is not a preference.
+
 ```
-index_folder(path="<copy>",
-             file_patterns=["*.py", "*.md"],
-             hidden=true,
-             supersedes="<the watched trunk>")
+index_folder(path="<copy>", file_patterns=["*.py", "*.md"], hidden=true)
 ```
 
 The call hands back an `operation_id` and the pass runs in the background. `get_operation` says
 when it has finished.
+
+```
+update_folder(path="<copy>", supersedes="<the watched trunk>")
+```
+
+**The registering call cannot carry `supersedes`.** A substitution acts when the copy is revealed,
+and nothing reveals a folder the corpus does not answer from yet — so at the moment of
+registration there is nothing to stand in for anything, and the call is refused by name:
+`supersedes_from_inactive`. Nothing is written, `hidden` included, so the folder you thought you
+had registered is not there at all.
+
+Make the second call only once the pass has finished. A folder's settings cannot change under a
+running pass — it reads them from beginning to end — and `update_folder` during one is refused
+with `pass_running`, which names the pass and the call that stops it.
 
 `supersedes` takes the path of a *watched* tree, not the tree your copy was made from. Those are
 the same only when the clone you branched off is the one being indexed, and several clones of one
@@ -153,7 +166,7 @@ The expensive part is the environment, not the tree.
 | Refusal | What it means |
 |---|---|
 | `supersedes` refused by name | only a hidden folder may declare one, never itself, never a relative path, and never a tree nobody watches |
-| `supersedes_from_inactive` | watching this copy is stopped, so nothing reveals it and nothing can be substituted. Start watching it again — `index_folder` on the folder reactivates it — and set the pair then |
+| `supersedes_from_inactive` | this folder is not answering requests, so nothing reveals it and nothing can be substituted. Two folders meet this: one whose watch was stopped, and a copy being registered right now, because `index_folder` cannot set the pair in the same call that creates the folder. Either way the folder has to be watched first and the pair set after, with `update_folder` |
 | settings refused while a pass is running | a long pass is reading this folder's settings; stop it, change them, start again |
 | `unknown_settings` | a name this surface does not read. Nothing was written, and the answer lists what it does read |
 | empty `results` with a `hint` | the answer outgrew the limit and was spilled to a file. Read it with `fetch_file` rather than reading the emptiness as "nothing found" |
