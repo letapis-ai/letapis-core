@@ -29,14 +29,21 @@ not: a virtual environment is not carried over, and the first command run in the
 
 ## Registering the copy
 
-Two calls, and the order is not a preference.
+Three calls, and the order is not a preference.
 
 ```
 index_folder(path="<copy>", file_patterns=["*.py", "*.md"], hidden=true)
 ```
 
-The call hands back an `operation_id` and the pass runs in the background. `get_operation` says
-when it has finished.
+The call hands back an `operation_id` and the pass runs in the background.
+
+```
+get_operation(operation_id="<the id that call returned>")
+```
+
+Until it answers `status: completed`, the pass is still reading this folder's settings, and the
+next call is refused with `pass_running` — a refusal that names the pass and the call that stops
+it. A folder's settings cannot change under a running pass: it reads them from beginning to end.
 
 ```
 update_folder(path="<copy>", supersedes="<the watched trunk>")
@@ -47,10 +54,6 @@ and nothing reveals a folder the corpus does not answer from yet — so at the m
 registration there is nothing to stand in for anything, and the call is refused by name:
 `supersedes_from_inactive`. Nothing is written, `hidden` included, so the folder you thought you
 had registered is not there at all.
-
-Make the second call only once the pass has finished. A folder's settings cannot change under a
-running pass — it reads them from beginning to end — and `update_folder` during one is refused
-with `pass_running`, which names the pass and the call that stops it.
 
 `supersedes` takes the path of a *watched* tree, not the tree your copy was made from. Those are
 the same only when the clone you branched off is the one being indexed, and several clones of one
@@ -122,7 +125,9 @@ changed files up on its own, the folder needs no re-registering, and the merge d
 remove_folder(path="<copy>")
 ```
 
-One call does it. Everything the filesystem produced goes: files, their chunks, the structures
+One call does it, and like an indexing pass it runs in the background: the call hands back an
+`operation_id`, and until `get_operation` reports it finished the folder is still listed and still
+answering. Everything the filesystem produced goes: files, their chunks, the structures
 parsed out of them. Records whose text lives in the record itself stay, because a dead source is
 not a dead carrier, so episodes and findings are counted and left alone. Files on disk are not
 touched. The call has no way back; when you want something reversible, `forget_folder` hides
