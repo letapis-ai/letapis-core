@@ -1,19 +1,19 @@
 """The proxy carries arguments on EVERY method, not just the two in daily use.
 
-Stage `68.9`, decision `D68-18`. The class "a declared parameter never arrives" is
+The class "a declared parameter never arrives" is
 guarded on two seams inside the engine — schema→route and schema→handler. The third
 seam belongs to this package and nobody watched it: `POST` goes out with
 `json=arguments`, `GET` with `params=arguments`, and `DELETE` went as
 `self.client.delete(endpoint)` — no body, no params. Everything not already
 substituted into the URL vanished silently.
 
-**The branch is dead today, and that is precisely why the probe exists.** The engine's
-live map on 27.08: 49 tools, 39 `POST`, 10 `GET`, no `DELETE` at all
-`[checked: GET /api/v1/tools on :3131]`. What is being fixed is a trap, not a symptom:
+**The branch is dead today, and that is precisely why the probe exists.** The engine
+declares its tools on `POST` and `GET` only, and `GET /api/v1/tools` lists no `DELETE`
+at all. What is being fixed is a trap, not a symptom:
 the first tool declared on a losing method would have dropped its arguments with
 nowhere to learn it from.
 
-**The declaration here is invented, and that is a boundary of the stage.** No real
+**The declaration here is invented, and that is a boundary of this probe.** No real
 tool is given `DELETE` for the sake of a test: the engine's live surface is not
 touched to make a probe pass. The route map is injected straight into the client, so
 this probe knows nothing about which methods the engine declares — and must not. Its
@@ -139,7 +139,7 @@ async def test_delete_carries_its_arguments_too():
     sent_method, payload = transport.seen[0]
     assert sent_method == "DELETE"
     assert _delivered(payload) == ARGS, (
-        "посредник вызвал DELETE и не приложил доводы — они потеряны молча"
+        "the proxy sent DELETE without the arguments, and they were lost silently"
     )
 
 

@@ -1,4 +1,4 @@
-"""Stage 106.1: what the engine says about itself reaches the client's
+"""What the engine says about itself reaches the client's
 `initialize` answer, and a silent engine costs the session nothing.
 
 `instructions` is the only prose that arrives before any tool does — a host

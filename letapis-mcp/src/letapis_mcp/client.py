@@ -25,10 +25,10 @@ from letapis_mcp.config import Config
 # Every name here must be one the engine actually declares. Two were not, and a dead
 # name in a set like this is worse than an absent one: it reads to everyone after as
 # «this tool exists and is safe to retry», and neither half is true.
-# `reference_stats` named the stored-reference mechanism removed in Plan 36.1;
+# `reference_stats` named a stored-reference mechanism the engine no longer has;
 # `vector_search_nodes` is the kernel HANDLER's name — the tool has always been called
-# `search`. Checked against the engine rather than from memory: `GET /api/v1/tools` on
-# :3131 lists 49 tools and neither of those is among them `[проверено чтением, 26.08]`.
+# `search`. Checked against the engine rather than from memory: `GET /api/v1/tools`
+# lists neither of those.
 _RETRY_SAFE_TOOLS = frozenset(
     {
         "search",
@@ -136,8 +136,9 @@ class letapisClient:
         available here. Comparing OUR list against WHAT THE ENGINE ANSWERED is, and it
         costs one set difference on a call that already happened.
 
-        Stage 58.33 found three dead names in that set by hand, one after another. A
-        check that only a person performs is a check that runs when someone remembers.
+        Dead names have got into that set before, and only a person reading it found
+        them. A check that only a person performs is a check that runs when someone
+        remembers.
         """
         try:
             result = await self.get_tools()
@@ -321,7 +322,7 @@ class letapisClient:
 
         Args:
             path: Remote file path
-            reveal: Hidden folders this call may read from (Stage 69.1). Left OUT of
+            reveal: Hidden folders this call may read from. Left OUT of
                 the query string when nothing was asked for, rather than sent empty:
                 the route reads an absent parameter as «the originals» and would have
                 to be taught to read a blank one the same way, in a second place.

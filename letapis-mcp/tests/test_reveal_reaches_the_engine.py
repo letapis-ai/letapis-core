@@ -1,4 +1,4 @@
-"""`reveal` travels from the tool the head calls to the engine's own route (69.1).
+"""`reveal` travels from the tool the head calls to the engine's own route.
 
 A folder can be marked hidden in the engine: it is indexed like any other and answers
 nobody who did not name it in `reveal`. Seven of the eight surfaces that hand content out

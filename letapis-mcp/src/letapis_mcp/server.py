@@ -66,7 +66,7 @@ Returns:
         "type": "object",
         "properties": {
             "path": {"type": "string", "description": "Remote file path"},
-            # Stage 69.1. Declared HERE and nowhere else: this tool is the proxy's own,
+            # Declared HERE and nowhere else: this tool is the proxy's own,
             # not one of the engine's, so it does not inherit the engine's schema the
             # way the other seven surfaces do. A parameter missing from this dict does
             # not exist for the head that calls the tool.
@@ -308,7 +308,7 @@ async def _handle_fetch_file(arguments: dict[str, Any]) -> dict[str, Any]:
             "cached": True,
         }
 
-    # The CACHE is not answered here, and that is the whole of Stage 69.1 on this
+    # The CACHE is not answered here, and that is the whole visibility rule on this
     # surface. A cached file is one the engine handed over once, to one request that
     # named what it needed; answering a later request out of it makes permission a
     # property of this process's history rather than of the request being answered,
@@ -372,7 +372,7 @@ def _transform_search_results(result: dict[str, Any]) -> dict[str, Any]:
     Adds local_path only when it differs from path (i.e., mapping found).
 
     This one reads the cache and is still safe, which is worth saying since the same
-    read is a leak one function up (Stage 69.1). The difference is what it decides:
+    read is a leak one function up. The difference is what it decides:
     here nothing is granted, only NAMED. Every path it touches is already in the
     engine's own answer, and the engine applied visibility before answering — so this
     can hand a local name to a file the caller was already given, and to no other.

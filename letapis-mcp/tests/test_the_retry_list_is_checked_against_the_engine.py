@@ -1,7 +1,7 @@
 """The proxy's own list of retry-safe tools is judged against what the engine answered.
 
-Stage 58.33 found three names in `_RETRY_SAFE_TOOLS` that answer to nothing —
-`reference_stats` (a mechanism removed in Plan 36.1), `vector_search_nodes` (the kernel
+Three names in `_RETRY_SAFE_TOOLS` once answered to nothing —
+`reference_stats` (a mechanism the engine no longer has), `vector_search_nodes` (the kernel
 HANDLER's name; the tool has always been `search`), and before them `build_refs` on the
 settings surface, which is the same disease one floor up. All three were found by a
 person looking. A check only a person performs runs when someone remembers.

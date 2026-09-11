@@ -1,4 +1,4 @@
-"""Nothing this proxy remembers may decide what a later call is allowed to see (69.1).
+"""Nothing this proxy remembers may decide what a later call is allowed to see.
 
 The engine decides who may read what, per request. This process sits in front of it and
 keeps things between calls — that is what a proxy is for — and every one of those things
@@ -22,7 +22,7 @@ import letapis_mcp.client as cli
 import letapis_mcp.server as srv
 
 #: Module state the proxy keeps between calls, and why each one cannot decide a
-#: permission. Reviewed at Stage 69.1; a name here is a promise, not a description.
+#: permission. A name here is a promise, not a description.
 REVIEWED_SERVER_STATE = {
     # The HTTP client and the configuration: one connection pool and one settings
     # object. They say WHERE the engine is, never what a caller may read from it.
@@ -49,7 +49,7 @@ REVIEWED_CLIENT_STATE = {
     "_tool_routes": "name -> (method, endpoint); routing, never permission",
     "_transport": "test seam for the pool",
     "retry_safe_not_declared": (
-        "names this proxy calls retry-safe that the engine did not declare (58.33). "
+        "names this proxy calls retry-safe that the engine did not declare. "
         "A finding about the PROXY's own configuration, recomputed every time the "
         "route map is rebuilt. It gates nothing: no call consults it to decide "
         "whether to run, to retry, or what to return, so it cannot make a later "
