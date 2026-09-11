@@ -9,6 +9,46 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.911.2
+
+### Recall can put the newest match first
+
+`ena_get_context` takes an `order`. The default, `similarity`, ranks by closeness to the query.
+`t_valid_desc` puts the newest first:
+
+    ena_get_context(order="t_valid_desc", projects=["my-project"], limit=1)
+    ena_get_context(query="the release pipeline", order="t_valid_desc", limit=3)
+
+Without a query, the answer is the newest records that `projects` and the date window let
+through. With a query, it is the newest among the records at or above the memory's
+`confident_threshold`. Every record above that floor is weighed, so a fresh match still comes
+first when older records are closer to the query. `min_similarity` raises or replaces the floor.
+
+A broad query clears the floor for a large share of memory, and the answer is then little more
+than the newest records overall. For a topic, use narrow words or raise `min_similarity`. For
+what a project did last, leave the query out and name the project in `projects`.
+
+The answer carries an `order` block:
+
+    "order": {"by": "t_valid_desc", "similarity_floor": 0.5, "floor_set_by": "confident_threshold", "candidates": 412, "undated_not_placed": 0}
+
+`floor_set_by` says where the floor came from: `confident_threshold`, `min_similarity`, or
+`barrier` when the value you passed is below the floor the memory barrier keeps anyway.
+`undated_not_placed` counts records with no readable date, which a newest-first order has no
+place for. `capped` appears when more than 10,000 records clear the floor, and then only the
+closest 10,000 are ordered. Records listed without a query show `similarity: n/a`. An unknown
+`order` is refused with the list of accepted values.
+
+### A date window counts every record it could not check
+
+`date_window.undated_not_checked` counts every record without a readable date, whether it made
+it into the answer or `limit` left it out. The text answer says how many of them it holds:
+
+    WARNING: 5 episodes carry no date, so this window could not check them; 2 of them are in this answer.
+
+A count larger than what you see means undated records were left out. Raise `limit` or drop the
+window to see them.
+
 ## 26.911.1
 
 ### The memory doctor's guard counts what it would retire

@@ -64,7 +64,8 @@ worth a second look: a date filter can only judge an episode that carries a date
 takes one from its own frontmatter — an explicit `date`, then a completion date, then a start
 date. Episodes written directly rather than derived from a document may carry none of those.
 Those are counted here rather than silently dropped, so a non-zero value tells you the window
-gave an answer about part of the corpus and named the rest.
+gave an answer about part of the corpus and named the rest. The count covers every such episode,
+including the ones `limit` left out of the answer, so it can be larger than what you see.
 
 ### The last time, rather than the closest match
 
@@ -83,6 +84,10 @@ draws between a confident match and a doubtful one — and every record above it
 only the nearest few. An explicit `min_similarity` replaces that floor.
 `projects` and `date_from`/`date_to` narrow either way, and `limit` applies after ordering. The
 default, `order="similarity"`, is unchanged.
+
+**A broad query clears the floor for a large share of memory,** and then the answer is little
+more than the newest records overall. For a topic, use the words that set it apart from its
+neighbours, or raise `min_similarity`.
 
 **For what a project did last, name it in `projects`, not in the query.** By meaning, one
 project's summary barely differs from another's, so the newest match for such a query is easily
