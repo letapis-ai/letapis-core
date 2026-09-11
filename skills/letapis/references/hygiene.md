@@ -70,7 +70,7 @@ need opposite things done to them:
 |---|---|---|
 | `stale_pointer` | the file is alive, the episode points at where it used to be | the pointer is repairable, and the row says how. Never a forget: the content is intact |
 | `no_carrier` | the episode has no file recorded at all | repairable too — a file can be written from the episode's own content |
-| `orphan` | a file is recorded and it is nowhere on disk | **no automatic cure.** A person decides: give the record a file of its own, or forget it if the document was removed deliberately. Repairing does not bring the lost document back |
+| `orphan` | a file is recorded and it is nowhere on disk | `letapis doctor --apply` retires it: the record leaves recall, its text and its edges stay, and the mark comes off by itself if the file returns. Retiring does not bring the lost document back |
 | `low_signal` | the body is empty or nearly so | a forget, when it is genuinely scaffolding or a stray note |
 | `stale` | older than `stale_factor` × its kind's half-life — the multiplier is a parameter of the scan, not a constant | **not** a forget. Old is not wrong; a durable decision stays true for years. Read it and ask whether it still holds |
 | `no_provenance` | the episode does not say where it came from | a labelling gap. Worth backfilling, never worth deleting over |
@@ -157,6 +157,22 @@ for between two other things.
 
 The dry run prints the same table with counts and ends with how many records `--apply` would
 mend. Run it first; there is no reason not to.
+
+### When it refuses to retire
+
+A record whose file has left the disk is retired, and `--apply` does that for every such record in
+one run. When too many lose their file together, the run retires none of them: a batch like that
+usually means the vault's volume isn't mounted, and retiring on it would empty memory over a
+network hiccup. The limit is one percent of the records with a usable address, and never fewer
+than twenty.
+
+The report then carries `carrier_check_refused: true` and a `carrier_refusal` block. `missing` is
+how many carriers are gone in all, and `retirable` is how many this run would retire. The second
+one is held against `limit`, so records retired by earlier runs never count. Check that the volume
+is mounted, then run again.
+
+Each check in `--json` also carries `would_land`: how many of the records it found the cure would
+really apply to. It's counted on a refused run too, so you can read what an unblocked run would do.
 
 ### Where it looks for the config
 

@@ -9,6 +9,36 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.911.1
+
+### The memory doctor's guard counts what it would retire
+
+When many records lose their file at once, `letapis doctor` retires none of them. A whole batch
+going missing together usually means the vault's volume has not mounted, not that someone deleted
+the files, and the run tells you to check the volume and try again.
+
+The limit is held against the records this run would actually retire. A record an earlier run
+already retired can't be retired again, so it isn't counted. A memory that has retired many
+records over the months can still retire the few that lost their file today, and a volume that
+really went missing is still refused.
+
+The refusal carries both numbers:
+
+    "carrier_refusal": {"missing": 520, "retirable": 130, "addressed": 8000, "limit": 80, "reason": "…"}
+
+`missing` is how many carriers are gone in all. `retirable` is how many this run would retire,
+and it's the one compared with `limit`. The `reason` line, which the plain-text report prints
+after `REFUSED:`, names both. `memory_repair_carriers` returns the same block, and `sync_episodes`
+returns it as `carrier_check_refusal`.
+
+### Every doctor check says how many records it would really mend
+
+`letapis doctor --json` gives each check a `would_land` count: how many of the records it found
+the cure would actually apply to. It's counted on a refused run too, so a refused run still shows
+what an unblocked one would do. Checks that only report stay at zero.
+
+`repairable` is what this run promises to do. For the check the refusal blocked, it's zero.
+
 ## 26.909.1
 
 ### A search answer says what answering cost you
