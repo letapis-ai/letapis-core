@@ -9,6 +9,53 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.913.1
+
+### A file with missing chunks now repairs itself
+
+Until this version, a file that had lost part of its chunks never came back to the parser. The
+engine decides whether a file needs re-reading from what its own record claims, and that record
+said the file was indexed — so every pass skipped it as unchanged. Search kept answering from the
+part of the file that survived and said nothing about the rest being gone, which is the worst shape
+a gap can take: the answer looks complete.
+
+A fresh `stale_check` now repairs what it flags. It takes the freshness claim off every file whose
+chunk numbering is broken, and the next ordinary indexing pass reads that file again:
+
+    "anomaly_count": 3, "claims_withdrawn": 3, "claims_unreachable": []
+
+`claims_withdrawn` is how many files this scan handed back to the parser. `claims_unreachable`
+names the ones it could not — those stay broken until someone acts, and it is the one list worth
+chasing. Zero in both is the healthy answer, and the ordinary one.
+
+Three boundaries are worth knowing before you rely on it:
+
+- **the cached answer repairs nothing.** It is the previous scan's report. `refresh=True` runs a
+  new scan, and that scan is a background job — collect it by id;
+- **no row is rewritten in place.** A file is repaired by being read again, so until a pass covers
+  its folder the corpus still answers from the old content;
+- the scan also runs on a schedule, so on a live engine this happens without anyone asking for it.
+
+### A folder's file count follows the corpus
+
+`files_indexed` in `list_folders` used to describe the last indexing pass and nothing else. A
+folder whose indexed data had been removed kept showing the number that pass had seen — and a
+folder with a healthy-looking count reads as a live folder, so a search that finds nothing in it
+looks like a bad query rather than an empty index.
+
+Every cleanup that runs to the end now brings each watch's count back in line with what the corpus
+holds, and says how many records it corrected:
+
+    "files_removed": 0, "folders_recounted": 2
+
+It does this even when nothing was deleted, which is the only way a folder whose data is already
+gone ever gets its count corrected. So a number that dropped between two readings is usually this
+repair rather than a loss.
+
+Read the number as an order of magnitude rather than a contract. What a folder holds on disk, what
+its ignore patterns admit, and what the engine could parse are three different counts; only the
+last is in this field, and it is not meant to match a count you take yourself.
+
 ## 26.911.2
 
 ### Recall can put the newest match first
