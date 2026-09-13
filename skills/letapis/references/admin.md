@@ -17,7 +17,7 @@ otherwise turn into guesses.
 | something is clearly indexed but never matches by meaning | `get_embedding_stats` | how much of the corpus actually carries vectors. A gap here is exactly this symptom |
 | a file sits in a watched folder and never appears | `list_folders` → its `ignore_patterns` | far and away the usual cause, and it is deliberate: whole subtrees are commonly excluded. Check this **before** suspecting the engine |
 | specific files never appear and are not ignored | `get_embedding_errors` | which files failed to embed, and why — usually a pattern worth excluding rather than a bug |
-| chunks of a file look duplicated or missing | `stale_check` | files violating the chunk-numbering invariant. `refresh=True` re-scans and is itself a background job — collect it by id |
+| chunks of a file look duplicated or missing | `stale_check` | files violating the chunk-numbering invariant — and a fresh scan REPAIRS them: it takes the freshness claim off each one, so the next ordinary indexing pass reads that file again instead of skipping it as unchanged. `refresh=True` is itself a background job — collect it by id. The cached answer repairs nothing; it is the previous scan's report |
 | the corpus references folders you no longer have | `list_orphaned_folders` | indexed data left behind after a watch was dropped |
 | the call graph is empty for a whole folder | `list_folders` → its `odoo_aware` | extraction mode decides what becomes a call edge; the wrong mode for the material yields no structure at all |
 | a saved finding points at nothing | `verify_findings()` | findings whose source anchor no longer resolves; a scope id narrows it, omitting one checks them all |
@@ -59,12 +59,18 @@ neither the old state nor the new one:
 | `force_reindex` | deletes everything indexed for a folder and rebuilds it | the folder is unsearchable until it finishes, which on a large corpus is not quick |
 | `remove_folder` | removes a folder's data and stops watching it | the index is gone; the files on disk are untouched |
 
-**Two things about `cleanup_orphaned_files` are worth knowing before you call it**, and neither is
-visible from its own answer. Narrowing a watch and then running it drops the newly-excluded files
-from the index — the sweep judges against the folder's CURRENT patterns, not the ones it was
-indexed under. And a chunk whose parent file node is gone is still returned by search today,
-because search groups chunks by `parent_file_path` without checking that the parent exists; so
-removing one takes findable content out of answers rather than tidying bookkeeping.
+**Three things about `cleanup_orphaned_files` are worth knowing before you call it.** Narrowing a
+watch and then running it drops the newly-excluded files from the index — the sweep judges against
+the folder's CURRENT patterns, not the ones it was indexed under. And a chunk whose parent file
+node is gone is still returned by search today, because search groups chunks by `parent_file_path`
+without checking that the parent exists; so removing one takes findable content out of answers
+rather than tidying bookkeeping.
+
+The third is the one that surprises people. **Every cleanup that runs to the end also brings each
+watch's `files_indexed` back in line with what the corpus actually holds**, and says how many
+records it corrected in `folders_recounted`. It happens even when nothing was deleted — which is
+the only way a folder whose data is already gone ever gets its count corrected. So a folder's
+number changing after a cleanup you ran for another reason is the repair, not a second fault.
 
 **None of these is a diagnostic step.** They are what you do *after* a diagnosis, with the
 agreement of whoever owns the corpus — a reindex started to see whether it helps is a reindex

@@ -378,7 +378,28 @@ otherwise guess at: `active` (a watch can be listed and switched off), `files_in
 reason a file in a watched folder never appears), and `odoo_aware` (which extraction mode decides
 what the call graph can see).
 
+**`files_indexed` follows the corpus, not the last pass.** Every cleanup that runs to the end
+rewrites it from what the store actually holds, so a number that dropped between two readings is
+usually a repair rather than a loss. Read it as an order of magnitude, not as a contract: what a
+folder holds on disk, what its patterns admit, and what the engine could parse are three different
+counts, and only the last one is in here.
+
 **`description` and group tags are free text, and free text outlives its meaning.** A folder
 described as one thing and tagged as another will answer confidently from material that is neither.
 When a name and its contents disagree, the contents win — count the files or read a couple of hits
 rather than trusting the label.
+
+## What a maintenance answer carries
+
+Two of these operations report what they repaired, and the numbers are the only place the repair is
+visible — nothing in a later search says it happened.
+
+| Field | Where | What it means |
+|---|---|---|
+| `claims_withdrawn` | `stale_check` | files whose freshness claim this scan took off, so the next ordinary pass reads them again. Zero is the healthy answer |
+| `claims_unreachable` | `stale_check` | the files it could not repair, by path — the one list worth chasing, because those stay broken until someone acts |
+| `folders_recounted` | `cleanup_orphaned_files` | watch records whose `files_indexed` this pass brought back in line with the corpus. Zero means every folder already agreed |
+
+**No row is ever rewritten in place by either of them.** A file is repaired by being read again on
+a later pass, so the corpus answers from the old content until that pass runs — and on a large
+folder that is minutes, not seconds.
