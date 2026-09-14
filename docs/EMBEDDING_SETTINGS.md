@@ -63,9 +63,11 @@ conservative guess.
 ### Other servers
 
 If you replace the embedder with one that accepts larger inputs, raise `token_batch_size` to
-match it — and do not add a batch-limiting flag on the server side. A server that splits long
-input into sub-batches on its own can die without a word: we have seen a process abort with
-code 133 on the second sub-batch, three times in a row, having logged nothing.
+match it — and do not add a batch-limiting flag on the server side. With such a flag vllm-mlx
+splits any input longer than the limit into sub-batches and does not survive that: the process
+exits with code 133 on the second sub-batch and logs nothing. Inputs that fit under the limit
+keep working, so the embedder dies only on long chunks and looks unreliable rather than
+misconfigured.
 
 Measure before you change: send the embedder inputs of growing length and see where it stops
 answering. On our machine, inputs from 600 to 16 000 characters all returned a vector, taking

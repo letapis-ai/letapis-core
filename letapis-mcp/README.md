@@ -320,9 +320,8 @@ paths:
 
 ### Path Handling
 
-Two different things ask about a path, and they answer differently. Reading this as one
-chain is what let a cached file stand in for permission once already, so the split is
-spelled out.
+Two different things ask about a path, and they answer differently. Read as one chain,
+they would let a cached file stand in for permission, so the split is spelled out.
 
 **Naming a path in a search result.** letapis-core has already decided what the caller
 may see, so this only puts a local name on what it returned:
