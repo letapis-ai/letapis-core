@@ -102,11 +102,10 @@ logs:
 that writes `{{runtime}}` in its start line and a fixed runtime in `stop` starts under either
 engine and then refuses to stop under one of them.
 
-`kind: docker` is the older spelling, still read so that a file written before Podman was
-supported goes on working. It is not the same as `kind: container`: it means docker
+`kind: docker` is read as well, and it is not the same as `kind: container`: it means docker
 specifically, and it takes no `runtime` field. On a machine with only Podman a card written that
-way starts fine and cannot be stopped, because Stop runs `docker` and there is no docker. Writing
-a container card today, use `kind: container` with the marker.
+way starts fine and cannot be stopped, because Stop runs `docker` and there is no docker. For a
+container card, use `kind: container` with the marker.
 
 Podman on macOS has no daemon that runs all the time. Its work is done by a virtual machine,
 which has to be running before containers will start, and the Podman card starts that machine
