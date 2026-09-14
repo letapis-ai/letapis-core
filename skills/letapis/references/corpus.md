@@ -114,11 +114,10 @@ mcp__<engine>__index_folder(
 | second | ignore rules for the clutter that first pass revealed | still 2 011 chunks of built JavaScript, from six files |
 | third | `*.py`, `*.md` | 272 files, 1 624 chunks |
 
-**The middle pass is the argument.** The ignore rules were written by the same person who then
-wrote the whitelist, after having seen the first result — and they still missed a whole category.
-Not for want of care: there is nothing to guess an unfamiliar tree's contents *from*. The third
-pass did not need to guess, because it asked a different question — not "what is in here that I
-do not want", but "what did I come here for".
+**The middle pass is the argument.** Its ignore rules were written with the first result in hand,
+and they still missed a whole category. Not for want of care: there is nothing to guess an
+unfamiliar tree's contents *from*. The third pass did not need to guess, because it asked a
+different question — not "what is in here that I do not want", but "what did I come here for".
 
 **Ask before you write.** Most patterns written into a folder by hand turn out to add nothing:
 either a layer above already catches what they catch, or nothing in that folder matches them at

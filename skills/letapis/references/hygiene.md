@@ -98,12 +98,13 @@ contradictions, and it does not spot near-duplicates. Both need someone to read 
 notice "these two say opposite things" or "this same fact is here three times". That is the part
 where the audit earns its keep, and it is not automated.
 
-## Rules that exist because they were paid for
+## Two rules that hold for every audit
 
-**Propose, then act one at a time.** The forget call takes a single target and acts immediately.
-Batch-forgetting by pattern has clobbered unrelated episodes in practice — a query that looks
-precise pulls in a valuable neighbour ranked slightly higher. Surface the list, get an explicit
-go, act singly.
+**Propose, then act one at a time.** The forget call takes a single target and acts immediately:
+it hides the best match above its threshold for the query it is given. A query that looks precise
+still matches by meaning, so a valuable neighbour can rank slightly above the episode you meant —
+and forgetting a batch by pattern takes such neighbours along with the targets. Surface the list,
+get an explicit go, act singly.
 
 **Report what was *not* scanned.** Contradictions and duplicates are outside the scan; a report
 that stays quiet about them reads as full coverage and is not.

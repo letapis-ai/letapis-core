@@ -199,7 +199,7 @@ one it was added for, and the second state is where a confident misreading comes
 | `position` | never, as long as the field itself is there. Above the first heading it takes its other shape, `"start of page, 43 sections"` | — |
 | `before` | this IS the page's first heading, or the excerpt sits above it | not that no text precedes the excerpt |
 | `after` | no FURTHER HEADING follows in the stored outline — and `outline_truncated` beside it tells you whether "stored" and "in the file" are the same thing here | **not that the page ends here.** Body text under the last heading runs on for as long as it likes, and nothing in this field measures it |
-| `section_continues` | the excerpt reached its section's end — or it has no enclosing section at all, being above the first heading. The third old state now answers for itself: no end line to compare against arrives as `section_end_unknown: true` | above the first heading, not that anything was checked |
+| `section_continues` | the excerpt reached its section's end — or it has no enclosing section at all, being above the first heading. A missing end line is reported separately, as `section_end_unknown: true` | above the first heading, not that anything was checked |
 
 A corpus indexed by an older engine is where the missing end line comes from; on anything a
 current engine indexed the line is there, so `section_end_unknown` is a mark you will rarely see
@@ -217,14 +217,10 @@ headings rather than the page's. The answer says when that has happened:
   `position: "past the 2000 stored headings"`, and no `section`, `before`, `after` or
   `section_continues` — because nothing about where it sits is known.
 
-That second case used to be the field's one outright lie: the excerpt was anchored on the last
-stored heading and came back with somebody else's `section`, `"2000 of 2000"`, and neither
-`after` nor `section_continues` — "the page's last section, read out, nothing follows" with
-hundreds of headings still to come.
-
-One false positive is left and it is declared: a file holding exactly 2000 headings, indexed
-before the count was stored, is reported as cut. It is a generated file either way — an export, a
-merged changelog — and reindexing it makes the answer exact.
+A file with exactly 2000 headings, indexed before the heading count was stored, cannot be told
+apart from a longer file cut at the limit, so its hits arrive with `outline_truncated: true` and
+`"N of at least 2000"`. A file that size is generated — an export, a merged changelog — and
+reindexing it stores the count, after which the answer is exact.
 
 **The whole field can be absent, and that is a different fact from a missing key.** It happens
 when the hit IS the file rather than a piece of it — a whole-file hit has no place inside the
@@ -247,11 +243,11 @@ rest of it is about escalation. Nothing in the answer supports any of that. `pos
 headings rather than lines, so "1 of 3" measures no proportion of anything; and a heading is a
 promise the section may or may not keep.
 
-This is a failure that has actually happened: a reader who would otherwise have opened the page,
-or said nothing at all, instead built a statement on `"1 of 3"` about content they had never
-seen. The field answers one question — is this an excerpt, and does the page go on — and the
-move it is there to prompt is opening the file. If you catch yourself saying what an unread
-section contains, this field did not tell you.
+The step is easy to take without noticing: a reader who would otherwise open the page, or say
+nothing at all, builds a statement on `"1 of 3"` about content they have never seen. The field
+answers one question — is this an excerpt, and does the page go on — and the move it is there to
+prompt is opening the file. If you catch yourself saying what an unread section contains, this
+field did not tell you.
 
 **How good the naming is depends entirely on the material:**
 
