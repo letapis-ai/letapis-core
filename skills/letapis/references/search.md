@@ -336,8 +336,10 @@ symbol defined in one of them returns zero every time.
 read rather than called — then `readers` is not empty and the zero means "depended on, not
 called". It may live as *data* — a config key, an event name, a registry key — and then
 `mentions` or `registrations` carries it. The file may be in a language the parser does not cover,
-and `unread` says so. The scan may have been cut short before it began, and `narrowed_by` says by
-what. Read those fields before reading a zero as "nothing calls this"; `hint` names the reason in
+and `unread` says so. The file may have been handed to the parser with nothing taken from the
+name — a form the parser does not record, a comment, or a file the parser gave up on — and then
+`symbol_found_on_disk` is `true` beside empty lists. The scan may have been cut short before it
+began. In both cases `narrowed_by` says by what. Read those fields before reading a zero as "nothing calls this"; `hint` names the reason in
 words, and opens with `NOT FULLY SCANNED` when the answer speaks for part of the folder —
 [response](response.md) § `blast_radius`.
 
