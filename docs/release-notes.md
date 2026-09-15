@@ -55,8 +55,9 @@ kind of file, so a folder of `.cpp` and `.h` lists each of them twice:
 
     {"extension": ".cpp", "files": 3, "not_reported": "calls to an upper-case type's constructor", "why": "…"}
 
-When one of these is listed, read an empty `callers` as calls the engine could not count, and check
-the code before calling the symbol unused.
+When one of these is listed, an empty `callers` settles nothing either way: the boundary is
+declared for the files that carried the name, not established for this symbol. Check the code
+before calling the symbol unused — and before calling it used.
 
 ## 26.913.1
 
