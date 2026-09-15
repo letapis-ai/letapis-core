@@ -288,8 +288,8 @@ has a stored size, or the answer is no smaller than the files it stands for.
 
 | Field | What it actually tells you |
 |---|---|
-| `symbol_found_on_disk` | **reads as a claim about the disk; is a claim about what this lookup read.** A name written in a language with no extractor returns `false` while sitting in the files many times over — `unread` and `narrowed_by` below are what tell you that is what happened |
-| `hint` | the one that carries the real reason — an extension with no extractor, or a scan narrowed before it began. It opens with `NOT FULLY SCANNED` when the zero speaks for part of the folder rather than all of it. Without it the flag above misleads |
+| `symbol_found_on_disk` | **reads as a claim about the disk; is a claim about the files this lookup parsed.** `true` means a parsed file carries the name — as a definition, a call, a read, a string, or only as text its reader took nothing from: a form the reader does not record, a name written in a comment. So `true` beside every list empty is a real answer, and `narrowed_by` names why nothing was listed. `false` speaks only for what was parsed: a name written in a language with no extractor returns `false` while sitting in those files many times over — `unread` and `narrowed_by` below are what tell you that is what happened |
+| `hint` | the one that carries the real reason — an extension with no extractor, a scan narrowed before it began, or a parsed file its reader took nothing from. It opens with `NOT FULLY SCANNED` when the zero speaks for part of what is on disk rather than all of it. Without it the flag above misleads |
 | `readers` · `reader_count` | places that **read** the name instead of calling it: a constant, an attribute taken off an object, a name pulled in by an import. Grouped by file like `callers`, with the enclosing scope and the lines |
 | `candidate_source` | which way the files to read were found — `ripgrep` when it is on the `PATH`, a walk of the index otherwise. The answer is the same either way; what changes is how long you wait for it |
 | `caller_count` vs `call_site_count` | distinct callers against distinct places. One caller invoking a symbol three times reads as `1` and `3`; take the first for "one place" and you miss two |
@@ -311,7 +311,7 @@ twelve.
 | `unparsed` | files that were opened and whose reader gave up, counted per extension. Different from `unread`: there the language is unknown, here the file is |
 | `skipped_on_purpose` | parts a reader ignores by design — a docstring, a comment block. Declared rather than left invisible |
 | `mentions` · `mention_count` | places where the name stands inside a **string** rather than in a call. Never promoted to a call: what a string means is the caller's business |
-| `narrowed_by` | what was cut off **before** the scan: `{by, detail, carried_the_name}` — a `folder` you named and the watched folders left outside it, the watch rules of the folder itself, an extension with no reader. `carried_the_name` says how many of the files it passed over carry your name |
+| `narrowed_by` | what kept the answer from listing everything: `{by, detail, carried_the_name}`. Some cuts come **before** the scan — a `folder` you named and the watched folders left outside it, a group, a hidden folder, the watch rules of the folder itself, an extension with no reader (`no_extractor`). Two come **after** a file was parsed — a name treated as background noise (`noise_name`), and a name standing in the file with nothing taken from it (`nothing_taken`). `carried_the_name` is a number when those files were opened and carry your name, and `null` when they were never opened, so it says nothing about the name |
 
 A zero beside every one of these empty is a zero about the whole folder. A zero beside a non-empty
 one is a zero about a part of it, and the field says which part. **Do not count the empty fields
