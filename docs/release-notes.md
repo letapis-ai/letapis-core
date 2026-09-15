@@ -9,6 +9,55 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.915.1
+
+### The call map reads C++
+
+`blast_radius` answers for a symbol in a C++ project with its definitions and its callers, each
+with a file and a line. Ask for a method by its last name, `decode` rather than
+`llama_context::decode`. The class comes back in `definitions[].model`, and the function making
+the call in `callers[].caller_scope`:
+
+    "definitions": [{"file": ".../llama-context.cpp", "line": 1647, "model": "llama_context"}],
+    "callers": [{"file": ".../llama-context.cpp", "caller_scope": "llama_decode", "lines": [4028]}]
+
+`.cpp`, `.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx`, `.cu` and `.cuh` are read as C++ in any folder, with
+nothing to set.
+
+### A folder names how its files are read
+
+`.h` belongs to C as much as to C++, so unless a folder says otherwise it is read as C. A C++
+project says so for its folder:
+
+    update_folder(path="/path/to/project", parser="cpp")
+
+Without that, a C++ header loses every method whose body sits inside a class, together with the
+calls made from those bodies, and the answer gives no sign of it. The folder's choice shows as
+`parser` in `list_folders`, and the names the engine accepts are listed there under
+`parsers.lenses`. The call map uses the new reading on the next lookup; `cpp` needs no reindex.
+
+### What the C++ reading does not see
+
+A file is read before the preprocessor runs and without a type checker, so some things are out of
+its reach:
+
+- calls made inside macros;
+- the function a call through a pointer reaches;
+- the override a virtual call reaches. Calls are matched by name, so `base->decode(b)` counts for
+  every `decode` in the folder;
+- template instantiations;
+- **calls to a type named in upper case.** An UPPER_SNAKE name is taken for a macro, so
+  `LLM_KV(arch)` is not counted as a call. The constructor shows its definition and no callers;
+  look for its uses as text.
+
+Every answer names these for the files it read, in `skipped_on_purpose`, once per boundary and per
+kind of file, so a folder of `.cpp` and `.h` lists each of them twice:
+
+    {"extension": ".cpp", "files": 3, "not_reported": "calls to an upper-case type's constructor", "why": "…"}
+
+When one of these is listed, read an empty `callers` as calls the engine could not count, and check
+the code before calling the symbol unused.
+
 ## 26.913.1
 
 ### A file with missing chunks now repairs itself
