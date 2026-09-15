@@ -368,11 +368,12 @@ carries it is telling you its own contents are thin.
 
 ## What a folder listing tells you beyond paths
 
-`list_folders` is not only "is this indexed". Four of its fields answer questions you would
+`list_folders` is not only "is this indexed". Five of its fields answer questions you would
 otherwise guess at: `active` (a watch can be listed and switched off), `files_indexed` and
 `last_update` (zero files or a date months old is a diagnosis), `ignore_patterns` (the most common
-reason a file in a watched folder never appears), and `odoo_aware` (which extraction mode decides
-what the call graph can see).
+reason a file in a watched folder never appears), `odoo_aware` (which extraction mode decides what
+the call graph can see), and `parser` (the reading the folder named for its files — for a C++
+project, whether its `.h` files are read as C++).
 
 **`files_indexed` follows the corpus, not the last pass.** Every cleanup that runs to the end
 rewrites it from what the store actually holds, so a number that dropped between two readings is

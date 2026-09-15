@@ -19,7 +19,7 @@ otherwise turn into guesses.
 | specific files never appear and are not ignored | `get_embedding_errors` | which files failed to embed, and why — usually a pattern worth excluding rather than a bug |
 | chunks of a file look duplicated or missing | `stale_check` | files violating the chunk-numbering invariant — and a fresh scan REPAIRS them: it takes the freshness claim off each one, so the next ordinary indexing pass reads that file again instead of skipping it as unchanged. `refresh=True` is itself a background job — collect it by id. The cached answer repairs nothing; it is the previous scan's report |
 | the corpus references folders you no longer have | `list_orphaned_folders` | indexed data left behind after a watch was dropped |
-| the call graph is empty for a whole folder | `list_folders` → its `odoo_aware` | extraction mode decides what becomes a call edge; the wrong mode for the material yields no structure at all |
+| the call graph is empty for a whole folder, or for one kind of file in it | `list_folders` → its `odoo_aware` and `parser` | extraction mode decides what becomes a call edge; the wrong mode for the material yields no structure at all. A C++ project without `parser: "cpp"` reads its `.h` files as C, and the methods written inside classes never reach the graph — [corpus](corpus.md) § How a folder's files are read |
 | a saved finding points at nothing | `verify_findings()` | findings whose source anchor no longer resolves; a scope id narrows it, omitting one checks them all |
 | something is running and you do not know what | `list_operations` | everything in flight, with kind and progress |
 
