@@ -9,6 +9,49 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.915.2
+
+### A name in a file the engine read counts as on disk
+
+`symbol_found_on_disk` says whether a file the lookup handed to a reader carries the name. That
+holds even when the reader took nothing from it: a macro or a global used as a value in C, a name
+written only in a comment, a name treated as background noise, a file the reader gave up on. The
+lists stay empty, the field is `true`, and `narrowed_by` names the cause with the number of files:
+
+    "symbol_found_on_disk": true,
+    "narrowed_by": [{"by": "nothing_taken", "detail": "this name stands in 5 files that were read, and their reading took nothing from it (no call, definition, read or string)", "carried_the_name": 5}]
+
+Read that as "the name is in use, and this answer cannot show where". Search the folder for it as
+text before you rename or remove it.
+
+`false` with an empty `narrowed_by` and a hint that opens with `NOT FOUND ON DISK` still means the
+name is nowhere in the folders the lookup answered for.
+
+### What a number in `carried_the_name` tells you
+
+A number means the files in that row were opened and carry the name. `null` means they were never
+opened, and the row says nothing about the name either way.
+
+The number does not decide `symbol_found_on_disk` on its own. Beside `nothing_taken` or
+`noise_name` it comes with `true`. Beside `no_extractor`, a file type with no reader such as `.go`
+or `.md`, the field is answered from the other files alone, so it can be `false` while the name
+sits in those files. Under a framework lens the `no_extractor` count also takes in files that write
+only a related name, for example `afterMatch` when you asked for `match`.
+
+### `unparsed` counts the files that carry the name
+
+Each row in `unparsed` is now `{extension, files, with_the_name}`, and `with_the_name` counts only
+the files that write the name itself. A lens can open a file for a related name: under `magento`,
+a lookup for `match` opens a plugin that defines only `afterMatch`. If the reader gives up on that
+file, the hint says so without claiming the name is in it:
+
+    COULD NOT PARSE: 1 `.php` file was read and the extractor gave up, so what it defines or calls is missing here.
+
+When some of the failed files do carry the name, the hint adds how many of them.
+
+Nothing needs reindexing: `blast_radius` reads the files when you ask, so the next lookup answers
+this way.
+
 ## 26.915.1
 
 ### The call map reads C++
