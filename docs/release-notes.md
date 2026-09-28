@@ -9,6 +9,46 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.928.1
+
+### All watched folders share one file-system subscription
+
+The engine watches every folder through one subscription per pair of watch settings
+(`recursive`, `debounce_ms`). Folders on the default settings share one, so a single thread waits
+for file events however many folders you watch, and waiting takes no thread from the engine's
+shared worker pool.
+
+Each event goes to the folder that owns the path: a nested watched folder gets its own events, and
+its parent does not see them. Filters, ignore rules and batching stay per folder.
+
+### If the subscription drops, the engine brings it back
+
+When the operating system ends the subscription without any folder being at fault, the engine
+opens it again after 1, 2, 4, 8 and 16 seconds. When it stands again, each folder that was left
+uncovered gets a reconcile pass, which finds files added, changed or removed in the meantime. If
+all five retries fail, the folders are taken down and the liveness check names them in the log
+(`watch.liveness.dead`).
+
+One folder with a problem goes down alone and the others keep receiving events. That covers a
+root deleted or made unreadable while it is watched, a tree the OS refuses to watch, and an event
+the folder fails to process.
+
+### New log lines
+
+The subscription writes its log lines under `watch.stream.*`:
+
+| Line | Meaning |
+|---|---|
+| `watch.stream.opened roots=R folders=F` | a subscription stands over `R` roots serving `F` folders |
+| `watch.stream.fell` | the subscription ended without being asked to |
+| `watch.stream.retry attempt=K of=5 pause_s=P` | another attempt follows in `P` seconds |
+| `watch.stream.gap_closed path=… unwatched_s=S` | a folder was uncovered for `S` seconds and has a reconcile pass on the way |
+| `watch.stream.folder_dropped path=… reason=…` | one folder was taken down for its own problem: `root_missing`, `root_deleted`, `root_unreadable`, `tree_refused`, `deliver_failed` |
+| `watch.stream.unrecoverable` | five retries failed; the uncovered folders were taken down |
+
+At start-up the log shows a run of `opened` lines while the watched folders come back one after
+another. After that, a new `opened` line appears when you add or remove a top-level folder.
+
 ## 26.915.2
 
 ### A name in a file the engine read counts as on disk
