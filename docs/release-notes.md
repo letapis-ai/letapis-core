@@ -9,6 +9,53 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.930.1
+
+### `blast_radius` answers on Go
+
+A `.go` file yields definitions, calls and reads, as files in the engine's other languages do.
+Ask about a Go function, method or type and you get who calls it, with file and line.
+
+Definitions are functions, methods, types (aliases included) and package-level `const` and
+`var`. A method is filed under its receiver's type in `defined_on_models`: `func (b *Box[K])
+Get()` belongs to `Box`. A method declared inside an interface has no body and is not a
+definition. The types that implement it are.
+
+The map reads a plain call and a call through a selector (`x.Close()`, `fmt.Println()`), with or
+without `go` and `defer` in front, a callee in parentheses (`(helper)()`), and a generic function
+called with explicit type arguments in either form, `F[T](x)` or `F[T](a, b)`. A conversion
+`T(x)` counts as a call of `T`, so a type answers with the places that convert to it. `T{}` and
+`[]byte(s)` are not calls.
+
+A function taken as a value comes back in `readers`, not in `callers`. That covers a function
+passed as an argument, stored in a struct field or assigned to a package `var`. The key of a
+composite literal (`RunE:` in `RunE: runStart`) is a field name and is not a read.
+
+Go's built-in functions called by a bare name (`len`, `append`, `make` and the rest) count as
+background noise and stay out of the answer. A parameter, a local, a package `var` or a function
+that takes a built-in's name is not the built-in, and its callers come back.
+
+`.go` no longer appears in `unread`.
+
+Calls are matched by name, as in every language the engine reads: `x.Close()` reaches every
+`Close` in the scanned folders. When methods of one name are defined on several types,
+`ambiguous` is `true` and `defined_on_models` lists the types.
+
+### What reading Go leaves out
+
+Every answer that reaches `.go` files carries five records in `skipped_on_purpose`, and `hint`
+repeats them:
+
+- the function a call through a function value reaches: `f := helper; f()` is recorded as a call
+  to `f`;
+- the implementation an interface call reaches: `x.Shutdown()` answers for every `Shutdown`;
+- code that `//go:generate` would produce and that is not on disk;
+- calls made through `reflect`;
+- the places a type is named in signatures and fields. A type comes back where it is defined and
+  where it is converted to.
+
+If the change you are about to make depends on one of these, check it by hand.
+
 ## 26.928.1
 
 ### All watched folders share one file-system subscription
