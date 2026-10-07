@@ -396,7 +396,14 @@ visible — nothing in a later search says it happened.
 | `claims_withdrawn` | `stale_check` | files whose freshness claim this scan took off, so the next ordinary pass reads them again. Zero is the healthy answer |
 | `claims_unreachable` | `stale_check` | the files it could not repair, by path — the one list worth chasing, because those stay broken until someone acts |
 | `folders_recounted` | `cleanup_orphaned_files` | watch records whose `files_indexed` this pass brought back in line with the corpus. Zero means every folder already agreed |
+| `unowned` | `cleanup_orphaned_files` | indexed files that no watched folder takes; removed |
+| `outside_whitelist` | `cleanup_orphaned_files` | indexed files their folder's `file_patterns` no longer take; removed |
+| `moved_to` | `list_folders`, `index_folder`, `force_reindex` | where a watched folder is now, after it was moved |
 
 **No row is ever rewritten in place by either of them.** A file is repaired by being read again on
 a later pass, so the corpus answers from the old content until that pass runs — and on a large
 folder that is minutes, not seconds.
+
+`status: "moved"` from `index_folder` or `force_reindex` means the folder was moved after it was
+registered and nothing was done. Remove the old watch with `remove_folder` on the old path, and
+register the new place with `index_folder` on `moved_to`.

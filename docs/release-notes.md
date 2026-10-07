@@ -9,6 +9,31 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.1007.1
+
+### Cleanup removes files that no folder takes
+
+`cleanup_orphaned_files`, and the cleanup the engine runs by itself every hour, now remove
+indexed files that no watched folder takes and files their folder's `file_patterns` no longer
+take. The answer counts them as `unowned` and `outside_whitelist`.
+
+### A folder that moved is left alone
+
+A watched folder moved after it was registered is no longer indexed: `list_folders` shows
+`moved_to`, and `index_folder` and `force_reindex` answer `status: "moved"`. To go on indexing
+it, run `remove_folder` on the old path and `index_folder` on the new one.
+
+### A call by path acts on the watch recorded under that path
+
+`remove_folder`, `update_folder` and the other calls that take a folder act on the watch
+recorded under the path you give, even when that path is now a symlink. A watch registered
+under the link's target is not touched.
+
+### The engine keeps answering during heavy work
+
+Searches and `health` are answered while a large folder is indexed, cleaned up or removed.
+Cancelling a pass, or removing a watch, stops the walk of its folder at once.
+
 ## 26.930.1
 
 ### `blast_radius` answers on Go
