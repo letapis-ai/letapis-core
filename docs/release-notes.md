@@ -9,6 +9,36 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.1101.1
+
+### `blast_radius` reports declared types as definitions
+
+Ask about a type and `definitions` now lists where it is declared in TypeScript, Rust, C, C++ and
+Swift: `interface`, `type`, `enum` and abstract classes in TypeScript, along with a function
+signature without a body (`declare function`, an overload); `struct`, `enum`, `trait`, `union` and
+`type` in Rust; `struct`, `union`, `enum` and `typedef` in C, and `class` and `using` as well in
+C++; `typealias` in Swift. In C and C++ a `struct`, `union`, `enum` or `class` counts only when it
+has a body. A forward declaration such as `struct Foo;` does not.
+
+### A type named in a signature is a reader
+
+In TypeScript, Rust and Go, a type named in a parameter, a return type, a field or a variable
+declaration arrives in `readers`. Renaming or merging a type touches every one of those places,
+and the answer now lists them. The name in the type's own declaration line, a generic parameter
+and an enum variant are not reported as reads.
+
+### Upper-case calls in C and C++ are callers when the type is declared
+
+C and C++ code spells macros and some types the same way, in UPPER_SNAKE. A call such as
+`LLM_KV(arch)` arrives in `callers` when the lookup also reads, under that name, a C or C++
+function definition or a type declared with a body. Without such a definition in the folders you asked about, the call is
+still treated as a macro and counted under `noise_name`. A constant of the same name, or a
+definition in another language, does not change that.
+
+The `skipped_on_purpose` record for C++ now reads "calls to an upper-case name declared outside
+the scanned folders". The Go record about type names in signatures is gone, because those places
+are now reported.
+
 ## 26.1007.1
 
 ### Cleanup removes files that no folder takes
