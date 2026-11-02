@@ -9,6 +9,42 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.1102.1
+
+### A `#define` constant in C and C++ is a definition
+
+Ask `blast_radius` about a name set by an object-like macro such as `#define WIFI_SLOTS 5` and
+`definitions` lists that directive. A function-like macro such as `#define TWICE(x) ((x) * 2)`
+defines nothing, and its calls are counted under `noise_name`.
+
+### C and C++ report readers
+
+Places that read a name as a value now arrive in `readers`, for any C or C++ name: an expression,
+an array size, an enumerator's value, a preprocessor condition, a field taken off a struct. The name
+being declared, a parameter, a call's function slot and the left side of an assignment are not
+reads, and neither is a type name standing where a type goes.
+
+A read inside another macro's body arrives with that macro's name as `reader_scope`. Given
+`#define STATUS_MAX (WIFI_SLOTS * 2)`, `WIFI_SLOTS` has a reader in `STATUS_MAX`.
+
+An upper-case name read as a value is a reader when the lookup also reads a C or C++ definition of
+it: an object-like `#define`, a function, or a type declared with a body. Without one, as with a
+macro from an SDK outside the folders you asked about, the read is counted under `noise_name`. A
+call `WIFI_SLOTS(x)` of a name defined only by an object-like `#define` is not a caller and also
+stays under `noise_name`.
+
+### New `skipped_on_purpose` records for C and C++
+
+An answer that reaches `.c` files, or `.h` files read as C, now carries four records: calls made
+inside macros, the function a call through a pointer reaches, a macro call the parser takes for a
+declaration, and uses of an upper-case name defined outside the scanned folders.
+
+C++ gains the record about a macro call the parser takes for a declaration. Its record about
+upper-case names now reads "uses of an upper-case name declared outside the scanned folders", and it
+covers reads as well as calls.
+
+No reindex is needed: `blast_radius` reads the files from disk each time it is asked.
+
 ## 26.1101.1
 
 ### `blast_radius` reports declared types as definitions
