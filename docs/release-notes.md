@@ -53,9 +53,9 @@ scope, so one file can hold several records. When the list is cut, the hint says
 
 What a reading leaves out by design is said under the label `READ IN PART`, which replaces
 `NOT LOOKED AT`: one paragraph per extension, or per group of extensions with the same list and
-the same file counts. When the records
-of one extension carry different file counts, each item keeps its own count: the counts are not
-added up, because the records do not say which file got which reading.
+the same file counts. When the records of one extension carry different file counts, each item
+keeps its own count: the counts are not added up, because the records do not say which file got
+which reading.
 
 `extension_contributed` in `skipped_on_purpose` is `true` when any file of that extension put
 something into the answer, readers included. It describes the extension, not each file.
