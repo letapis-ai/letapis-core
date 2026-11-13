@@ -192,6 +192,17 @@ and the refusal carries `known_parsers`. The value can also be a map of extensio
 extension; each cell is checked on its own, and a refusal says which extension it was for. The
 folder's own choice is the `parser` field of its row.
 
+**A name and a map read the folder differently, and `blast_radius` shows it.** A bare name applies
+to every file whose extension its lens covers. A map gives a lens only to the extensions it lists,
+and a file of any other extension is read without one, even when a lens of the same name could read
+it. The `odoo-xml` lens covers `.py`, `.pyi`, `.xml`, `.js`, `.mjs` and `.ts`, so under
+`parser="odoo-xml"` a caller in a Python model is scoped by the model, `sale.order`. Under
+`parser={".xml": "odoo-xml"}` the views are read as Odoo and the Python is not, and the same caller
+is scoped by its class, `SaleOrder`. Neither answer is an error, which is why the difference is
+easy to miss when you compare a copy of a tree with the tree itself. For an Odoo tree, set the bare
+name. Reach for a map when the extensions of one folder need different readings, and then list
+every extension you want read as Odoo, `.py` among them: `{".xml": "odoo-xml", ".py": "odoo-xml"}`.
+
 **A C++ project names `cpp` for the sake of its headers.** `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hh`,
 `.hxx`, `.cu` and `.cuh` are read as C++ in any folder, with a lens or without one. `.h` is not,
 because a header can be plain C just as well as C++, and without the lens it is read as C. On a C++

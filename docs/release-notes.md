@@ -9,6 +9,63 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.1113.1
+
+### `blast_radius` answers on a folder whose `parser` is a map
+
+A folder can set `parser` to a map of extension to name, such as `{".xml": "odoo-xml"}`.
+On such a folder `blast_radius` reads each file with the lens the map gives its extension.
+
+An extension the map does not list is read without a lens, even when a lens of the same name
+covers it. The map and the bare name therefore give different answers on the same tree:
+
+- `parser="odoo-xml"` reads every extension the `odoo-xml` lens covers, Python included, so a
+  caller in a model is scoped by the model's `_name`, for example `sale.order`;
+- `parser={".xml": "odoo-xml"}` reads only `.xml` through that lens. Python is read plainly, and
+  the same caller is scoped by its class name, `SaleOrder`.
+
+For an Odoo tree, set the bare name. Use a map when the extensions of one folder need different
+readings, and then list every extension you want read as Odoo code. The `odoo-xml` lens covers
+`.py`, `.pyi`, `.xml`, `.js`, `.mjs` and `.ts`; on the Python and XML files of a tree,
+`{".xml": "odoo-xml", ".py": "odoo-xml"}` answers the same as `"odoo-xml"`.
+
+### A lens alias opens only the files that lens reads
+
+A framework lens can look for related names besides the one you asked about: under `magento`, a
+lookup for `match` also looks for `beforeMatch`, `afterMatch` and `aroundMatch`. Those names
+open a file only when the folder gives that file the lens and the lens reads its extension. Under
+`parser="magento"`, a `.js` file that mentions `afterMatch` is not a candidate for `match`.
+
+Two things follow:
+
+- an unscoped lookup is refused with `scope_required` less often: files that could never answer no
+  longer count toward the limit on candidate files;
+- `no_extractor` in `narrowed_by` and `with_the_name` in `unread` count only files that write the
+  name you asked about. A file that writes only a related name, such as a `.md` mentioning
+  `afterMatch`, is not counted as carrying `match`.
+
+### The `blast_radius` hint counts files, and says what was read in part in one paragraph
+
+`READ, NOT CALLED` in `hint` gives the number of places and files from the whole of `readers`,
+even when the list in the answer is cut short. A record in `readers` is one file and one enclosing
+scope, so one file can hold several records. When the list is cut, the hint says so as
+"`readers` shows N of M records".
+
+What a reading leaves out by design is said under the label `READ IN PART`, which replaces
+`NOT LOOKED AT`: one paragraph per extension, or per group of extensions with the same list and
+the same file counts. When the records
+of one extension carry different file counts, each item keeps its own count: the counts are not
+added up, because the records do not say which file got which reading.
+
+`extension_contributed` in `skipped_on_purpose` is `true` when any file of that extension put
+something into the answer, readers included. It describes the extension, not each file.
+
+When a name is not found and the answer carries `unparsed`, the hint does not offer "its
+extension has no extractor" as a cause: a reader did run on those files. A count of one
+file is said in the singular.
+
+No reindex is needed: `blast_radius` reads the files from disk each time it is asked.
+
 ## 26.1102.1
 
 ### A `#define` constant in C and C++ is a definition
