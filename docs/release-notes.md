@@ -9,6 +9,60 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.1113.2
+
+### `include_forgotten` brings forgotten documents back into search
+
+`search` with `include_forgotten: true` now returns forgotten documents alongside the rest.
+Before this version the flag did not reach the store, and a forgotten document was missing from
+the answer with it just as without it. Without the flag nothing changes: forgotten documents stay
+out of the answer.
+
+### A forgotten document stays forgotten until it is restored
+
+Forgetting is bound to the path. A forgotten file stays forgotten when it is edited, re-indexed,
+`force_reindex`-ed, or deleted and written back under the same path, which is how sync tools often
+save. Only `restore_document` (or `restore_folder`) brings it back. Before this version the file
+itself stayed forgotten after a re-index while its chunks came back into search, and calling
+`forget_document` again answered `no_match`, so there was no way to hide them short of a restore
+and a second forget.
+
+- `forget_document` on a file that is already forgotten still answers `no_match`, and now that is
+  the whole truth: nothing of it is visible.
+- Moving the file to a new path makes a new document, and it is visible like any other.
+- `remove_folder` removes forgotten files along with the rest.
+
+### Forgetting covers what `deep_index` built from the file
+
+`forget_document` and `forget_folder` now mark the `research_chunk`, `chapter` and `section`
+nodes that `deep_index` built from a file, together with its chunks and with the same reason.
+`restore_document` and `restore_folder` bring all of them back. A `deep_index` run over a
+forgotten file lays its nodes forgotten. Before this version these nodes answered search while
+their file was forgotten.
+
+`chapter` and `section` nodes are also found by hidden folders and by `remove_folder` now: a
+hidden folder keeps them out of other answers, and removing the folder removes them.
+
+### `force_reindex` and `cleanup_orphaned_files` keep forgotten files forgotten
+
+- `force_reindex` keeps the record of a forgotten file instead of deleting it, reads the file
+  again and lays its new chunks forgotten.
+- `cleanup_orphaned_files` drops the chunks of a forgotten file that is gone from disk but keeps
+  its record, so the file is still forgotten if it comes back under that path.
+
+Both answers count these files in the new field `forgotten_kept`, apart from `files_deleted` and
+`files_removed`.
+
+`stale_check` now scans the chunks of forgotten files as well. A forgotten file whose chunks are
+intact reads clean; a live chunk standing beside a forgotten one at the same place is reported.
+
+### What already sits in your index
+
+The fix keeps forgetting from being lost from now on; it does not mark what was lost before.
+Chunks of a forgotten file that came back into search under an earlier version stay visible, and
+so do `deep_index` nodes of files forgotten before this version. For each such file, run
+`restore_document` and then `forget_document` once more with its reason.
+
 ## 26.1113.1
 
 ### `blast_radius` answers on a folder whose `parser` is a map

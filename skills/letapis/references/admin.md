@@ -55,8 +55,8 @@ neither the old state nor the new one:
 | Operation | What it does | Cost of being wrong |
 |---|---|---|
 | `cancel_operation` | stops a running job at its next safe boundary | none — work already done is kept |
-| `cleanup_orphaned_files` | drops records whose files are gone from disk | recoverable by reindexing, slow |
-| `force_reindex` | deletes everything indexed for a folder and rebuilds it | the folder is unsearchable until it finishes, which on a large corpus is not quick |
+| `cleanup_orphaned_files` | drops records whose files are gone from disk. A forgotten file keeps its record, with its chunks dropped, so it is still forgotten if it comes back under that path (`forgotten_kept` counts them) | recoverable by reindexing, slow |
+| `force_reindex` | deletes everything indexed for a folder and rebuilds it. Forgotten files are read again and stay forgotten (`forgotten_kept`) — only a restore brings them back | the folder is unsearchable until it finishes, which on a large corpus is not quick |
 | `remove_folder` | removes a folder's data and stops watching it | the index is gone; the files on disk are untouched |
 
 **Three things about `cleanup_orphaned_files` are worth knowing before you call it.** Narrowing a

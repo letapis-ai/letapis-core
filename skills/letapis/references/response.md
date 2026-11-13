@@ -398,6 +398,7 @@ visible — nothing in a later search says it happened.
 | `folders_recounted` | `cleanup_orphaned_files` | watch records whose `files_indexed` this pass brought back in line with the corpus. Zero means every folder already agreed |
 | `unowned` | `cleanup_orphaned_files` | indexed files that no watched folder takes; removed |
 | `outside_whitelist` | `cleanup_orphaned_files` | indexed files their folder's `file_patterns` no longer take; removed |
+| `forgotten_kept` | `cleanup_orphaned_files`, `force_reindex` | forgotten files whose record was kept rather than deleted, so they stay forgotten: in cleanup, files gone from disk (their chunks are dropped); in `force_reindex`, files read again under their mark. Not counted in `files_removed` / `files_deleted` |
 | `moved_to` | `list_folders`, `index_folder`, `force_reindex` | where a watched folder is now, after it was moved |
 
 **No row is ever rewritten in place by either of them.** A file is repaired by being read again on

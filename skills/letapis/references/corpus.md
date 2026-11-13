@@ -277,8 +277,10 @@ mcp__<engine>__forget_document(path="/path/to/archive/old_plan.md",
                                reason="superseded by the 2026 rewrite; kept for history")
 ```
 
-The file node is marked, and the mark cascades to every chunk of it; search excludes them by
-default. You can still open the file directly, and the audit trail can find it again.
+The file node is marked, and the mark — reason included — cascades to every node indexed from
+that file: its chunks, and the chunks and outline `deep_index` built from it. Search excludes
+them by default; `include_forgotten: true` on `search` brings them back into the answer. You can
+still open the file directly, and the audit trail can find it again.
 
 | Someone says | What it means |
 |---|---|
@@ -294,10 +296,15 @@ trail with the reason and the time.
 **Write the reason for the person who finds it in a year** — same discipline, and the same
 worked examples, as for correcting a memory: [memory](memory.md) § Write the reason.
 
-**Two edge cases worth knowing.** Editing a forgotten file regenerates its chunks: existing ones keep
-the mark, new ones do not, so re-run the call after a substantial edit. And do not forget a
-document you have not read — "looks old" and "is superseded" are different claims, and only one
-of them survives someone asking why the answer disappeared.
+**Forgetting is bound to the path, and only a restore undoes it.** The file stays forgotten when
+it is edited, re-indexed, `force_reindex`-ed, or deleted and written back under the same path —
+which is how sync tools often save — so there is nothing to re-run after any of these. Calling
+`forget_document` again on a forgotten file answers `no_match`, and that is correct: it is
+already forgotten. Two things do end it. Moving the file to a new path makes a new document that
+is visible like any other, and `remove_folder` removes forgotten files along with the rest.
+
+**And do not forget a document you have not read** — "looks old" and "is superseded" are
+different claims, and only one of them survives someone asking why the answer disappeared.
 
 ## Bringing material onto the engine
 
