@@ -41,7 +41,7 @@ The call hands back an `operation_id` and the pass runs in the background.
 get_operation(operation_id="<the id that call returned>")
 ```
 
-Until it answers `status: completed`, the pass is still reading this folder's settings, and the
+Until it answers `done: true`, the pass is still reading this folder's settings, and the
 next call is refused with `pass_running` — a refusal that names the pass and the call that stops
 it. A folder's settings cannot change under a running pass: it reads them from beginning to end.
 

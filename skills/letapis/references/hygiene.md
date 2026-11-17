@@ -23,14 +23,14 @@ steps that someone takes on purpose.
 
 ```python
 op = mcp__<engine>__ena_hygiene_scan()                          # the standard pass
-mcp__<engine>__get_operation(operation_id=op["operation_id"])   # report in detail.result
+mcp__<engine>__get_operation(operation_id=op["operation_id"])   # report in result once done
 
 mcp__<engine>__ena_hygiene_scan(with_graph=True)           # also flags episodes with no causal links; slower
 mcp__<engine>__ena_hygiene_scan(stale_factor=2, cap=100)   # widen or narrow what counts
 ```
 
 **The scan runs in the background and the call does not return the report.** It hands back an
-`operation_id`; the report arrives in `detail.result` once `get_operation` reports completed.
+`operation_id`; the report arrives in `result` once `get_operation` answers `done: true`.
 Reading the first answer as the result shows no findings, which looks exactly like clean memory.
 
 `<engine>` is the server name from your own configuration — see [SKILL.md](../SKILL.md)

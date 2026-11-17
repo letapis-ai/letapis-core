@@ -13,7 +13,7 @@ otherwise turn into guesses.
 | Symptom | What to read | What it tells you |
 |---|---|---|
 | a query returns nothing at all | `list_folders` | whether the material is watched by **this** engine — the most common cause by far. Read `active` too: a switched-off watch looks entirely normal in the list and answers nothing |
-| indexing "finished" but results are thin | `get_operation(operation_id)` | it did not finish. The call returns an id and the work continues; status and phase say where it is |
+| indexing "finished" but results are thin | `get_operation(operation_id)` | it did not finish — the call returns an id and the work continues, `done` and `phase` say where it is — or it ended `partial` or `error`, and `result.error_texts` names what the files failed on |
 | something is clearly indexed but never matches by meaning | `get_embedding_stats` | how much of the corpus actually carries vectors. A gap here is exactly this symptom |
 | a file sits in a watched folder and never appears | `list_folders` → its `ignore_patterns` | far and away the usual cause, and it is deliberate: whole subtrees are commonly excluded. Check this **before** suspecting the engine |
 | specific files never appear and are not ignored | `get_embedding_errors` | which files failed to embed, and why — usually a pattern worth excluding rather than a bug |
