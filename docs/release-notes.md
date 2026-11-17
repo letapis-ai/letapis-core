@@ -9,6 +9,49 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.1117.1
+
+### A licence refusal asks you to remove the licence only when it is damaged
+
+When the licence stops the engine from starting, the message now names the actual cause, and it
+asks you to remove the licence directory only when the files on this machine are damaged or
+fail their signature. These cases each get their own message and leave the licence in place:
+
+- the panel or a second engine is saving a fresh copy of the licence at that moment. Start again
+  in a few seconds.
+- the licence service sent an answer or a licence the engine did not accept. Nothing on the
+  machine was changed; try again shortly.
+- the licence files cannot be read by the user that runs the engine. Fix their owner or
+  permissions and start again.
+
+The full list of messages and what to do about each is in `docs/licence.md`, under "When it
+refuses".
+
+### A start reads the licence again if it is renewed at the same moment
+
+If another process renews the licence while the engine is reading it, the engine reads the new
+copy instead of refusing to start.
+
+### Touching a file without changing it costs nothing
+
+A file whose time changed but whose content did not, such as one re-saved by a sync tool or
+touched, is skipped and only gets its new time recorded. Installing this version re-indexes
+nothing by itself. A file indexed by an earlier version is cut once more the first time it is
+touched after the upgrade, and from then on touching it is free.
+
+### `blast_radius` finds Odoo registrations made through a variable
+
+`registrations` now includes the form where a registry category is first stored in a variable
+and then added to:
+
+```js
+const WIDGETS = registry.category("view_widgets");
+WIDGETS.add("gauge", GaugeWidget);
+```
+
+The edge carries the same key, class, category (in `via`) and line as the chained form
+`registry.category("view_widgets").add("gauge", GaugeWidget)`.
+
 ## 26.1113.2
 
 ### `include_forgotten` brings forgotten documents back into search

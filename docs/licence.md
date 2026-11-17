@@ -94,11 +94,28 @@ The engine answers in sentences, not codes. Each one names a **different next st
 | What you read | What happened | What to do |
 |---|---|---|
 | *this machine has not been logged in yet* | nothing has been handed over — the engine has never been to the service | activate it, above |
-| *the licence service could not be reached* | we went, nobody answered, and the string had already run out | put the machine on the network |
+| *the licence service could not be reached, and there is nothing on this machine to fall back on* | we went, nobody answered, and no licence is stored here yet | put the machine on the network |
 | *this machine has been unable to reach us for too long* | the 7 days ran out while offline | put the machine on the network |
 | *the string this machine holds was not accepted* | the service said no — a copy may have renewed it first | log in again |
-| *the licence was not recognised* | the licence is not in the service's list: revoked, expired or removed — all three look alike | check the key was typed correctly; if it was, ask the owner |
-| *this build does not know where the licence server is* | the engine was built without a login address | the kit is faulty; configuration cannot fix it |
+| *the licence ran out* | the licence has expired | renew it and start again |
+| *the licence was revoked* | the owner's licence was stopped | contact us |
+| *the licence service does not know this licence* | the service has no such licence | contact us |
+| *the licence documents are damaged* | the licence files on this machine cannot be parsed | remove the licence directory and activate again |
+| *the licence documents were not signed by us, or were edited after signing* | the licence files on this machine fail their signature | remove the licence directory and activate again |
+| *the licence is being rewritten at this very moment* | the panel or a second engine is saving a fresh copy right now | start again in a few seconds; nothing needs to be removed |
+| *the licence documents cannot be read by the user running the engine* | the files exist but their owner or permissions keep the engine out | give the licence directory and its files to the user that starts the engine |
+| *the licence service sent a licence this engine did not accept* | the service's answer failed the engine's checks; nothing was written | try again shortly; nothing needs to be removed |
+| *the licence service sent an answer this build cannot use* | the answer was incomplete; nothing was written | try again shortly; contact us if it persists |
+| *the licence service answered with a licence that belongs to someone else* | the service's answer was for another key; nothing was written | contact us |
+| *the licence service could not verify this licence* | the service itself refused to vouch for it | contact us; nothing needs to be removed |
+| *the licence is signed with a key this build does not know* | the engine is older than the licence | update the engine |
+| *this machine's clock disagrees with real time* | the licence looks as if it came from the future | fix the system clock and start again |
+| *our licence service answered, but is unwell* | the fault is on our side | try again shortly |
+| *this build was assembled without a licence server and cannot be used* | the kit was built without a login address | the kit is faulty; configuration cannot fix it |
+
+Only the two rows about damaged or unsigned documents ask you to remove the licence directory.
+Every other refusal leaves a working licence in place, and removing it would only force a new
+login.
 
 ## What the panel's lamp does and does not say
 
