@@ -9,6 +9,35 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.1118.1
+
+### An indexing pass says how it ended
+
+`get_operation` and `list_operations` used to answer `completed` for any pass that ran to its end,
+including one where the embedder refused every file and nothing reached the index. A finished
+pass now ends in one of three states:
+
+- `completed` — no service failed. Files the parser could not take are counted in
+  `result.errored`, with their reasons in `result.error_texts`, and do not change the status.
+- `partial` — the embedder or the store failed on some files; the rest is in the index.
+- `error` — the pass left nothing in the index while something failed. The reason is in
+  `error.message`, and the counts stay in `result` beside it.
+
+`partial` is a new final state. A script or agent that waits for a pass by checking
+`status == "completed"` should wait for `done: true` instead and then read `status`.
+
+### The embedder's own words reach the answer
+
+`result.error_texts` lists the distinct failure messages of the pass, up to five, each with the
+number of files it stopped. A misconfigured model name now shows up as the embedding server's
+reply, for example `Embedding model 'x' is not available … Only '<model>' can be used`, instead
+of the single word `embedding`. The per-file list is still in `get_embedding_errors`.
+
+### Folder progress agrees with the operation
+
+`get_indexing_progress` shows `error` for a folder whose pass left nothing in the index, with
+`error_message` saying how many files failed, instead of `watching`.
+
 ## 26.1117.1
 
 ### A licence refusal asks you to remove the licence only when it is damaged

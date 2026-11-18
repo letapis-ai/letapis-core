@@ -234,10 +234,12 @@ mcp__<engine>__cancel_operation(operation_id=…)                 # stops at the
 **A call that returned is not a job that finished.** Treating the return value as completion is how
 a search gets run against a half-built index and comes back thin — which looks exactly like "there
 is little about this here". `get_operation` carries the final `result` once `done` is true, and
-`status` says how the pass ended: `completed`; `partial` — some files failed, counted in `result`
-with `result.error_texts` naming why; `error` — no file got in, the reason in `error.message` and
-the counts still in `result`. A pass that ended `error` built nothing to search, however quickly
-it finished. `cancel_operation` stops cleanly and keeps whatever was already done.
+`status` says how the pass ended: `completed` — no service failed; files the parser refused are
+counted in `result.errored` with their reasons in `result.error_texts`, and leave the status as it
+is; `partial` — the embedder or the store failed on some files, and the rest is in the index;
+`error` — the pass left nothing in the index while something failed, the reason in `error.message`
+and the counts still in `result`. A pass that ended `error` built nothing to search, however
+quickly it finished. `cancel_operation` stops cleanly and keeps whatever was already done.
 
 ### Paths are the engine's, not yours
 
