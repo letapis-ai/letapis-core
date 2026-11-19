@@ -9,6 +9,38 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.1119.1
+
+### A search says when its semantic half failed
+
+When the embedding service fails on the query vector, or the store fails on the vector search,
+`search` still answers from keyword matching. The answer then says so in `hint`, names which of
+the two failed and quotes the error it gave:
+
+```
+Answered by keyword matching alone: the embedding service failed on the query vector,
+so the semantic arm did not run. Cause: <the service's error>
+```
+
+If the keyword search fails as well, the hint opens with `No search path answered:` and names
+both failures. An empty result under that hint says nothing about the corpus.
+
+Rephrasing the query or changing `min_similarity` does not bring the semantic half back in this
+case. The cause is the service named in the hint.
+
+### The keyword-only hint names the next step for your request
+
+When the semantic half ran and no candidate cleared the similarity floor, the hint says the rows
+come from keyword matching alone and ends with a step that fits the request:
+
+- `min_similarity` in the request is above the engine's `vector_floor`: the value may have cut
+  the semantic half. Send the request without `min_similarity`; if it is still keyword-only,
+  rephrase the question in the words the material itself would use.
+- otherwise nothing in the searched scope, filters included, cleared the floor. Rephrase.
+
+The hint does not suggest a `min_similarity` below `vector_floor`, and the description of the
+`min_similarity` parameter says the same.
+
 ## 26.1118.1
 
 ### An indexing pass says how it ended

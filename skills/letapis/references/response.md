@@ -10,13 +10,27 @@ else in the result.
 When the engine did something to your query that you did not ask for, it says so here. **Nothing
 else in the answer will tell you**, and the results will look entirely normal.
 
-The one that matters most: a query can come back **keyword-only**, with the semantic half filtered
-out entirely, and the hint is the only place that appears.
+The one that matters most: a query can come back **keyword-only**, with the semantic half missing
+entirely, and the hint is the only place that appears. There are two reasons for it, and the hint
+says which one you got.
+
+**Nothing cleared the floor.** The semantic half ran, and no candidate passed the similarity cut:
 
 ```
-hint: Results are BM25-only: no vector candidate cleared min_similarity,
-      so the semantic arm contributed nothing
+hint: Results are BM25-only: no vector candidate cleared the engine's `vector_floor`,
+      so the semantic arm contributed nothing and these rows come from keyword matching alone …
 ```
+
+**The semantic half failed.** The embedding service failed on the query vector, or the store
+failed on the vector search, so the semantic half never ran:
+
+```
+hint: Answered by keyword matching alone: the embedding service failed on the query vector,
+      so the semantic arm did not run. Cause: <the service's error>
+```
+
+When the keyword search failed too, the hint opens with `No search path answered:` and names both
+failures. The empty result under it says nothing about the corpus.
 
 **Why that is worse than an empty answer.** Two searches run on every query: one by meaning, one
 by literal words. When the meaning half returns nothing, the word half answers alone — and on a
@@ -24,11 +38,15 @@ technical query it answers *well*, because the words you typed are the words in 
 result looks like a good semantic answer and is a text match. Everything named differently was
 never considered.
 
-**What to do about it.** The hint names the way back itself, and the contract for that
-parameter is in its schema — read it there rather than from a second account here. What belongs
-on this page is how to read the outcome: expect a genuinely different set of files, not the same
-list with more of it. An arm that contributed nothing does not make the answer shorter, it makes
-it a different answer.
+**What to do about it depends on which one you got.** After the floor, the hint names the next
+step for your request, and the contract for `min_similarity` is in its schema — read it there
+rather than from a second account here. What belongs on this page is how to read the outcome:
+expect a genuinely different set of files, not the same list with more of it. An arm that
+contributed nothing does not make the answer shorter, it makes it a different answer.
+
+After a failure, nothing in the query brings the semantic half back: not rephrasing, not
+`min_similarity`. The cause is the service the hint names. Until it answers again, read every
+result as a text match.
 
 ## An episode in a search result
 
