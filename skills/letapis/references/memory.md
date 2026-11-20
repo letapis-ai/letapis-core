@@ -126,14 +126,20 @@ not neutral: it gets recalled confidently and reads exactly like a true one.
 
 ```python
 mcp__<engine>__ena_correct_fact(
-    old_query = "phrasing that will match the stale episode",
-    new_text  = "the current truth, as a full sentence",
-    reason    = "why — evidence, not 'updated'",
+    episode_id = "episode-…",          # the record to replace — the only thing that selects it
+    new_text   = "the current truth, as a full sentence",
+    reason     = "why — evidence, not 'updated'",
 )
 ```
 
-It soft-deletes the old episode, creates the new one, and links them, so the next session inherits
+It creates the new episode, forgets the old one, and links them, so the next session inherits
 what you learned instead of the claim you had to argue with.
+
+The id comes from `ena_get_context`, from `ena_list_forgotten`, or from a candidates answer.
+Called with `old_query` and no `episode_id`, the tool changes nothing and answers
+`status: "candidates"`: ids, text, projects, date and similarity, closest first. Pick the record
+there and call again with its id. A wrong record can rank above the one you mean, which is why the
+choice stays yours.
 
 ### What should trigger it
 
@@ -150,8 +156,8 @@ what you learned instead of the claim you had to argue with.
 - **Historical facts.** "That work started in March" is fixed in time and stays as written.
 - **Similar but different.** Two episodes about different modules are not in conflict — check what
   each is about before deciding one is wrong.
-- **Weak matches.** A returned similarity below ~0.75 means the tool found something loosely
-  related, not the episode you meant. Review before trusting it.
+- **Weak matches.** A candidate with similarity below ~0.75 is something loosely related, not the
+  episode you meant. Read it before you pass its id.
 
 ### Write the reason for the person who reads it in a year
 
@@ -168,12 +174,17 @@ The test: could they understand **why** without re-investigating?
 
 ### Confirm it landed
 
-After a correction returns `status="corrected"`, re-run the original query. The old episode should
-be gone from the result and the new one should come back first. The call returns both ids if you
-need to reference the change later.
+After a correction returns `status="corrected"`, recall the topic again. The old episode should
+be gone from the result and the new one should come back first. The answer carries `old_id` and
+`new_id` if you need to reference the change later.
 
-`status="no_match"` means nothing crossed the similarity threshold: lower it, or use a more
-generic `old_query` — or accept that the fact simply was not in memory and no correction is needed.
+An unknown id is refused with `not_found`, an id that is already forgotten with
+`already_forgotten`; in both cases nothing is written. A candidates answer with an empty list means
+nothing in memory matched the query: lower `similarity_threshold`, ask in other words, or accept
+that the fact was never recorded and there is nothing to correct.
+
+When the old record has no file of its own, it is forgotten in the store only. The answer then
+carries `carrier_marked: false` and says so, and `ena_restore_fact` cannot bring that record back.
 
 ## Forgetting without replacing
 
@@ -181,24 +192,33 @@ Correction always creates a replacement. When something is no longer relevant an
 **nothing to put in its place**, forget it instead.
 
 ```
-correct_fact:  find old → create new → soft-delete old → link them
-forget_fact:   find old → soft-delete old. Nothing else.
+correct_fact:  name old by id → create new → forget old → link them
+forget_fact:   name old by id → forget it. Nothing else.
+restore_fact:  name a forgotten record by id → its file first, then the store.
 ```
 
 ```python
 mcp__<engine>__ena_forget_fact(
-    query  = "the approach, the module, the purpose",
-    reason = "rolled back entirely — the design changed, there is no replacement",
+    episode_id = "episode-…",
+    reason     = "rolled back entirely — the design changed, there is no replacement",
 )
+mcp__<engine>__ena_restore_fact(episode_id="episode-…")
 ```
 
 Reach for it when an engagement ended, an approach was reverted with nothing taking its place, or
-something was recorded by mistake. A second call on the same episode returns `no_match` rather
-than doing damage, and the original reason is preserved rather than overwritten.
+something was recorded by mistake. A second call on the same episode is refused with
+`already_forgotten`, nothing changes, and the original reason stays as it was.
 
-**Act one at a time.** The call takes a single target and acts immediately; a query that looks
-precise can pull in a valuable neighbour ranked slightly higher. Surface the candidate, get a go,
-then act.
+**A query never retires anything.** Called with `query` and no `episode_id`, `ena_forget_fact`
+forgets nothing and answers with candidates, exactly as `ena_correct_fact` does. Surface the
+candidate, get a go, then call again with its id.
+
+**A record forgotten by mistake comes back** with `ena_restore_fact`: the mark comes off its file
+first, then off the store, so the record stays in recall after a rebuild from files. It refuses,
+with nothing changed, an unknown id (`not_found`), a record that is not forgotten
+(`not_forgotten`), and a record with no file left (`no_carrier`): brought back in the store alone,
+it would be forgotten again by the next rebuild. Forgetting such a record still works, in the store
+only, and the answer then carries `carrier_marked: false` and says that it cannot be restored.
 
 ## The audit trail
 

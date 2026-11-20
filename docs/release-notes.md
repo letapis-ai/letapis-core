@@ -9,6 +9,41 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.1120.1
+
+### A memory record is retired by its id
+
+**This changes existing behaviour.** `ena_forget_fact` and `ena_correct_fact` act only on the
+record named by `episode_id`. A call that passes only `query` (or `old_query` for
+`ena_correct_fact`) no longer forgets or replaces anything. It answers `status: "candidates"`
+with a list of ids, text, projects, date and similarity, closest first. To retire one of them,
+call again with its `episode_id`. A script or agent that forgets or corrects by query alone
+should take the id from the candidates answer, from `ena_get_context` or from
+`ena_list_forgotten`.
+
+```python
+ena_forget_fact(episode_id="episode-…", reason="…")
+ena_correct_fact(episode_id="episode-…", new_text="…", reason="…")
+```
+
+An unknown id is refused with `not_found`, an id that is already forgotten with
+`already_forgotten`, and nothing changes in either case. When the candidates list is empty,
+nothing in memory matched the query.
+
+### A forgotten record comes back with `ena_restore_fact`
+
+`ena_restore_fact(episode_id=…)` brings back a record forgotten by mistake. The mark comes off
+its file first and then off the store, so the record stays in recall after a rebuild from files.
+For a record born from a document, the document is set to `episode_retracted: false` and its
+`episode_retracted_reason` line is kept; the answer says so.
+
+It refuses with nothing changed: `not_found` for an unknown id, `not_forgotten` for a record that
+is not forgotten, and `no_carrier` for a record with no file to restore from.
+
+A record with no file of its own can still be forgotten or corrected, in the store only. The
+answer then carries `carrier_marked: false`, and its `message` says that the record cannot be
+restored.
+
 ## 26.1119.1
 
 ### A search says when its semantic half failed

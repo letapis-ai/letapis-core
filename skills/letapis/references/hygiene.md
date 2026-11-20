@@ -100,11 +100,10 @@ where the audit earns its keep, and it is not automated.
 
 ## Two rules that hold for every audit
 
-**Propose, then act one at a time.** The forget call takes a single target and acts immediately:
-it hides the best match above its threshold for the query it is given. A query that looks precise
-still matches by meaning, so a valuable neighbour can rank slightly above the episode you meant —
-and forgetting a batch by pattern takes such neighbours along with the targets. Surface the list,
-get an explicit go, act singly.
+**Propose, then act one at a time.** The forget call takes one record, named by the `id` the scan
+row carries, and acts immediately. A query never selects what is forgotten: without an id the call
+only answers with candidates. Surface the list, get an explicit go, act singly, and a record
+forgotten by mistake comes back with `ena_restore_fact`.
 
 **Report what was *not* scanned.** Contradictions and duplicates are outside the scan; a report
 that stays quiet about them reads as full coverage and is not.
@@ -113,9 +112,10 @@ that stays quiet about them reads as full coverage and is not.
 
 These are downstream of the audit, and none of them are part of it:
 
-- `mcp__<engine>__ena_forget_fact(query, reason)` — soft-delete one fact. It stays in the audit trail.
-- `mcp__<engine>__ena_correct_fact(old_query, new_text, reason)` — supersede a fact that has
+- `mcp__<engine>__ena_forget_fact(episode_id, reason)` — forget one record. It stays in the audit trail.
+- `mcp__<engine>__ena_correct_fact(episode_id, new_text, reason)` — supersede a fact that has
   changed, keeping the link between the old claim and the new one.
+- `mcp__<engine>__ena_restore_fact(episode_id)` — bring back a record forgotten by mistake.
 - `mcp__<engine>__forget_folder` — soft-delete everything under a folder, for the case where a
   whole retired directory has left a cluster of orphans behind.
 
