@@ -316,7 +316,36 @@ paths:
     enabled: true
     cache_dir: ~/.letapis_cache
     clear_on_start: true  # Clean cache on startup
+
+# Where engine failures are recorded (on by default)
+log:
+  enabled: true
+  file: ~/Library/Logs/letapis-mcp/letapis-mcp.log
 ```
+
+### Failure Log
+
+When letapis-core does not answer, drops the connection, answers with an HTTP error, or
+answers with nothing usable, the agent is told that the engine failed — never that a tool
+does not exist or that a path is stale. When a call that is not safe to repeat (indexing,
+forgetting, any change) loses its answer after the engine took the request, the agent is
+told the outcome is unknown and how to check it, not to call again.
+
+The same failure is appended as one line to the proxy's log file, because the host keeps
+the proxy's stderr only while it connects. A line holds the time, the process, the engine
+address, the entry that failed, the kind of failure, the HTTP code and the exception class —
+never the engine's answer or the call's arguments:
+
+```
+2026-11-23T16:02:11+00:00 pid=27268 engine=http://localhost:3131 entry=call search kind=http code=500
+```
+
+The default file is `~/Library/Logs/letapis-mcp/letapis-mcp.log` on macOS and
+`$XDG_STATE_HOME/letapis-mcp/letapis-mcp.log` (or `~/.local/state/…`) elsewhere. Every
+proxy on the machine appends to the same file. Once the file reaches 1 MiB it is moved to
+`letapis-mcp.log.1` before the next line is written — a rotation threshold, so the file can
+pass it by one line, and a line is at most 400 characters. `log.file` names another place,
+`log.enabled: false` keeps failures on stderr only.
 
 ### Path Handling
 

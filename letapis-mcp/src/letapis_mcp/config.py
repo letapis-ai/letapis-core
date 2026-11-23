@@ -51,11 +51,25 @@ class PathsConfig:
 
 
 @dataclass
+class LogConfig:
+    """Where the proxy records engine failures.
+
+    On unless switched off: the record is needed on the day of an unforeseen failure,
+    and a log that has to be enabled beforehand is absent exactly then.
+    """
+
+    enabled: bool = True
+    file: Path | None = None
+    """None means the platform's place, `journal.default_path()`."""
+
+
+@dataclass
 class Config:
     """Main configuration for letapis MCP."""
 
     server: ServerConfig = field(default_factory=ServerConfig)
     paths: PathsConfig = field(default_factory=PathsConfig)
+    log: LogConfig = field(default_factory=LogConfig)
 
     @classmethod
     def load(cls, config_path: str | None = None) -> Config:
@@ -146,6 +160,12 @@ class Config:
                 config.paths.fetch.clear_on_start = fetch_data.get(
                     "clear_on_start", config.paths.fetch.clear_on_start
                 )
+
+        if "log" in data:
+            log_data = data["log"] or {}
+            config.log.enabled = bool(log_data.get("enabled", config.log.enabled))
+            if log_data.get("file"):
+                config.log.file = Path(os.path.expanduser(log_data["file"]))
 
         return config
 

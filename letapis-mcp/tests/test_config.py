@@ -171,3 +171,21 @@ server:
         config = Config.load()
 
         assert config.server.api_key is None
+
+
+class TestFailureLog:
+    """Where the proxy records engine failures."""
+
+    def test_the_log_is_on_by_default_at_the_platform_place(self) -> None:
+        config = Config()
+        assert config.log.enabled is True
+        assert config.log.file is None
+
+    def test_a_file_named_in_the_config_is_the_log(self) -> None:
+        config = Config._from_dict({"log": {"file": "~/x/proxy.log"}})
+        assert config.log.enabled is True
+        assert config.log.file == Path.home() / "x" / "proxy.log"
+
+    def test_the_log_can_be_switched_off(self) -> None:
+        config = Config._from_dict({"log": {"enabled": False}})
+        assert config.log.enabled is False

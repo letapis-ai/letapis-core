@@ -12,6 +12,8 @@ from typing import Any
 
 import httpx
 
+from letapis_mcp import journal
+from letapis_mcp.answers import EngineUnusable, engine_failure, log_fields, outcome_of
 from letapis_mcp.config import Config
 
 
@@ -139,46 +141,48 @@ class letapisClient:
         Dead names have got into that set before, and only a person reading it found
         them. A check that only a person performs is a check that runs when someone
         remembers.
+
+        Transport and HTTP failures propagate, and so does an answer with no tool list
+        in it: either way the engine failed, and an empty map read afterwards would turn
+        that failure into «this name is not a tool». A well-formed empty list builds an
+        empty map.
         """
-        try:
-            result = await self.get_tools()
-            tools = result.get("tools", [])
-
-            for tool in tools:
-                name = tool.get("name")
-                method = tool.get("method", "POST")
-                endpoint = tool.get("endpoint", "")
-                if name and endpoint:
-                    self._tool_routes[name] = (method, endpoint)
-
-            # Judged only against a map that actually got built: an empty map means the
-            # engine did not answer, and calling every name dead on that basis would
-            # turn one outage into a page of false alarms.
-            self.retry_safe_not_declared = (
-                tuple(sorted(_RETRY_SAFE_TOOLS - set(self._tool_routes)))
-                if self._tool_routes
-                else ()
+        result = await self.get_tools()
+        tools = result.get("tools") if isinstance(result, dict) else None
+        if not isinstance(tools, list):
+            raise EngineUnusable(
+                "not-an-object" if not isinstance(result, dict) else "not-a-tool-list",
+                str(result)[:200],
             )
 
+        for tool in tools:
+            name = tool.get("name")
+            method = tool.get("method", "POST")
+            endpoint = tool.get("endpoint", "")
+            if name and endpoint:
+                self._tool_routes[name] = (method, endpoint)
+
+        # Judged only against a map that actually got built: an empty map means the
+        # engine did not answer, and calling every name dead on that basis would
+        # turn one outage into a page of false alarms.
+        self.retry_safe_not_declared = (
+            tuple(sorted(_RETRY_SAFE_TOOLS - set(self._tool_routes)))
+            if self._tool_routes
+            else ()
+        )
+
+        sys.stderr.write(
+            f"[letapis-mcp] Loaded {len(self._tool_routes)} tool routes\n"
+        )
+        if self.retry_safe_not_declared:
             sys.stderr.write(
-                f"[letapis-mcp] Loaded {len(self._tool_routes)} tool routes\n"
+                "[letapis-mcp] WARNING: named retry-safe but not declared by "
+                f"letapis-core: {', '.join(self.retry_safe_not_declared)}. "
+                "These names answer to nothing — a dead entry there reads as "
+                "«this tool exists and is safe to retry», and neither half is "
+                "true. Remove them from _RETRY_SAFE_TOOLS.\n"
             )
-            if self.retry_safe_not_declared:
-                sys.stderr.write(
-                    "[letapis-mcp] WARNING: named retry-safe but not declared by "
-                    f"letapis-core: {', '.join(self.retry_safe_not_declared)}. "
-                    "These names answer to nothing — a dead entry there reads as "
-                    "«this tool exists and is safe to retry», and neither half is "
-                    "true. Remove them from _RETRY_SAFE_TOOLS.\n"
-                )
-            sys.stderr.flush()
-        except httpx.ConnectError:
-            sys.stderr.write("[letapis-mcp] Error loading tool routes: connection refused\n")
-            sys.stderr.flush()
-            raise
-        except Exception as e:
-            sys.stderr.write(f"[letapis-mcp] Error loading tool routes: {e}\n")
-            sys.stderr.flush()
+        sys.stderr.flush()
 
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Call a tool by name via REST API.
@@ -192,9 +196,20 @@ class letapisClient:
         Returns:
             Tool result
         """
-        # Load routes on first call
+        # Load routes on first call. A failure here is answered here, as a failure of
+        # the tool list: nothing was started, and the name was never looked up.
         if not self._tool_routes:
-            await self._load_routes()
+            try:
+                await self._load_routes()
+                if not self._tool_routes:
+                    raise EngineUnusable("empty-tool-list")
+            except Exception as e:
+                if (outcome := outcome_of(e)) is None:
+                    raise
+                journal.record(self.config.server.url, "tool map", log_fields(outcome))
+                return engine_failure(
+                    outcome, url=self.config.server.url, asked_for="its tool list"
+                )
 
         if name not in self._tool_routes:
             if name in _RETRY_SAFE_TOOLS:
@@ -254,26 +269,20 @@ class letapisClient:
 
                 response.raise_for_status()
                 return response.json()
-            except httpx.HTTPStatusError as e:
+            except (httpx.HTTPStatusError, ValueError) as e:
                 # A live answer from core, not a stale socket — never recreate/retry.
-                if e.response.status_code == 503:
-                    # Expected warmup/not-ready state. letapis-core deps
-                    # raise 503 while services initialize; keep the guidance
-                    # in-band instead of relaying a bare HTTP error the agent
-                    # reads as "this tool is broken".
-                    return {
-                        "status": "unavailable",
-                        "message": (
-                            f"letapis-core reports a service is not ready: {e.response.text}. "
-                            "The server may be warming up — retry in a few seconds."
-                        ),
-                    }
-                return {"error": f"HTTP {e.response.status_code}: {e.response.text}"}
-            except (httpx.ConnectError, httpx.TimeoutException) as e:
+                outcome = outcome_of(e)
+                if outcome is None:
+                    return {"error": str(e)}
+                journal.record(self.config.server.url, f"call {name}", log_fields(outcome))
+                return engine_failure(
+                    outcome, url=self.config.server.url, asked_for=f"'{name}'"
+                )
+            except httpx.TransportError as e:
                 # Stale/dead pool: a half-open keep-alive connection to a restarted
-                # core hangs until timeout, and ConnectError means the connection
-                # dropped. Recreate the pool so this (retry) and every future call
-                # get a fresh connection — the fix for the manual-/mcp-reconnect
+                # core hangs until timeout or is dropped mid-request, and ConnectError
+                # means nothing is listening. Recreate the pool so this (retry) and every
+                # future call get a fresh connection — the fix for the manual-/mcp-reconnect
                 # incident. Recreate is side-effect-free; only the retry is gated.
                 await self._reset_pool()
                 if isinstance(e, httpx.ConnectError):
@@ -281,9 +290,16 @@ class letapisClient:
                     self._tool_routes.clear()
                 if attempt + 1 < attempts:
                     continue
-                # Out of retries (or a non-idempotent tool): let the MCP layer
-                # shape it — long ops may still run server-side, and the pool is
-                # now healthy for the next call.
+                if retry_safe:
+                    # A read retried on a fresh pool and still unanswered: nothing is
+                    # running server-side, so the engine is simply not answering.
+                    outcome = outcome_of(e)
+                    journal.record(self.config.server.url, f"call {name}", log_fields(outcome))
+                    return engine_failure(
+                        outcome, url=self.config.server.url, asked_for=f"'{name}'"
+                    )
+                # A non-idempotent tool: let the MCP layer shape it — long ops may
+                # still run server-side, and the pool is now healthy for the next call.
                 raise
             except Exception as e:
                 return {"error": str(e)}

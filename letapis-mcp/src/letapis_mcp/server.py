@@ -10,12 +10,19 @@ import json
 import sys
 from typing import Any
 
-import httpx
 import mcp.server.stdio
 from mcp import types
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 
+from letapis_mcp import journal
+from letapis_mcp.answers import (
+    EngineUnusable,
+    describe,
+    engine_failure,
+    log_fields,
+    outcome_of,
+)
 from letapis_mcp.client import letapisClient
 from letapis_mcp.config import Config
 from letapis_mcp.paths import PathHandler
@@ -25,6 +32,8 @@ _client: letapisClient | None = None
 _paths: PathHandler | None = None
 _config: Config | None = None
 _tools_cache: list[types.Tool] = []
+_last_failure: str | None = None
+"""Why the engine was last found unusable, for the `letapis_status` answer."""
 
 
 # The key a client reads to keep one tool's description loaded while the rest of the
@@ -98,21 +107,47 @@ def get_paths() -> PathHandler:
 server = Server("letapis")
 
 
+def _url() -> str:
+    return _config.server.url if _config else "unknown"
+
+
 @server.list_tools()
 async def list_tools() -> list[types.Tool]:
     """List available tools, fetched dynamically from letapis-core."""
-    global _tools_cache
+    global _tools_cache, _last_failure
 
     # Return cached tools if available
     if _tools_cache:
         return _tools_cache
 
-    # Fetch from letapis-core
-    try:
-        result = await get_client().get_tools()
-        tools = result.get("tools", [])
+    surface, failure = await tool_surface(get_client(), _url())
+    _last_failure = failure
+    # Degraded surface is NOT cached: a session that starts before
+    # letapis-core is up must recover on the next tools/list request
+    # instead of being stuck with the probe tool forever.
+    if failure is None:
+        _tools_cache = surface
+    return surface
 
-        _tools_cache = [
+
+async def tool_surface(client: Any, url: str) -> tuple[list[types.Tool], str | None]:
+    """The tools to show the agent, and why the engine's list was unusable if it was.
+
+    An empty list from the engine is a failure, not a surface: served and cached, it
+    would show the agent nothing but `fetch_file` until the proxy restarts.
+    """
+    try:
+        result = await client.get_tools()
+        tools = result.get("tools") if isinstance(result, dict) else None
+        if not isinstance(tools, list) or not tools:
+            raise EngineUnusable(
+                "empty-tool-list" if tools == []
+                else "not-an-object" if not isinstance(result, dict)
+                else "not-a-tool-list",
+                "" if tools == [] else str(result)[:200],
+            )
+
+        surface = [
             types.Tool(
                 name=t["name"],
                 description=t.get("description", ""),
@@ -131,7 +166,7 @@ async def list_tools() -> list[types.Tool]:
         ]
 
         # Add local-only tools (handled by letapis-mcp, not letapis-core)
-        _tools_cache.append(FETCH_FILE_TOOL)
+        surface.append(FETCH_FILE_TOOL)
 
         # A pinned name the engine no longer serves is the quiet failure this
         # guards: the proxy keeps working, the caller keeps its window, and the tool
@@ -150,25 +185,24 @@ async def list_tools() -> list[types.Tool]:
         # the pair (list, engine surface) is what decides it, and both move.
         pinned_note = ", ".join(sorted(set(ALWAYS_LOADED) & served)) or "none"
         sys.stderr.write(
-            f"[letapis-mcp] Loaded {len(_tools_cache)} tools ({len(tools)} from letapis-core "
+            f"[letapis-mcp] Loaded {len(surface)} tools ({len(tools)} from letapis-core "
             f"+ 1 local), always-loaded: {pinned_note}\n"
         )
         sys.stderr.flush()
 
-        return _tools_cache
+        return surface, None
     except Exception as e:
-        sys.stderr.write(f"[letapis-mcp] Error fetching tools: {e}\n")
-        sys.stderr.flush()
-        url = _config.server.url if _config else "unknown"
-        # Degraded surface is NOT cached: a session that starts before
-        # letapis-core is up must recover on the next tools/list request
-        # instead of being stuck with the probe tool forever.
+        outcome = outcome_of(e)
+        failure = describe(outcome) if outcome else f"{type(e).__name__}: {e}"
+        journal.record(
+            url, "tools/list", log_fields(outcome) if outcome else f"error={type(e).__name__}"
+        )
         return [
             types.Tool(
                 name="letapis_status",
                 description=(
                     f"letapis-core is UNAVAILABLE at {url}. "
-                    f"Error: {e}. "
+                    f"Error: {failure[:500]}. "
                     "All letapis tools are offline. "
                     "Ask the user to check that letapis-core is running."
                 ),
@@ -184,16 +218,18 @@ async def list_tools() -> list[types.Tool]:
                 _meta=dict(ALWAYS_LOAD_META),
             ),
             FETCH_FILE_TOOL,
-        ]
+        ], failure
 
 
-def _coerce_arguments(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+def _coerce_arguments(
+    name: str, arguments: dict[str, Any], tools: list[types.Tool] | None = None
+) -> dict[str, Any]:
     """Coerce argument types based on tool's inputSchema.
 
     MCP transport may pass integers/numbers as strings.
     This converts them to proper types before sending to REST API.
     """
-    for tool in _tools_cache:
+    for tool in _tools_cache if tools is None else tools:
         if tool.name == name:
             properties = tool.inputSchema.get("properties", {})
             break
@@ -225,59 +261,51 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResul
     # Success-shaped: an expected/recoverable state must not be
     # isError — early isError teaches the agent to abandon letapis entirely.
     if name == "letapis_status":
-        return _to_call_result(_core_unavailable_result())
+        return _to_call_result(_core_unavailable_result(_last_failure or "connection refused"))
 
-    # Special handling for fetch_file (needs local path handling)
     if name == "fetch_file":
-        try:
-            result = await _handle_fetch_file(arguments)
-            return _to_call_result(result)
-        except httpx.ConnectError:
-            _tools_cache.clear()
-            return _to_call_result(_core_unavailable_result())
+        result = await fetch_into_cache(get_client(), get_paths(), _url(), arguments)
+    else:
+        result = await answer_call(get_client(), _url(), name, arguments, _tools_cache)
+    if result.get("status") in ("unavailable", "engine_error"):
+        _tools_cache.clear()
+    return _to_call_result(result)
 
-    arguments = _coerce_arguments(name, arguments)
 
-    # Proxy to letapis-core
+async def answer_call(
+    client: Any, url: str, name: str, arguments: dict[str, Any], tools: list[types.Tool]
+) -> dict[str, Any]:
+    """What the agent hears for calling the engine's tool `name`."""
+    arguments = _coerce_arguments(name, arguments, tools)
     try:
-        result = await get_client().call_tool(name, arguments)
-
+        result = await client.call_tool(name, arguments)
         # Transform search results to add local paths
         if name in ("search", "vector_search_nodes"):
             result = _transform_search_results(result)
-
-        return _to_call_result(result)
-
-    except httpx.ConnectError:
-        _tools_cache.clear()
-        return _to_call_result(_core_unavailable_result())
-    except httpx.TimeoutException as e:
-        return _to_call_result({
-            "status": "timeout",
-            "message": (
-                f"letapis-core did not answer in time for '{name}': {e}. "
-                "Long operations (index_folder, deep_index, force_reindex) may still be "
-                "running server-side — check get_indexing_progress before retrying."
-            ),
-        })
+        return result
     except Exception as e:
-        return _to_call_result({
-            "status": "error",
-            "message": (
-                f"Unexpected proxy error calling letapis-core for '{name}': {e}. "
-                "Retry once; if it persists, report it to the user instead of "
-                "falling back to manual search."
-            ),
-        })
+        outcome = outcome_of(e)
+        if outcome is None:
+            return {
+                "status": "error",
+                "message": (
+                    f"Unexpected proxy error calling letapis-core for '{name}': {e}. "
+                    "Retry once; if it persists, report it to the user instead of "
+                    "falling back to manual search."
+                ),
+            }
+        journal.record(url, f"call {name}", log_fields(outcome))
+        # Only a call the client did not retry raises a transport error, and such a call
+        # may have started work the engine is still doing.
+        return engine_failure(outcome, url=url, asked_for=f"'{name}'", may_still_run=True)
 
 
-def _core_unavailable_result() -> dict[str, Any]:
+def _core_unavailable_result(reason: str = "connection refused") -> dict[str, Any]:
     """Success-shaped guidance for the expected 'letapis-core is down' state."""
-    url = _config.server.url if _config else "unknown"
     return {
         "status": "unavailable",
         "message": (
-            f"letapis-core is not reachable at {url} (connection refused). "
+            f"letapis-core is not reachable at {_url()} ({reason[:500]}). "
             "This is recoverable: ask the user to start letapis-core, then retry "
             "the original call — the tool list refreshes automatically."
         ),
@@ -286,6 +314,13 @@ def _core_unavailable_result() -> dict[str, Any]:
 
 async def _handle_fetch_file(arguments: dict[str, Any]) -> dict[str, Any]:
     """Handle fetch_file tool - fetch from letapis-core and cache locally."""
+    return await fetch_into_cache(get_client(), get_paths(), _url(), arguments)
+
+
+async def fetch_into_cache(
+    client: Any, paths: PathHandler, url: str, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """What the agent hears for `fetch_file`: a local path, or why there is none."""
     path = arguments.get("path", "")
     if not path:
         return {"status": "error", "error": "Path required"}
@@ -294,8 +329,6 @@ async def _handle_fetch_file(arguments: dict[str, Any]) -> dict[str, Any]:
     # saying «reveal these none», and the engine would have to tell that from silence
     # for no reason at all.
     reveal = arguments.get("reveal") or None
-
-    paths = get_paths()
 
     # A MAPPING is answered here, and only a mapping. It says «the engine's /a/b is my
     # /x/y» — this head's own configuration about a tree already on this head's disk,
@@ -331,17 +364,12 @@ async def _handle_fetch_file(arguments: dict[str, Any]) -> dict[str, Any]:
 
     # Fetch from server
     try:
-        content = await get_client().fetch_file(path, reveal=reveal)
-        cache_path = paths.save_to_cache(path, content)
-        return {
-            "status": "success",
-            "local_path": str(cache_path),
-            "size": len(content),
-            "cached": True,
-        }
-    except httpx.ConnectError:
-        raise
+        content = await client.fetch_file(path, reveal=reveal)
     except Exception as e:
+        outcome = outcome_of(e)
+        if outcome is not None and getattr(outcome, "code", None) != 404:
+            journal.record(url, "fetch_file", log_fields(outcome))
+            return engine_failure(outcome, url=url, asked_for=f"the content of {path}")
         # Actionable guidance: the path usually comes from a
         # search result — a miss means it's stale or mistyped, not that the
         # tool is broken. Steer the agent back to search, not to grep.
@@ -355,6 +383,28 @@ async def _handle_fetch_file(arguments: dict[str, Any]) -> dict[str, Any]:
                 "check list_folders that the file is indexed."
             ),
         }
+
+    try:
+        cache_path = paths.save_to_cache(path, content)
+    except OSError as e:
+        journal.record(url, "fetch_file", f"kind=local-cache error={type(e).__name__}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "path": path,
+            "message": (
+                f"letapis-core delivered {path}, but this proxy could not write its local "
+                f"copy: {e}. The path is fine; the proxy's cache directory "
+                f"({paths.config.paths.fetch.cache_dir}) is not writable as needed — tell "
+                "the user."
+            ),
+        }
+    return {
+        "status": "success",
+        "local_path": str(cache_path),
+        "size": len(content),
+        "cached": True,
+    }
 
 
 def _to_call_result(result: dict[str, Any]) -> types.CallToolResult:
@@ -408,7 +458,7 @@ def _transform_search_results(result: dict[str, Any]) -> dict[str, Any]:
 # =============================================================================
 
 
-async def probe_engine(client: Any) -> dict[str, Any]:
+async def probe_engine(client: Any, url: str | None = None) -> dict[str, Any]:
     """`GET /tools` once, for everything the startup needs out of it.
 
     One call, because a second is a second thing that can fail after the first
@@ -417,12 +467,25 @@ async def probe_engine(client: Any) -> dict[str, Any]:
 
     An unreachable engine answers `{}` rather than raising: starting without a
     backend is settled behaviour here (see `_async_main`), and the session must
-    keep its MCP server even when nothing is behind it.
+    keep its MCP server even when nothing is behind it. Given `url`, the failure is
+    written to the proxy's log first, so its cause survives a recovery a moment later.
     """
     try:
-        return await client.get_tools()
-    except Exception:
+        answer = await client.get_tools()
+    except Exception as e:
+        if url is not None:
+            outcome = outcome_of(e)
+            journal.record(
+                url, "startup", log_fields(outcome) if outcome else f"error={type(e).__name__}"
+            )
         return {}
+    # Anything but an object is an engine that answered nothing usable, and reading
+    # it as one killed the proxy before it could serve a single request.
+    if not isinstance(answer, dict):
+        if url is not None:
+            journal.record(url, "startup", "kind=unusable what=not-an-object")
+        return {}
+    return answer
 
 
 def build_initialization_options(instructions: str | None) -> InitializationOptions:
@@ -452,6 +515,10 @@ async def _async_main(config_path: str | None = None) -> None:
 
     _config = Config.load(config_path=config_path)
 
+    journal.open_at(
+        (_config.log.file or journal.default_path()) if _config.log.enabled else None
+    )
+
     _paths = PathHandler(_config)
     _paths.init_cache()
 
@@ -463,7 +530,7 @@ async def _async_main(config_path: str | None = None) -> None:
     # server — list_tools serves the degraded letapis_status surface and
     # recovers automatically once the backend comes up. Exiting here left the
     # session with no letapis server at all, unrecoverable without a restart.
-    probe = await probe_engine(_client)
+    probe = await probe_engine(_client, _config.server.url)
     if probe:
         sys.stderr.write(
             f"[letapis-mcp] Backend OK: {_config.server.url} "

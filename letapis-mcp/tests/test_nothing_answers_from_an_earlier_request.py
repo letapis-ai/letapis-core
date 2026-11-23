@@ -38,6 +38,10 @@ REVIEWED_SERVER_STATE = {
     # copy can be wrong about the ENGINE and never about who may see a folder. Its
     # own staleness is guarded separately (`test_always_loaded_tools`).
     "_tools_cache": "the engine's tool surface, identical for every caller",
+    # Why the engine's tool list was last unusable, quoted by `letapis_status`. Text
+    # about the ENGINE, the same for every caller; no call reads it to decide what to
+    # run or what to return beyond that sentence.
+    "_last_failure": "the engine's last failure, quoted by letapis_status",
 }
 
 #: The same, one layer down. `_tool_routes` maps a tool name to the method and endpoint
