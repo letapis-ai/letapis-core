@@ -18,34 +18,28 @@ from __future__ import annotations
 import pytest
 
 import letapis_mcp.server as srv
+from letapis_mcp.client import ToolList
 
 DESTRUCTIVE_HINTS = {"destructiveHint": True, "readOnlyHint": False, "idempotentHint": False}
 
 #: The engine surface trimmed to what this file needs: two tools that declare the
 #: hint and two that must not carry it.
 ENGINE_TOOLS = [
-    {"name": "force_reindex", "description": "reindex from scratch",
+    {"name": "force_reindex", "endpoint": "/api/v1/force_reindex", "description": "reindex from scratch",
      "inputSchema": {"type": "object"}, "annotations": dict(DESTRUCTIVE_HINTS)},
-    {"name": "remove_folder", "description": "un-index a folder",
+    {"name": "remove_folder", "endpoint": "/api/v1/remove_folder", "description": "un-index a folder",
      "inputSchema": {"type": "object"}, "annotations": dict(DESTRUCTIVE_HINTS)},
-    {"name": "search", "description": "hybrid search", "inputSchema": {"type": "object"}},
-    {"name": "list_folders", "description": "watched folders", "inputSchema": {"type": "object"}},
+    {"name": "search", "endpoint": "/api/v1/search", "description": "hybrid search", "inputSchema": {"type": "object"}},
+    {"name": "list_folders", "endpoint": "/api/v1/list_folders", "description": "watched folders", "inputSchema": {"type": "object"}},
 ]
 
 
 class FakeClientUp:
-    async def get_tools(self):
-        return {"tools": ENGINE_TOOLS}
+    async def tool_list(self):
+        return ToolList.from_answer({"tools": ENGINE_TOOLS})
 
     async def call_tool(self, name, arguments):
         return {"status": "success"}
-
-
-@pytest.fixture(autouse=True)
-def clean_state():
-    srv._tools_cache.clear()
-    yield
-    srv._tools_cache.clear()
 
 
 def wire_annotations(tool) -> dict | None:

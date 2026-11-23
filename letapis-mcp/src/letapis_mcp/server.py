@@ -17,7 +17,6 @@ from mcp.server.models import InitializationOptions
 
 from letapis_mcp import journal
 from letapis_mcp.answers import (
-    EngineUnusable,
     describe,
     engine_failure,
     log_fields,
@@ -31,7 +30,6 @@ from letapis_mcp.paths import PathHandler
 _client: letapisClient | None = None
 _paths: PathHandler | None = None
 _config: Config | None = None
-_tools_cache: list[types.Tool] = []
 _last_failure: str | None = None
 """Why the engine was last found unusable, for the `letapis_status` answer."""
 
@@ -113,39 +111,22 @@ def _url() -> str:
 
 @server.list_tools()
 async def list_tools() -> list[types.Tool]:
-    """List available tools, fetched dynamically from letapis-core."""
-    global _tools_cache, _last_failure
-
-    # Return cached tools if available
-    if _tools_cache:
-        return _tools_cache
-
+    """List available tools, from the same tool list the calls are routed by."""
+    global _last_failure
     surface, failure = await tool_surface(get_client(), _url())
     _last_failure = failure
-    # Degraded surface is NOT cached: a session that starts before
-    # letapis-core is up must recover on the next tools/list request
-    # instead of being stuck with the probe tool forever.
-    if failure is None:
-        _tools_cache = surface
     return surface
 
 
 async def tool_surface(client: Any, url: str) -> tuple[list[types.Tool], str | None]:
     """The tools to show the agent, and why the engine's list was unusable if it was.
 
-    An empty list from the engine is a failure, not a surface: served and cached, it
-    would show the agent nothing but `fetch_file` until the proxy restarts.
+    The client keeps the list and the degraded surface keeps nothing: a session that
+    starts before letapis-core is up recovers on the next tools/list request instead
+    of being stuck with the probe tool.
     """
     try:
-        result = await client.get_tools()
-        tools = result.get("tools") if isinstance(result, dict) else None
-        if not isinstance(tools, list) or not tools:
-            raise EngineUnusable(
-                "empty-tool-list" if tools == []
-                else "not-an-object" if not isinstance(result, dict)
-                else "not-a-tool-list",
-                "" if tools == [] else str(result)[:200],
-            )
+        tools = (await client.tool_list()).tools
 
         surface = [
             types.Tool(
@@ -221,38 +202,6 @@ async def tool_surface(client: Any, url: str) -> tuple[list[types.Tool], str | N
         ], failure
 
 
-def _coerce_arguments(
-    name: str, arguments: dict[str, Any], tools: list[types.Tool] | None = None
-) -> dict[str, Any]:
-    """Coerce argument types based on tool's inputSchema.
-
-    MCP transport may pass integers/numbers as strings.
-    This converts them to proper types before sending to REST API.
-    """
-    for tool in _tools_cache if tools is None else tools:
-        if tool.name == name:
-            properties = tool.inputSchema.get("properties", {})
-            break
-    else:
-        return arguments
-
-    coerced = {}
-    for key, value in arguments.items():
-        if key in properties:
-            prop_type = properties[key].get("type")
-            try:
-                if prop_type == "integer" and isinstance(value, str):
-                    value = int(value)
-                elif prop_type == "number" and isinstance(value, str):
-                    value = float(value)
-                elif prop_type == "boolean" and isinstance(value, str):
-                    value = value.lower() in ("true", "1", "yes")
-            except (ValueError, TypeError):
-                pass
-        coerced[key] = value
-    return coerced
-
-
 @server.call_tool()
 async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResult:
     """Handle tool calls by proxying to letapis-core REST API."""
@@ -266,17 +215,16 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResul
     if name == "fetch_file":
         result = await fetch_into_cache(get_client(), get_paths(), _url(), arguments)
     else:
-        result = await answer_call(get_client(), _url(), name, arguments, _tools_cache)
+        result = await answer_call(get_client(), _url(), name, arguments)
     if result.get("status") in ("unavailable", "engine_error"):
-        _tools_cache.clear()
+        get_client().forget_tool_list()
     return _to_call_result(result)
 
 
 async def answer_call(
-    client: Any, url: str, name: str, arguments: dict[str, Any], tools: list[types.Tool]
+    client: Any, url: str, name: str, arguments: dict[str, Any]
 ) -> dict[str, Any]:
     """What the agent hears for calling the engine's tool `name`."""
-    arguments = _coerce_arguments(name, arguments, tools)
     try:
         result = await client.call_tool(name, arguments)
         # Transform search results to add local paths
@@ -511,7 +459,7 @@ def build_initialization_options(instructions: str | None) -> InitializationOpti
 
 async def _async_main(config_path: str | None = None) -> None:
     """Async initialization and run."""
-    global _client, _paths, _config, _tools_cache
+    global _client, _paths, _config
 
     _config = Config.load(config_path=config_path)
 
@@ -542,9 +490,6 @@ async def _async_main(config_path: str | None = None) -> None:
             "Starting anyway — tools will load when letapis-core comes up.\n"
         )
     sys.stderr.flush()
-
-    # Clear tools cache to force reload
-    _tools_cache = []
 
     try:
         # Run MCP server with stdio transport

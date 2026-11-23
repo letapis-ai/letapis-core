@@ -20,7 +20,7 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
-from letapis_mcp.client import letapisClient
+from letapis_mcp.client import ToolList, letapisClient
 
 
 def _cfg():
@@ -30,10 +30,12 @@ def _cfg():
 
 
 async def _make_client(handler, routes):
-    """Real letapisClient over a MockTransport (test seam) with preloaded routes."""
+    """Real letapisClient over a MockTransport (test seam) with a preloaded tool list."""
     c = letapisClient(_cfg(), transport=httpx.MockTransport(handler))
     await c.start()
-    c._tool_routes = routes
+    c._tool_list = ToolList.from_answer(
+        {"tools": [{"name": n, "method": m, "endpoint": e} for n, (m, e) in routes.items()]}
+    )
     return c
 
 
@@ -94,13 +96,13 @@ async def test_connect_error_recovers_and_clears_routes():
 
     assert result == {"ok": True}
     assert calls["n"] == 2
-    assert c._tool_routes == {}  # ConnectError invalidates the cached routes
+    assert c._tool_list is None  # ConnectError drops the tool list
     await c.stop()
 
 
 @pytest.mark.asyncio
 async def test_connect_error_mutation_not_retried():
-    """T4: ConnectError on a mutation recreates + clears routes but does NOT retry."""
+    """T4: ConnectError on a mutation recreates the pool + drops the tool list but does NOT retry."""
     calls = {"n": 0}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -112,7 +114,7 @@ async def test_connect_error_mutation_not_retried():
         await c.call_tool("remove_folder", {"path": "/x"})
 
     assert calls["n"] == 1  # not retried
-    assert c._tool_routes == {}
+    assert c._tool_list is None
     await c.stop()
 
 

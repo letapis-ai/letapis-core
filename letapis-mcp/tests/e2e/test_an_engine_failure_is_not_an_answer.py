@@ -167,7 +167,8 @@ async def test_a_stale_connection_under_the_tool_map_is_an_engine_failure(tmp_pa
     double = engine(healthy)
     async with proxy(write_config(tmp_path, double.url)) as session:
         double.go_stale()
-        payload = await call(session, "search", {"query": "x"})
+        # A name the list lacks makes the proxy ask for the list again, over the stale pool.
+        payload = await call(session, "no_such_tool", {})
     assert_engine_failure(payload, status={"unavailable", "timeout"})
 
 

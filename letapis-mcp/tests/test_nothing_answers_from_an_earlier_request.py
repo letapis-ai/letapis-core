@@ -33,29 +33,33 @@ REVIEWED_SERVER_STATE = {
     # went with that request, not with the bytes. What it still answers is a MAPPING,
     # which is this head's own configuration about a tree already on its own disk.
     "_paths": "mapping (local tree) + a cache that is no longer a permission",
-    # The engine's tool surface: names, schemas, descriptions. The same for every
-    # caller by construction — the engine does not vary it per request — so a stale
-    # copy can be wrong about the ENGINE and never about who may see a folder. Its
-    # own staleness is guarded separately (`test_always_loaded_tools`).
-    "_tools_cache": "the engine's tool surface, identical for every caller",
     # Why the engine's tool list was last unusable, quoted by `letapis_status`. Text
     # about the ENGINE, the same for every caller; no call reads it to decide what to
     # run or what to return beyond that sentence.
     "_last_failure": "the engine's last failure, quoted by letapis_status",
 }
 
-#: The same, one layer down. `_tool_routes` maps a tool name to the method and endpoint
-#: it is called at — routing, not authorisation — and is dropped whenever the connection
-#: proves stale (`test_connection_resilience`).
+#: The same, one layer down. `_tool_list` is one answer of `GET /api/v1/tools`: the
+#: surface the agent is shown and the method and endpoint each name is called at —
+#: routing, not authorisation. It is dropped whenever the connection proves stale
+#: (`test_connection_resilience`) and reloaded once when a call names a tool it lacks
+#: (`test_one_tool_list_answers_the_agent`).
 REVIEWED_CLIENT_STATE = {
     "config": "settings",
     "_client": "connection pool",
-    "_tool_routes": "name -> (method, endpoint); routing, never permission",
+    "_tool_list": (
+        "the engine's tool surface and name -> (method, endpoint), from one answer; "
+        "the same for every caller of this proxy's key, routing, never permission"
+    ),
     "_transport": "test seam for the pool",
+    "_loading": (
+        "the one load of the tool list in flight, which callers arriving meanwhile "
+        "wait for; it ends as `_tool_list` and is gone, and holds nothing per caller"
+    ),
     "retry_safe_not_declared": (
         "names this proxy calls retry-safe that the engine did not declare. "
         "A finding about the PROXY's own configuration, recomputed every time the "
-        "route map is rebuilt. It gates nothing: no call consults it to decide "
+        "tool list is reloaded. It gates nothing: no call consults it to decide "
         "whether to run, to retry, or what to return, so it cannot make a later "
         "request see anything an earlier one could not. It says a name answers to "
         "nothing — a statement about this proxy, never a permission about a caller."

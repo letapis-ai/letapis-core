@@ -6,8 +6,10 @@ No hardcoded tool→endpoint mappings - everything comes from server.
 
 from __future__ import annotations
 
+import asyncio
 import re
 import sys
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -40,6 +42,73 @@ _RETRY_SAFE_TOOLS = frozenset(
 )
 
 
+@dataclass(frozen=True)
+class ToolList:
+    """One answer of `GET /api/v1/tools`: what the agent is shown and what its calls route by.
+
+    Both come from the same answer because two answers can differ, and then the agent is
+    shown a tool its call cannot reach.
+    """
+
+    tools: tuple[dict[str, Any], ...]
+    """The engine's definitions that can be called, in the engine's order, one per name."""
+    routes: dict[str, tuple[str, str]]
+    """name -> (method, endpoint), for exactly the definitions in `tools`."""
+
+    @classmethod
+    def from_answer(cls, answer: Any) -> ToolList:
+        """The tool list in `answer`, or `EngineUnusable` when there is none to route by.
+
+        A definition without a name or an endpoint cannot be called, so it is not shown
+        either; a name served twice keeps its first definition for both.
+        """
+        tools = answer.get("tools") if isinstance(answer, dict) else None
+        if not isinstance(tools, list) or not tools:
+            raise EngineUnusable(
+                "empty-tool-list" if tools == []
+                else "not-an-object" if not isinstance(answer, dict)
+                else "not-a-tool-list",
+                "" if tools == [] else str(answer)[:200],
+            )
+        kept: dict[str, dict[str, Any]] = {}
+        for t in tools:
+            if isinstance(t, dict) and t.get("name") and t.get("endpoint"):
+                kept.setdefault(t["name"], t)
+        if not kept:
+            raise EngineUnusable("empty-tool-list", "no tool carries a name and an endpoint")
+        routes = {n: (t.get("method", "POST"), t["endpoint"]) for n, t in kept.items()}
+        return cls(tuple(kept.values()), routes)
+
+    def schema(self, name: str) -> dict[str, Any]:
+        for tool in self.tools:
+            if tool.get("name") == name:
+                return tool.get("inputSchema") or {}
+        return {}
+
+
+def _coerce_arguments(schema: dict[str, Any], arguments: dict[str, Any]) -> dict[str, Any]:
+    """Arguments with numbers and booleans that arrived as strings turned into what `schema` declares.
+
+    MCP transport may pass integers/numbers as strings; the REST API wants the type.
+    """
+    properties = schema.get("properties", {})
+    coerced = {}
+    for key, value in arguments.items():
+        if key in properties:
+            prop_type = properties[key].get("type")
+            try:
+                if prop_type == "integer" and isinstance(value, str):
+                    value = int(value)
+                elif prop_type == "number" and isinstance(value, str):
+                    value = float(value)
+                elif prop_type == "boolean" and isinstance(value, str):
+                    value = value.lower() in ("true", "1", "yes")
+            except (ValueError, TypeError):
+                pass
+        coerced[key] = value
+    return coerced
+
+
 class letapisClient:
     """HTTP client for communicating with letapis-core server via REST API.
 
@@ -53,11 +122,13 @@ class letapisClient:
     ) -> None:
         self.config = config
         self._client: httpx.AsyncClient | None = None
-        self._tool_routes: dict[str, tuple[str, str]] = {}  # name -> (method, endpoint)
+        self._tool_list: ToolList | None = None
+        self._loading: asyncio.Future[ToolList] | None = None
+        """The load in flight, which every caller arriving meanwhile waits for."""
         self.retry_safe_not_declared: tuple[str, ...] = ()
         """Names in `_RETRY_SAFE_TOOLS` the engine did not declare, filled by
-        `_load_routes`. Empty is also the answer before any map has been built — see
-        there for why an unbuilt map must not be read as «everything is dead»."""
+        `_load_tool_list`. Empty is also the answer before any list has been loaded — an
+        unloaded list must not be read as «everything is dead»."""
         # Test seam: inject an httpx.MockTransport to simulate stale/dead sockets.
         # None in production → the default transport. Preserved across _reset_pool
         # so a recreated pool keeps the same (mock) transport in tests.
@@ -128,109 +199,111 @@ class letapisClient:
         response.raise_for_status()
         return response.json()
 
-    async def _load_routes(self) -> None:
-        """Load tool routes from server, and check our own lists against them.
+    async def tool_list(self) -> ToolList:
+        """The engine's tool list this proxy works from, loaded on first need.
 
-        The route map is built from `GET /api/v1/tools`, so at this moment every real
-        tool name is in hand — which is the only moment `_RETRY_SAFE_TOOLS` can be
-        judged at all. The proxy cannot import the kernel's registry (another tree) and
-        its own tests stand up no engine, so «compare two lists inside the code» is not
-        available here. Comparing OUR list against WHAT THE ENGINE ANSWERED is, and it
-        costs one set difference on a call that already happened.
-
-        Dead names have got into that set before, and only a person reading it found
-        them. A check that only a person performs is a check that runs when someone
-        remembers.
-
-        Transport and HTTP failures propagate, and so does an answer with no tool list
-        in it: either way the engine failed, and an empty map read afterwards would turn
-        that failure into «this name is not a tool». A well-formed empty list builds an
-        empty map.
+        Transport and HTTP failures propagate, and so does an answer with nothing to
+        route by: either way the engine failed, and nothing is kept, so the next need
+        asks again.
         """
-        result = await self.get_tools()
-        tools = result.get("tools") if isinstance(result, dict) else None
-        if not isinstance(tools, list):
-            raise EngineUnusable(
-                "not-an-object" if not isinstance(result, dict) else "not-a-tool-list",
-                str(result)[:200],
-            )
+        if self._tool_list is not None:
+            return self._tool_list
+        return await self._load_once()
 
-        for tool in tools:
-            name = tool.get("name")
-            method = tool.get("method", "POST")
-            endpoint = tool.get("endpoint", "")
-            if name and endpoint:
-                self._tool_routes[name] = (method, endpoint)
+    async def reload_tool_list(self, stale: ToolList) -> ToolList:
+        """A fresh tool list in place of `stale`, however many callers found it lacking.
 
-        # Judged only against a map that actually got built: an empty map means the
-        # engine did not answer, and calling every name dead on that basis would
-        # turn one outage into a page of false alarms.
-        self.retry_safe_not_declared = (
-            tuple(sorted(_RETRY_SAFE_TOOLS - set(self._tool_routes)))
-            if self._tool_routes
-            else ()
-        )
+        The kept list stays in place while the new one loads, so a caller arriving
+        meanwhile still sees the list it would have missed on, and joins the same load.
+        """
+        if self._loading is None and self._tool_list is not None and self._tool_list is not stale:
+            return self._tool_list
+        return await self._load_once()
+
+    def forget_tool_list(self) -> None:
+        """Drop the tool list; the next need loads a fresh one."""
+        self._tool_list = None
+
+    async def _load_once(self) -> ToolList:
+        """The load in flight, or a new one: callers arriving together share one request."""
+        if self._loading is None:
+            self._loading = asyncio.ensure_future(self._load_and_keep())
+        # Shielded: one caller cancelled must not cancel the load the others wait for.
+        return await asyncio.shield(self._loading)
+
+    async def _load_and_keep(self) -> ToolList:
+        try:
+            self._tool_list = await self._load_tool_list()
+            return self._tool_list
+        finally:
+            self._loading = None
+
+    async def _load_tool_list(self) -> ToolList:
+        """One `GET /api/v1/tools`, and our own retry-safe names checked against it.
+
+        This is the only moment every real tool name is in hand, so the only moment
+        `_RETRY_SAFE_TOOLS` can be judged at all: the proxy cannot import the kernel's
+        registry, and a check that only a person performs runs when someone remembers.
+        """
+        tool_list = ToolList.from_answer(await self.get_tools())
+
+        self.retry_safe_not_declared = tuple(sorted(_RETRY_SAFE_TOOLS - set(tool_list.routes)))
 
         sys.stderr.write(
-            f"[letapis-mcp] Loaded {len(self._tool_routes)} tool routes\n"
+            f"[letapis-mcp] Loaded {len(tool_list.routes)} tool routes\n"
         )
         if self.retry_safe_not_declared:
             sys.stderr.write(
                 "[letapis-mcp] WARNING: named retry-safe but not declared by "
                 f"letapis-core: {', '.join(self.retry_safe_not_declared)}. "
-                "These names answer to nothing — a dead entry there reads as "
-                "«this tool exists and is safe to retry», and neither half is "
-                "true. Remove them from _RETRY_SAFE_TOOLS.\n"
+                "Either this proxy's key does not reach them, or the names are dead — "
+                "a dead entry there reads as «this tool exists and is safe to retry», "
+                "and neither half is true. Then remove them from _RETRY_SAFE_TOOLS.\n"
             )
         sys.stderr.flush()
+        return tool_list
 
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        """Call a tool by name via REST API.
+        """Call the engine's tool `name`, routed by the same tool list the agent is shown.
 
-        Routes to appropriate endpoint based on tool schema from server.
-
-        Args:
-            name: Tool name
-            arguments: Tool arguments
-
-        Returns:
-            Tool result
+        A name missing from that list asks the engine for a fresh one once: an earlier
+        answer may have been incomplete, and the list is otherwise kept until the
+        connection fails.
         """
-        # Load routes on first call. A failure here is answered here, as a failure of
-        # the tool list: nothing was started, and the name was never looked up.
-        if not self._tool_routes:
-            try:
-                await self._load_routes()
-                if not self._tool_routes:
-                    raise EngineUnusable("empty-tool-list")
-            except Exception as e:
-                if (outcome := outcome_of(e)) is None:
-                    raise
-                journal.record(self.config.server.url, "tool map", log_fields(outcome))
-                return engine_failure(
-                    outcome, url=self.config.server.url, asked_for="its tool list"
-                )
+        try:
+            before = self._tool_list
+            tool_list = await self.tool_list()
+            # A list this call waited for is already fresh; only one it found kept is reloaded.
+            if name not in tool_list.routes and tool_list is before:
+                tool_list = await self.reload_tool_list(tool_list)
+        except Exception as e:
+            # Answered as a failure of the tool list: nothing was started, and the name
+            # was never looked up.
+            if (outcome := outcome_of(e)) is None:
+                raise
+            journal.record(self.config.server.url, "tool map", log_fields(outcome))
+            return engine_failure(
+                outcome, url=self.config.server.url, asked_for="its tool list"
+            )
 
-        if name not in self._tool_routes:
+        if name not in tool_list.routes:
             if name in _RETRY_SAFE_TOOLS:
-                # The proxy's own list disagrees with the engine, and this is the one
-                # moment a person is looking straight at it. Said here rather than in
-                # `letapis_status`, which is only ever listed while the engine is
-                # DOWN — a fact that can only be learned from a live tool map cannot
-                # be delivered by a tool that exists only when there is no map.
+                # A name this proxy knows the engine has, missing from a list fetched just
+                # now: the engine does not serve it to this proxy, and a key restricted to
+                # some tools is the one way that happens.
                 return {
-                    "error": f"Unknown tool: {name}",
-                    "stale_proxy_list": "_RETRY_SAFE_TOOLS",
+                    "status": "not_served",
                     "message": (
-                        f"'{name}' is named retry-safe by this proxy but letapis-core "
-                        "does not declare it, so nothing answers to it. This is a "
-                        "stale list in the proxy, not a missing engine feature — "
-                        "remove the name from _RETRY_SAFE_TOOLS."
+                        f"letapis-core at {self.config.server.url} does not list '{name}' "
+                        "among the tools it serves to this proxy, so the call was not made. "
+                        "A key limited to some tools leaves the rest out; ask the user "
+                        "which key this proxy uses and what it allows."
                     ),
                 }
             return {"error": f"Unknown tool: {name}"}
 
-        method, endpoint = self._tool_routes[name]
+        arguments = _coerce_arguments(tool_list.schema(name), arguments)
+        method, endpoint = tool_list.routes[name]
 
         # Handle URL parameters (e.g., /api/v1/research/graphs/{scope_id}).
         # Substituted ONCE here: it pops from `arguments`, so it must not run
@@ -286,8 +359,8 @@ class letapisClient:
                 # incident. Recreate is side-effect-free; only the retry is gated.
                 await self._reset_pool()
                 if isinstance(e, httpx.ConnectError):
-                    # Routes may be stale after a reconnect — force a reload next call.
-                    self._tool_routes.clear()
+                    # The tool list may be stale after a reconnect — reload on next need.
+                    self.forget_tool_list()
                 if attempt + 1 < attempts:
                     continue
                 if retry_safe:

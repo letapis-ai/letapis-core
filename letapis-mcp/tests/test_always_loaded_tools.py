@@ -20,6 +20,7 @@ import httpx
 import pytest
 
 import letapis_mcp.server as srv
+from letapis_mcp.client import ToolList
 
 ALWAYS_LOAD_KEY = "anthropic/alwaysLoad"
 
@@ -28,12 +29,12 @@ ALWAYS_LOAD_KEY = "anthropic/alwaysLoad"
 # nearest neighbour of the pinned memory tool, so a build that pins the `ena_`
 # prefix rather than the named tool fails here.
 ENGINE_TOOLS = [
-    {"name": "search", "description": "hybrid search", "inputSchema": {"type": "object"}},
-    {"name": "blast_radius", "description": "callers of a symbol", "inputSchema": {"type": "object"}},
-    {"name": "list_folders", "description": "watched folders", "inputSchema": {"type": "object"}},
-    {"name": "ena_get_context", "description": "recall", "inputSchema": {"type": "object"}},
-    {"name": "ena_add_episode", "description": "write an episode", "inputSchema": {"type": "object"}},
-    {"name": "forget_document", "description": "hide a doc", "inputSchema": {"type": "object"}},
+    {"name": "search", "endpoint": "/api/v1/search", "description": "hybrid search", "inputSchema": {"type": "object"}},
+    {"name": "blast_radius", "endpoint": "/api/v1/blast_radius", "description": "callers of a symbol", "inputSchema": {"type": "object"}},
+    {"name": "list_folders", "endpoint": "/api/v1/list_folders", "description": "watched folders", "inputSchema": {"type": "object"}},
+    {"name": "ena_get_context", "endpoint": "/api/v1/ena_get_context", "description": "recall", "inputSchema": {"type": "object"}},
+    {"name": "ena_add_episode", "endpoint": "/api/v1/ena_add_episode", "description": "write an episode", "inputSchema": {"type": "object"}},
+    {"name": "forget_document", "endpoint": "/api/v1/forget_document", "description": "hide a doc", "inputSchema": {"type": "object"}},
 ]
 
 
@@ -41,23 +42,16 @@ class FakeClientUp:
     def __init__(self, tools=None):
         self.tools = ENGINE_TOOLS if tools is None else tools
 
-    async def get_tools(self):
-        return {"tools": self.tools}
+    async def tool_list(self):
+        return ToolList.from_answer({"tools": self.tools})
 
     async def call_tool(self, name, arguments):
         return {"status": "success"}
 
 
 class FakeClientDown:
-    async def get_tools(self):
+    async def tool_list(self):
         raise httpx.ConnectError("connection refused")
-
-
-@pytest.fixture(autouse=True)
-def clean_state():
-    srv._tools_cache.clear()
-    yield
-    srv._tools_cache.clear()
 
 
 def wire_meta(tool) -> dict | None:
@@ -159,7 +153,7 @@ async def test_nothing_is_reported_when_every_name_is_served(monkeypatch, capsys
 
 @pytest.mark.asyncio
 async def test_the_mark_survives_the_cache(monkeypatch):
-    """Second call is served from `_tools_cache`; the mark must still be there."""
+    """Second call is served from the client's tool list; the mark must still be there."""
     monkeypatch.setattr(srv, "_client", FakeClientUp())
     await srv.list_tools()
 

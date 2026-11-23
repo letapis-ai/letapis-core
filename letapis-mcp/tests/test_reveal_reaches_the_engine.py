@@ -30,13 +30,6 @@ HIDDEN_COPY = "/w/copy_a"
 REMOTE = "/w/copy_a/notes.md"
 
 
-@pytest.fixture(autouse=True)
-def clean_state():
-    srv._tools_cache.clear()
-    yield
-    srv._tools_cache.clear()
-
-
 # ---------------------------------------------------------------------------
 # 1. the head can send it
 # ---------------------------------------------------------------------------

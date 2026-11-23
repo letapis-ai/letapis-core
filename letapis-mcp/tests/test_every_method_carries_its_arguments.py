@@ -30,7 +30,13 @@ from typing import Any
 
 import pytest
 
-from letapis_mcp.client import letapisClient
+from letapis_mcp.client import ToolList, letapisClient
+
+
+def _routing(method: str, endpoint: str) -> ToolList:
+    return ToolList.from_answer(
+        {"tools": [{"name": "pretend_tool", "method": method, "endpoint": endpoint}]}
+    )
 
 ARGS = {"scope_id": "sc-1", "reason": "obsolete"}
 
@@ -81,13 +87,13 @@ class _RecordingTransport:
 def _client_on(method: str) -> tuple[letapisClient, _RecordingTransport]:
     """A client holding ONE invented tool on the named method.
 
-    The route map is set by hand rather than loaded: the live engine declares no such
+    The tool list is set by hand rather than loaded: the live engine declares no such
     tool, and must not be made to.
     """
     client = letapisClient.__new__(letapisClient)
     transport = _RecordingTransport()
     client._client = transport
-    client._tool_routes = {"pretend_tool": (method, "/api/v1/pretend")}
+    client._tool_list = _routing(method, "/api/v1/pretend")
     return client, transport
 
 
@@ -171,7 +177,7 @@ async def test_a_url_parameter_is_not_sent_twice():
     path and in the body — a different request from the one the caller asked for.
     """
     client, transport = _client_on("DELETE")
-    client._tool_routes = {"pretend_tool": ("DELETE", "/api/v1/graphs/{scope_id}")}
+    client._tool_list = _routing("DELETE", "/api/v1/graphs/{scope_id}")
 
     await client.call_tool("pretend_tool", dict(ARGS))
 

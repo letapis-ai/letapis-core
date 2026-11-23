@@ -196,13 +196,15 @@ def unused_url() -> str:
     return f"http://127.0.0.1:{port}"
 
 
-def write_config(home: Path, url: str, clear_cache: bool = True) -> Path:
+def write_config(
+    home: Path, url: str, clear_cache: bool = True, timeout: float = PROXY_TIMEOUT
+) -> Path:
     cache = home / "cache"
     config = home / "config.yaml"
     config.write_text(
         "server:\n"
         f"  url: {url}\n"
-        f"  timeout: {PROXY_TIMEOUT}\n"
+        f"  timeout: {timeout}\n"
         "paths:\n"
         "  fetch:\n"
         f"    cache_dir: {cache}\n"

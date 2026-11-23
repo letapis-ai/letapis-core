@@ -12,24 +12,28 @@ import httpx
 import pytest
 
 import letapis_mcp.server as srv
+from letapis_mcp.client import ToolList
 
 
 class FakeClientDown:
-    async def get_tools(self):
+    async def tool_list(self):
         raise httpx.ConnectError("connection refused")
 
     async def call_tool(self, name, arguments):
         raise httpx.ConnectError("connection refused")
 
+    def forget_tool_list(self):
+        pass
+
 
 class FakeClientUp:
     def __init__(self):
         self.tools = [
-            {"name": "search", "description": "d", "inputSchema": {"type": "object"}}
+            {"name": "search", "endpoint": "/api/v1/search", "description": "d", "inputSchema": {"type": "object"}}
         ]
 
-    async def get_tools(self):
-        return {"tools": self.tools}
+    async def tool_list(self):
+        return ToolList.from_answer({"tools": self.tools})
 
     async def call_tool(self, name, arguments):
         return {"status": "success"}
@@ -38,13 +42,6 @@ class FakeClientUp:
 class FakeClientTimeout:
     async def call_tool(self, name, arguments):
         raise httpx.ReadTimeout("timed out")
-
-
-@pytest.fixture(autouse=True)
-def clean_state(monkeypatch):
-    srv._tools_cache.clear()
-    yield
-    srv._tools_cache.clear()
 
 
 @pytest.mark.asyncio
@@ -122,7 +119,9 @@ async def test_client_shapes_503_as_unavailable_guidance():
     c._client = httpx.AsyncClient(
         base_url="http://test", transport=httpx.MockTransport(handler)
     )
-    c._tool_routes = {"search": ("POST", "/api/v1/search")}
+    c._tool_list = ToolList.from_answer(
+        {"tools": [{"name": "search", "method": "POST", "endpoint": "/api/v1/search"}]}
+    )
 
     result = await c.call_tool("search", {"query": "x"})
     assert result["status"] == "unavailable"

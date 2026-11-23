@@ -10,12 +10,12 @@ person looking. A check only a person performs runs when someone remembers.
 registry — it is another tree and another package — and these tests stand up no engine.
 That is the wall the first attempt hit.
 
-**What is available instead.** The proxy already asks the engine for every tool name at
-startup, to build `tool -> (method, endpoint)`. At that moment the true set is in hand,
+**What is available instead.** The proxy already asks the engine for every tool name, to
+build `tool -> (method, endpoint)`. At that moment the true set is in hand,
 so the comparison is ours-against-theirs and it costs one set difference on a call that
 was going to happen anyway.
 
-And the map is DATA, so this needs no engine either: hand `get_tools` an answer with the
+And the list is DATA, so this needs no engine either: hand `get_tools` an answer with the
 name missing and see what the proxy says; hand it a complete one and require silence.
 """
 
@@ -26,6 +26,7 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
+from letapis_mcp.answers import EngineUnusable
 from letapis_mcp.client import _RETRY_SAFE_TOOLS, letapisClient
 
 
@@ -52,7 +53,7 @@ def _registry(names: list[str]) -> httpx.MockTransport:
 async def _loaded(names: list[str]) -> letapisClient:
     client = letapisClient(_cfg(), transport=_registry(names))
     await client.start()
-    await client._load_routes()
+    await client.tool_list()
     return client
 
 
@@ -85,34 +86,33 @@ async def test_a_list_that_agrees_with_the_engine_says_nothing(capsys):
 async def test_an_engine_that_answered_nothing_is_not_read_as_every_name_dead(capsys):
     """An outage is one fault, not a page of them.
 
-    With no map built, the difference against an empty set is the whole list — so the
+    With no list loaded, the difference against an empty set is the whole list — so the
     naive check turns «letapis-core is down» into «every tool you named is dead», which
     is false and, worse, indistinguishable from the true report it imitates.
     """
     client = letapisClient(_cfg(), transport=_registry([]))
     await client.start()
-    await client._load_routes()
+    with pytest.raises(EngineUnusable):
+        await client.tool_list()
 
     assert client.retry_safe_not_declared == ()
     assert "WARNING" not in capsys.readouterr().err
 
 
 @pytest.mark.asyncio
-async def test_calling_a_stale_name_says_the_proxy_is_stale_not_the_engine():
-    """The askable half, delivered where a person is already looking.
-
-    Not in `letapis_status`: that tool is only ever listed while the engine is DOWN, and
-    a fact learned from a live tool map cannot be carried by a tool that exists only
-    when there is no map.
-    """
+async def test_a_retry_safe_name_the_engine_does_not_list_is_said_to_be_not_served():
+    """The engine may leave a real tool out of the list it gives this proxy — a key
+    limited to some tools does exactly that — so the answer names the engine and the
+    list, and sends nobody to edit `_RETRY_SAFE_TOOLS`."""
     victim = "search"
     client = await _loaded(sorted(_RETRY_SAFE_TOOLS - {victim}))
 
     answer = await client.call_tool(victim, {})
 
-    assert answer["stale_proxy_list"] == "_RETRY_SAFE_TOOLS"
-    assert victim in answer["message"]
-    assert "proxy" in answer["message"].lower()
+    assert answer["status"] == "not_served"
+    assert victim in answer["message"] and "letapis-core" in answer["message"]
+    assert "stale_proxy_list" not in answer
+    assert "_RETRY_SAFE_TOOLS" not in answer["message"]
 
 
 @pytest.mark.asyncio
