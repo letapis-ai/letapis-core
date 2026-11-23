@@ -43,6 +43,10 @@ makes that decision easy.
 A file is turned away by more than one mechanism, and only the last of them is per-folder: the
 engine's built-in list, the machine's `indexing.exclude_patterns`, a set of binary extensions and
 file names refused before anything is read, and finally the folder's own `ignore_patterns`.
+Patterns use `/` as the separator on every platform. A pattern that does not compile, or one
+with `\` where a separator was meant, is refused by `index_folder` and `update_folder` with
+`invalid_ignore_pattern` before anything is saved; each entry carries the `pattern`, the `reason`
+and, for a backslash, a `suggest` spelling with `/`.
 
 ```python
 mcp__<engine>__list_folders()        # the per-folder layer

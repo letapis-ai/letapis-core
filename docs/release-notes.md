@@ -9,6 +9,61 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.1123.1
+
+### Windows paths are read as Windows paths
+
+On Windows, a folder, a search scope or a file path written as `C:\Users\…\docs` behaves the way
+`/Users/…/docs` does on a Mac. The folder boundary there ignores case and takes either separator,
+so a file under a watched folder is found under it, and a nested folder keeps its files apart
+from its parent's.
+
+A folder you name in `search`, `forget_folder`, `restore_folder` or any other folder command gives
+the same answer whatever case or spelling you use, as long as it is the same place on disk. The
+engine uses the spelling the watch was registered under.
+
+Records indexed by an older engine get their path keys filled in by a background task after the
+first start. The start does not wait for it. To see how many are left, run
+`letapis migrate-schema --dry-run` and read the line
+`path_prefixes: missing …, to write …, written …, no absolute path …`.
+
+### A bad ignore pattern is refused before it is saved
+
+`index_folder` and `update_folder` check `ignore_patterns` before they write anything. A pattern
+that does not compile, or one with `\` where a separator was meant (`tool_output\logs`), is
+refused with `error: "invalid_ignore_pattern"` and nothing is saved. Each entry in
+`invalid_ignore_patterns` has the `pattern` and the `reason`; a backslash entry also has a
+`suggest` spelling with `/`. Real escapes such as `\#` and `\!` are accepted. Patterns use `/`
+as the separator on every platform.
+
+### Indexing progress follows the embedding phase
+
+In `get_indexing_progress`, `processed`, `percentage`, `remaining` and the ETA move while the
+engine embeds chunks that still have no vector, even when `indexed` stays at 0. A pass with
+nothing to index ends at the number of files it looked at, for example `150/150`.
+
+### Embedding resumes after an interrupted run
+
+If the engine stopped in the middle of embedding, it embeds the chunks still missing a vector on
+its next start. The files do not need touching.
+
+A forgotten file is not embedded. When a file is forgotten during a pass, only the batches
+already sent for it finish. When the engine cannot tell whether a file is forgotten, it keeps
+the batch back and the next pass takes it.
+
+### A file saved through a temporary file stays indexed
+
+Many editors save by writing a temporary file and renaming it over the original. Such a file
+stays in the index. On every live event the engine looks at the disk: a file that is there is
+parsed again, a file that is gone is removed. Events for one path are handled one at a time.
+
+### Smaller fixes
+
+- A numeric `tags` or `project` value in a note's frontmatter is read as text, and the episode is
+  created.
+- A folder watched inside another watched folder takes over the chunks its parent had indexed
+  for it.
+
 ## 26.1120.1
 
 ### A memory record is retired by its id
