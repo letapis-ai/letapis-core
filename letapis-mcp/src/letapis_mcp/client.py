@@ -220,6 +220,18 @@ class letapisClient:
             return self._tool_list
         return await self._load_once()
 
+    async def tool_list_now(self) -> ToolList:
+        """The engine's tool list asked of it now, kept in place of the held one.
+
+        A load already in flight is joined rather than doubled: it was asked after the
+        caller arrived. Failures propagate, as from `tool_list`.
+        """
+        return await self._load_once()
+
+    def kept_tool_list(self) -> ToolList | None:
+        """The tool list held now, without asking the engine; `None` when none is held."""
+        return self._tool_list
+
     def forget_tool_list(self) -> None:
         """Drop the tool list; the next need loads a fresh one."""
         self._tool_list = None

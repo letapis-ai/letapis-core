@@ -33,10 +33,10 @@ REVIEWED_SERVER_STATE = {
     # went with that request, not with the bytes. What it still answers is a MAPPING,
     # which is this head's own configuration about a tree already on its own disk.
     "_paths": "mapping (local tree) + a cache that is no longer a permission",
-    # Why the engine's tool list was last unusable, quoted by `letapis_status`. Text
-    # about the ENGINE, the same for every caller; no call reads it to decide what to
-    # run or what to return beyond that sentence.
-    "_last_failure": "the engine's last failure, quoted by letapis_status",
+    # The tool surface the host was last given or told about. The same for every caller
+    # of this proxy's key; a call reads it only to decide whether to tell the host to
+    # list the tools again, never what to run or what to return.
+    "_shown": "the surface the host holds, compared to announce a change",
 }
 
 #: The same, one layer down. `_tool_list` is one answer of `GET /api/v1/tools`: the

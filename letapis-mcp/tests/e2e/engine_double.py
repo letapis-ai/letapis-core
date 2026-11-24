@@ -216,8 +216,11 @@ def write_config(
 
 
 @asynccontextmanager
-async def proxy(config: Path):
-    """The proxy as a host starts it: a process on stdio, initialized, tools listed once."""
+async def proxy(config: Path, on_message: Callable[[Any], Any] | None = None):
+    """The proxy as a host starts it: a process on stdio, initialized, tools listed once.
+
+    `on_message` receives what the proxy sends unasked, notifications among them.
+    """
     params = StdioServerParameters(
         command=sys.executable,
         args=["-m", "letapis_mcp", "--config", str(config)],
@@ -225,7 +228,7 @@ async def proxy(config: Path):
     )
     with open(config.parent / "proxy.stderr", "w") as errlog:
         async with stdio_client(params, errlog=errlog) as (read, write):
-            async with ClientSession(read, write) as session:
+            async with ClientSession(read, write, message_handler=on_message) as session:
                 await session.initialize()
                 await session.list_tools()
                 yield session

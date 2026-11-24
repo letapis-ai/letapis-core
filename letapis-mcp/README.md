@@ -347,6 +347,19 @@ proxy on the machine appends to the same file. Once the file reaches 1 MiB it is
 pass it by one line, and a line is at most 400 characters. `log.file` names another place,
 `log.enabled: false` keeps failures on stderr only.
 
+### Tool List Changes
+
+The proxy declares `tools.listChanged` and sends `notifications/tools/list_changed` when the
+tools it would show the agent differ from the ones it last showed — a name added or gone, a
+changed description, schema, annotations or `_meta`. The host then lists the tools again in
+the same session; no restart is needed. It is sent only after the engine's list was loaded
+successfully: a failure is never announced, so the host keeps the tools it holds, and they
+answer again once the engine does.
+
+A session started while letapis-core is down holds only `letapis_status` and `fetch_file`.
+Calling `letapis_status` asks the engine again: when it answers, its tools are announced and
+listed in that session; when it does not, the answer says why, as of that call.
+
 ### Path Handling
 
 Two different things ask about a path, and they answer differently. Read as one chain,

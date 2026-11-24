@@ -30,8 +30,8 @@ from letapis_mcp.paths import PathHandler
 _client: letapisClient | None = None
 _paths: PathHandler | None = None
 _config: Config | None = None
-_last_failure: str | None = None
-"""Why the engine was last found unusable, for the `letapis_status` answer."""
+_shown: list[types.Tool] | None = None
+"""The tool surface the host was last given or told about; a surface unlike it is announced."""
 
 
 # The key a client reads to keep one tool's description loaded while the rest of the
@@ -112,14 +112,43 @@ def _url() -> str:
 @server.list_tools()
 async def list_tools() -> list[types.Tool]:
     """List available tools, from the same tool list the calls are routed by."""
-    global _last_failure
-    surface, failure = await tool_surface(get_client(), _url())
-    _last_failure = failure
+    global _shown
+    _shown = await tool_surface(get_client(), _url())
+    return _shown
+
+
+def surface_of(tools: tuple[dict[str, Any], ...]) -> list[types.Tool]:
+    """The tools the agent is shown for the engine's definitions `tools`."""
+    surface = [
+        types.Tool(
+            name=t["name"],
+            description=t.get("description", ""),
+            inputSchema=t.get("inputSchema", {"type": "object"}),
+            # Passed through rather than derived here: destructiveness is the
+            # engine's statement about its own tool, and a second opinion in
+            # the proxy is one more place to drift. Absent upstream stays
+            # absent — `None` keeps the field off the wire entirely, so a
+            # client reading the key gets no answer instead of a false one.
+            annotations=t.get("annotations"),
+            # A fresh dict per tool: one shared mapping would let a client or a
+            # later edit mutate every marked tool at once.
+            _meta=dict(ALWAYS_LOAD_META) if t["name"] in ALWAYS_LOADED else None,
+        )
+        for t in tools
+    ]
+    # Local-only tool, handled by letapis-mcp, not letapis-core.
+    surface.append(FETCH_FILE_TOOL)
     return surface
 
 
-async def tool_surface(client: Any, url: str) -> tuple[list[types.Tool], str | None]:
-    """The tools to show the agent, and why the engine's list was unusable if it was.
+def failure_words(error: Exception) -> str:
+    """Why the engine could not be used, in the words the agent is given."""
+    outcome = outcome_of(error)
+    return describe(outcome) if outcome else f"{type(error).__name__}: {error}"
+
+
+async def tool_surface(client: Any, url: str) -> list[types.Tool]:
+    """The tools to show the agent: the engine's, or the outage surface saying why not.
 
     The client keeps the list and the degraded surface keeps nothing: a session that
     starts before letapis-core is up recovers on the next tools/list request instead
@@ -127,27 +156,7 @@ async def tool_surface(client: Any, url: str) -> tuple[list[types.Tool], str | N
     """
     try:
         tools = (await client.tool_list()).tools
-
-        surface = [
-            types.Tool(
-                name=t["name"],
-                description=t.get("description", ""),
-                inputSchema=t.get("inputSchema", {"type": "object"}),
-                # Passed through rather than derived here: destructiveness is the
-                # engine's statement about its own tool, and a second opinion in
-                # the proxy is one more place to drift. Absent upstream stays
-                # absent — `None` keeps the field off the wire entirely, so a
-                # client reading the key gets no answer instead of a false one.
-                annotations=t.get("annotations"),
-                # A fresh dict per tool: one shared mapping would let a client or a
-                # later edit mutate every marked tool at once.
-                _meta=dict(ALWAYS_LOAD_META) if t["name"] in ALWAYS_LOADED else None,
-            )
-            for t in tools
-        ]
-
-        # Add local-only tools (handled by letapis-mcp, not letapis-core)
-        surface.append(FETCH_FILE_TOOL)
+        surface = surface_of(tools)
 
         # A pinned name the engine no longer serves is the quiet failure this
         # guards: the proxy keeps working, the caller keeps its window, and the tool
@@ -171,10 +180,10 @@ async def tool_surface(client: Any, url: str) -> tuple[list[types.Tool], str | N
         )
         sys.stderr.flush()
 
-        return surface, None
+        return surface
     except Exception as e:
         outcome = outcome_of(e)
-        failure = describe(outcome) if outcome else f"{type(e).__name__}: {e}"
+        failure = failure_words(e)
         journal.record(
             url, "tools/list", log_fields(outcome) if outcome else f"error={type(e).__name__}"
         )
@@ -182,10 +191,12 @@ async def tool_surface(client: Any, url: str) -> tuple[list[types.Tool], str | N
             types.Tool(
                 name="letapis_status",
                 description=(
-                    f"letapis-core is UNAVAILABLE at {url}. "
+                    f"letapis-core did not answer at {url} when this tool list was made. "
                     f"Error: {failure[:500]}. "
-                    "All letapis tools are offline. "
-                    "Ask the user to check that letapis-core is running."
+                    "The letapis tools are not listed. "
+                    "Call this tool to check again: once letapis-core answers, its "
+                    "tools are listed in this session. If it still does not answer, "
+                    "ask the user to check that letapis-core is running."
                 ),
                 inputSchema={"type": "object", "properties": {}},
                 # Pinned unconditionally, and not via ALWAYS_LOADED: this tool
@@ -199,7 +210,7 @@ async def tool_surface(client: Any, url: str) -> tuple[list[types.Tool], str | N
                 _meta=dict(ALWAYS_LOAD_META),
             ),
             FETCH_FILE_TOOL,
-        ], failure
+        ]
 
 
 @server.call_tool()
@@ -210,15 +221,51 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResul
     # Success-shaped: an expected/recoverable state must not be
     # isError — early isError teaches the agent to abandon letapis entirely.
     if name == "letapis_status":
-        return _to_call_result(_core_unavailable_result(_last_failure or "connection refused"))
-
-    if name == "fetch_file":
+        result = await engine_status(get_client(), _url())
+    elif name == "fetch_file":
         result = await fetch_into_cache(get_client(), get_paths(), _url(), arguments)
     else:
         result = await answer_call(get_client(), _url(), name, arguments)
     if result.get("status") in ("unavailable", "engine_error"):
         get_client().forget_tool_list()
+    await announce_if_changed()
     return _to_call_result(result)
+
+
+async def announce_if_changed() -> None:
+    """Tell the host to list the tools again when the kept list shows it something new.
+
+    Only a list loaded successfully is compared: on a failure the host would list the
+    outage surface and lose the tools it still holds, which answer again on their own.
+    """
+    global _shown
+    kept = get_client().kept_tool_list()
+    if kept is None or _shown is None:
+        return
+    surface = surface_of(kept.tools)
+    if surface == _shown:
+        return
+    _shown = surface
+    await server.request_context.session.send_tool_list_changed()
+
+
+async def engine_status(client: Any, url: str) -> dict[str, Any]:
+    """What `letapis_status` answers: the engine asked now for its tool list."""
+    try:
+        tool_list = await client.tool_list_now()
+    except Exception as e:
+        outcome = outcome_of(e)
+        journal.record(
+            url, "letapis_status", log_fields(outcome) if outcome else f"error={type(e).__name__}"
+        )
+        return _core_unavailable_result(failure_words(e))
+    return {
+        "status": "success",
+        "message": (
+            f"letapis-core answers at {url} with {len(tool_list.routes)} tools, and they "
+            "are listed in this session now. Call the tool you needed."
+        ),
+    }
 
 
 async def answer_call(
@@ -254,8 +301,8 @@ def _core_unavailable_result(reason: str = "connection refused") -> dict[str, An
         "status": "unavailable",
         "message": (
             f"letapis-core is not reachable at {_url()} ({reason[:500]}). "
-            "This is recoverable: ask the user to start letapis-core, then retry "
-            "the original call — the tool list refreshes automatically."
+            "This is recoverable: ask the user to start letapis-core, then call "
+            "letapis_status — once the engine answers, its tools are listed in this session."
         ),
     }
 
@@ -450,7 +497,7 @@ def build_initialization_options(instructions: str | None) -> InitializationOpti
         server_name="letapis",
         server_version="1.0.0",
         capabilities=server.get_capabilities(
-            notification_options=NotificationOptions(),
+            notification_options=NotificationOptions(tools_changed=True),
             experimental_capabilities={},
         ),
         instructions=instructions,

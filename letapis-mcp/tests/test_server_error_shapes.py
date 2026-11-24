@@ -19,11 +19,17 @@ class FakeClientDown:
     async def tool_list(self):
         raise httpx.ConnectError("connection refused")
 
+    async def tool_list_now(self):
+        raise httpx.ConnectError("connection refused")
+
     async def call_tool(self, name, arguments):
         raise httpx.ConnectError("connection refused")
 
     def forget_tool_list(self):
         pass
+
+    def kept_tool_list(self):
+        return None
 
 
 class FakeClientUp:
@@ -42,6 +48,9 @@ class FakeClientUp:
 class FakeClientTimeout:
     async def call_tool(self, name, arguments):
         raise httpx.ReadTimeout("timed out")
+
+    def kept_tool_list(self):
+        return None
 
 
 @pytest.mark.asyncio
@@ -89,6 +98,9 @@ async def test_generic_exception_is_success_shaped(monkeypatch):
         async def call_tool(self, name, arguments):
             raise ValueError("boom")
 
+        def kept_tool_list(self):
+            return None
+
     monkeypatch.setattr(srv, "_client", FakeBoom())
     result = await srv.call_tool("search", {"query": "x"})
     assert not result.isError
@@ -98,9 +110,11 @@ async def test_generic_exception_is_success_shaped(monkeypatch):
 @pytest.mark.asyncio
 async def test_letapis_status_probe_is_success_shaped(monkeypatch):
     monkeypatch.setattr(srv, "_config", None)
+    monkeypatch.setattr(srv, "_client", FakeClientDown())
     result = await srv.call_tool("letapis_status", {})
     assert not result.isError
     assert "letapis-core" in result.content[0].text
+    assert "connection refused" in result.content[0].text
 
 
 @pytest.mark.asyncio
