@@ -9,6 +9,63 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.1125.1
+
+### Memory finds an episode by its words as well as by its meaning
+
+`ena_get_context` searches episodes by meaning and by words at once, and a cross-encoder orders
+what both found. An episode that carries the exact name or term you asked about comes back even
+when its meaning sits far from the query. The list is ordered by how close each episode is to the
+question. `provenance` and `confidence` still tell you how far to trust a record, but they do not
+move it up or down.
+
+Each episode carries `rerank_score`, the cross-encoder's judgement on a 0–1 scale, and the
+confidence bar is drawn on it. `similarity` is `null` for an episode found by its words alone.
+When the reranker does not answer, the episodes come back in the order the two searches merged
+them, with `memory_barrier: "not_measured"`, and the session's trust is left as it was.
+
+Three keys under `memory.ena` set this step: `rerank_candidates` (default `20`, how many rows the
+cross-encoder scores), `rerank_confident_threshold` (default `0.5`) and
+`rerank_uncertain_threshold` (default `0.1`).
+
+### A refused operation ends with `error`
+
+A background operation whose work was refused ends with `status: "error"` in `get_operation`:
+a removal with nothing to remove, a reindex of a folder nobody watches, a scope another run is
+walking. `error.code` names the refusal in one word, such as `not_found` or `scope_busy`; the
+full list is in the description of `get_operation`.
+
+### A removal and a `deep_index` over the same paths do not run together
+
+`remove_folder` is refused with `deep_index_running` while a `deep_index` runs inside the folder,
+over it, or on the folder itself. `deep_index` is refused with `removal_running` while a removal
+covers its path. Nothing is removed or indexed, and the answer carries the `operation_id` of the
+operation in the way. Call again when it ends.
+
+### A removed folder stays removed
+
+`remove_folder` stops the folder's indexing batches along with its watch, and waits for the files
+those batches are already writing. A file that was being indexed when you removed the folder does
+not bring the folder's records back.
+
+### A pass says why it indexed each file
+
+An indexing pass counts the files it sent to be cut, by reason: `new`, `size_changed`,
+`hash_changed`, `no_embeddings`, `handler_changed`, `handler_version_changed`,
+`changed_while_read`, `read_error`, `stat_error` and `batch_error`. The counts are in
+`result.index_reasons` of the operation, in the indexing progress, and in the folder's full
+record from `list_folders`. A folder you did not touch that keeps coming back with `hash_changed`
+is being rewritten on disk. An empty `index_reasons` means every file was already in the index.
+
+### A file with nothing to index is not read again
+
+An empty file, or one its reader yields nothing from, is skipped on the next pass
+instead of being parsed every time. A file the engine refuses, by its name or by its size, leaves
+the index, and the pass counts it under `skipped` with its reason. Tightening a rule (a smaller
+`max_file_size_mb`, a new skipped extension) therefore takes the matching files out of search at
+the next pass; loosening it brings them back. The engine makes the same decision about a
+file whichever way a pass reaches it.
+
 ## 26.1123.1
 
 ### Windows paths are read as Windows paths
