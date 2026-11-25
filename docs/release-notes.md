@@ -9,6 +9,19 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.1125.2
+
+### A file that fails to parse is not parsed again on every pass
+
+When a reader refuses a file, such as a PDF with a broken structure or a text file that holds
+binary bytes, the engine records the refusal on the file. The next pass skips that file and does
+not parse it again or count it as an error again. It is parsed again when its size or modification
+time changes, or when a new engine version changes how files of that kind are read.
+
+The file stays in `get_embedding_errors` with `reason: "parse_failed"`, so a broken file is still
+visible. If a storage or embedding service fails, the file is not marked this way, and the next
+pass tries it again.
+
 ## 26.1125.1
 
 ### Memory finds an episode by its words as well as by its meaning
