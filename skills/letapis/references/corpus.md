@@ -243,7 +243,20 @@ counted in `result.errored` with their reasons in `result.error_texts`, and leav
 is; `partial` — the embedder or the store failed on some files, and the rest is in the index;
 `error` — the pass left nothing in the index while something failed, the reason in `error.message`
 and the counts still in `result`. A pass that ended `error` built nothing to search, however
-quickly it finished. `cancel_operation` stops cleanly and keeps whatever was already done.
+quickly it finished.
+
+`error` is also how any background operation ends when its work was refused: a removal with
+nothing to remove, a reindex of a folder nobody watches, a scope another run is walking. The
+refusal names itself in `error.code`, one word such as `not_found` or `scope_busy`; the full list
+is in the description of `get_operation`. An operation that failed by exception carries
+`error.message` and no `code`. Either way, `error` means the operation did not do what it was
+asked, so read the code before you read the counts.
+
+**A removal and a `deep_index` over overlapping paths never run together.** The second call is
+refused in its own answer, before any operation starts: `remove_folder` answers
+`deep_index_running`, `deep_index` answers `removal_running`, each with the `operation_id` of the
+one in the way. Nothing is removed or indexed; wait for that operation to end and call again.
+Overlapping means inside the folder, over it, or the folder itself. `cancel_operation` stops cleanly and keeps whatever was already done.
 
 ### Paths are the engine's, not yours
 

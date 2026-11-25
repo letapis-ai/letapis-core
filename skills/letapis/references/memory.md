@@ -110,6 +110,21 @@ floor, it is the barrier that decides, and the answer says `barrier`. `undated_n
 with no readable date — a newest-first order has no position for them, so they are named here
 rather than dropped in silence. Without a query only `by` and `undated_not_placed` appear.
 
+### The recall settings in the engine's configuration
+
+Ordinary recall finds episodes by meaning and by words, and a cross-encoder scores the merged list.
+Three keys under `memory.ena` in the engine's configuration file shape that step:
+
+| Key | Default | What it changes |
+|---|---|---|
+| `rerank_candidates` | `20` | how many rows of the merged list the cross-encoder scores. Each row costs about a tenth of a second; the engine never scores fewer than the `limit` you asked for |
+| `rerank_confident_threshold` | `0.5` | a match scoring at or above it counts as confident |
+| `rerank_uncertain_threshold` | `0.1` | a match scoring below it is rejected; between the two lines it is returned as uncertain, and an answer with no confident match carries `memory_barrier: uncertain` |
+
+These are the operator's settings, not parameters of a call, and the engine reads them at start.
+When the reranker does not answer, none of them applies: the answer comes back in merge order
+with `memory_barrier: not_measured` ([response](response.md), § What a recall carries).
+
 ### Check memory before acting on a plan
 
 A task list says "build X"; memory may say X was reconsidered. Later decisions override earlier

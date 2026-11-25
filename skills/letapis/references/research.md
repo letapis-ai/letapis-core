@@ -46,6 +46,11 @@ A small file is instant, a large PDF takes seconds, a big folder takes minutes. 
 it finishes returns a partial answer that looks like a complete one** — the same trap as with
 ordinary indexing, and the reason the operation is worth collecting rather than assumed.
 
+**Check `status` before you poll.** A call whose path overlaps a folder that `remove_folder` is
+removing right now is refused at once with `status: "error"` and `error: "removal_running"`, and
+nothing is indexed. The `operation_id` in that answer belongs to the removal, not to a deep index:
+polling it tells you when the removal ends, which is when to call `deep_index` again.
+
 ### See its shape before asking about it
 
 ```python

@@ -418,6 +418,15 @@ usually a repair rather than a loss. Read it as an order of magnitude, not as a 
 folder holds on disk, what its patterns admit, and what the engine could parse are three different
 counts, and only the last one is in here.
 
+**`index_reasons` says why the last pass cut what it cut.** It is a count per word of the verdict
+the scan reached about each file: `new`, `size_changed`, `hash_changed`, `no_embeddings`,
+`handler_changed`, `handler_version_changed`, `changed_while_read`, `read_error`, `stat_error`, and
+`batch_error` for a batch the store failed to answer. It sits in the whole record of a folder
+(`list_folders` with `folder`, or `full=true`) and in `result.index_reasons` of an indexing pass in
+`get_operation`. A folder you did not touch that keeps coming back with `hash_changed` is being
+rewritten by something on disk; one that comes back with `no_embeddings` is waiting on the
+embedder; a pass with an empty `index_reasons` cut nothing, because every file was already in.
+
 **`description` and group tags are free text, and free text outlives its meaning.** A folder
 described as one thing and tagged as another will answer confidently from material that is neither.
 When a name and its contents disagree, the contents win — count the files or read a couple of hits

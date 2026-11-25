@@ -57,7 +57,7 @@ neither the old state nor the new one:
 | `cancel_operation` | stops a running job at its next safe boundary | none — work already done is kept |
 | `cleanup_orphaned_files` | drops records whose files are gone from disk. A forgotten file keeps its record, with its chunks dropped, so it is still forgotten if it comes back under that path (`forgotten_kept` counts them) | recoverable by reindexing, slow |
 | `force_reindex` | deletes everything indexed for a folder and rebuilds it. Forgotten files are read again and stay forgotten (`forgotten_kept`) — only a restore brings them back | the folder is unsearchable until it finishes, which on a large corpus is not quick |
-| `remove_folder` | removes a folder's data and stops watching it | the index is gone; the files on disk are untouched |
+| `remove_folder` | removes a folder's data and stops watching it. Refused in its own answer with `deep_index_running`, and nothing removed, while a `deep_index` runs on a path that overlaps the folder; the answer names that operation's id, so remove the folder after it ends | the index is gone; the files on disk are untouched |
 
 **Three things about `cleanup_orphaned_files` are worth knowing before you call it.** Narrowing a
 watch and then running it drops the newly-excluded files from the index — the sweep judges against
