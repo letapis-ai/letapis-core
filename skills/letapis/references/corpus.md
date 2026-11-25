@@ -256,7 +256,9 @@ asked, so read the code before you read the counts.
 refused in its own answer, before any operation starts: `remove_folder` answers
 `deep_index_running`, `deep_index` answers `removal_running`, each with the `operation_id` of the
 one in the way. Nothing is removed or indexed; wait for that operation to end and call again.
-Overlapping means inside the folder, over it, or the folder itself. `cancel_operation` stops cleanly and keeps whatever was already done.
+Overlapping means inside the folder, over it, or the folder itself.
+
+`cancel_operation` stops cleanly and keeps whatever was already done.
 
 ### Paths are the engine's, not yours
 
