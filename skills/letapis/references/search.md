@@ -194,6 +194,7 @@ The rest of the knobs change the shape of the answer rather than its scope:
 | `prev_next_chunks` | 0–5 neighbouring chunks — the cure for an excerpt that stops mid-thought |
 | `depth` | 1–3 hops along the graph, returning the neighbourhood of a match rather than the match alone |
 | `use_reranker` | on by default; `false` gives the raw fused order — see below for when it earns its place |
+| `autocut` | cuts the tail of the answer at the biggest drop in cross-encoder score, so the answer can be shorter than `limit`. Omitted, it follows the engine's configuration; `false` forces the full list — see below |
 | `include_forgotten` | brings back material deliberately retired — the only way to search what was hidden, and exactly what you want when asking what the corpus *used to* say |
 | `verbose` | the full metadata behind each hit |
 
@@ -216,6 +217,18 @@ was nowhere to improve. This is worth knowing *before* you measure: a flat resul
 set says the set had no room, not that the reranker does nothing. Judge it on queries where the
 embedder currently gets the order wrong.
 
+### When the answer is shorter than `limit`
+
+After reranking, the engine looks for the biggest drop in score and cuts the tail behind it, so an
+answer with a clear leader is short and one with several good rows keeps them. It never cuts to
+nothing, and it leaves the set whole when the reranker gave no scores or the biggest drop is small.
+
+**It does not cut on a shaky leader.** When the best score is `0.5` or more and below `0.95`, the
+margin below it cannot tell the rows you need from the tail, so the whole set comes back. With
+`verbose` the answer's `advanced_metrics.autocut` says what happened: `signal` is `rerank` when a
+tail was cut, `none` when nothing was cut, and `unconfirmed` when the leader was too shaky to cut
+on. `unconfirmed` is not a failure: the set is whole, and sorting the tail out is left to you.
+
 ### Deciding which to reach for
 
 The list above is what exists. This is the order that works.
@@ -233,8 +246,9 @@ the area is empty, not that the children were excluded.
 **`types` separates kinds of node** — `file` for indexed content, `memory` for episodes. Use it
 when a query is pulling documents into a memory question or the reverse.
 
-**`limit` defaults to 10, and the default is invisible in the answer.** A result of ten is what
-the parameter did, not what the corpus holds; concluding "there are about ten of these" from a
+**`limit` defaults to the engine's `search.default_limit` (5 unless the configuration sets
+another number), and the default is invisible in the answer.** A result of that size is what the
+parameter did, not what the corpus holds; concluding "there are about five of these" from a
 default-sized result is the most common way to be confidently wrong about volume. When the count
 itself is the question, raise the limit or ask a tool that reports totals.
 

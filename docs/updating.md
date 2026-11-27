@@ -178,19 +178,52 @@ and then one of them stops, unpredictably.
 Neither updates itself, and nothing here updates them for you. Both are files you downloaded; you
 replace one by downloading a newer file over it.
 
-**Qdrant.** Stop its row in the panel, unpack the new archive over
-`~/.local/letapis-qdrant/bin/`, press Start. The index is not in there — it lives in
-`~/.letapis/qdrant/`, separately, and survives the swap. So does the configuration beside the
-binary, which is yours once the panel has written it.
+**Qdrant.** Stop its row in the panel, move the old binary aside, put the new one in as a new
+file, press Start. The index is not in there — it lives in `~/.letapis/qdrant/`, separately, and
+survives the swap. So does the configuration beside the binary, which is yours once the panel has
+written it.
 
 ```bash
 curl -L -o /tmp/qdrant.tar.gz \
   https://github.com/qdrant/qdrant/releases/latest/download/qdrant-aarch64-apple-darwin.tar.gz
-tar -xzf /tmp/qdrant.tar.gz -C ~/.local/letapis-qdrant/bin
+mkdir -p /tmp/qdrant-new && tar -xzf /tmp/qdrant.tar.gz -C /tmp/qdrant-new
+mv ~/.local/letapis-qdrant/bin/qdrant ~/.local/letapis-qdrant/bin/qdrant.old
+mv /tmp/qdrant-new/qdrant ~/.local/letapis-qdrant/bin/qdrant
 ```
+
+**Do not skip minor versions.** Qdrant's own upgrade guide
+(<https://qdrant.tech/documentation/upgrades/>) says to upgrade to the latest patch of each
+intermediate minor version first, and that a single node cannot skip versions either, so that
+every data migration is applied. From 1.17 to 1.20 that is the latest 1.18 patch, then the latest
+1.19 patch, then 1.20. Which patch is the latest of each minor is on the
+[releases page](https://github.com/qdrant/qdrant/releases). The `latest` address above jumps
+straight to the newest; for an intermediate step put that version in the address instead:
+`https://github.com/qdrant/qdrant/releases/download/v<version>/qdrant-aarch64-apple-darwin.tar.gz`.
+Copy `~/.letapis/qdrant/` somewhere else before the first step; the copy is what a failed
+migration is undone from.
+
+**Do not unpack over the old binary.** A binary written on top of an existing file can be killed
+the moment it starts on macOS, with exit code 137 and nothing else to explain it. A new file at
+the same path does not have that problem, and `qdrant.old` is what you put back if the new one
+does not start.
 
 Running it in a container instead? Then it is `docker pull qdrant/qdrant` and a restart of the
 row, and the volume holding the index is untouched by that too.
+
+**Which Qdrant you have is something the engine can tell you.** At start it asks the store for its
+version and writes it to its log with the transport and the port it uses. `/api/v1/health` carries
+the same in the `storage` row of `dependencies`:
+
+```bash
+curl -s 127.0.0.1:3131/api/v1/health
+# … "dependencies": { "storage": { "state": "ok", "note": null, "qdrant_version": "1.20.2",
+#     "qdrant_commit": "…", "transport": "grpc", "port": 6334 }, … }
+```
+
+A Qdrant older than `1.20.0` draws a warning in the log and a sentence in `note`; the engine keeps
+running. `unknown` instead of a version means the store did not answer within a couple of seconds
+of the start: the engine does not guess, and does not hold the start for it. The version it
+treats as the floor is `qdrant.recommended_version` in the engine's configuration.
 
 **The models.** Download the newer weights under the names the cards expect, and restart the two
 rows. Changing an embedder for one that produces vectors of a different width is a different

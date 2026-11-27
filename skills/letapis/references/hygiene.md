@@ -25,7 +25,7 @@ steps that someone takes on purpose.
 op = mcp__<engine>__ena_hygiene_scan()                          # the standard pass
 mcp__<engine>__get_operation(operation_id=op["operation_id"])   # report in result once done
 
-mcp__<engine>__ena_hygiene_scan(with_graph=True)           # also flags episodes with no causal links; slower
+mcp__<engine>__ena_hygiene_scan(with_graph=True)           # also flags `isolated` and `repeated_lesson`; slower
 mcp__<engine>__ena_hygiene_scan(stale_factor=2, cap=100)   # widen or narrow what counts
 ```
 
@@ -75,6 +75,8 @@ need opposite things done to them:
 | `stale` | older than `stale_factor` × its kind's half-life — the multiplier is a parameter of the scan, not a constant | **not** a forget. Old is not wrong; a durable decision stays true for years. Read it and ask whether it still holds |
 | `no_provenance` | the episode does not say where it came from | a labelling gap. Worth backfilling, never worth deleting over |
 | `isolated` | no causal links to anything else | informational, rarely actionable |
+| `unchecked` | the record was written without being compared with memory: its writer passed `verdict: unchecked`, or the reranker or the search did not answer | a gap in the comparison, not in the record. Read it and decide whether it repeats something memory already holds |
+| `repeated_lesson` | a lesson with at least `repeat_threshold` cases (default `3`) recorded against it. Only with `with_graph=True`; the row carries `cases` | the same lesson keeps being learned again, which means whatever it was meant to guard is not holding. The row is about that thing, not about the record |
 
 **Rows about the carrier bring their own remedy with them**, so for those three the table above
 is a summary rather than something to memorise:
@@ -90,7 +92,7 @@ repair         {automatic: …, how: "…"}
 `repair.automatic` is the one to read first: `true` means the engine can mend it and `how` names
 the move, `false` means the decision is yours.
 
-The other flags — `low_signal`, `stale`, `no_provenance`, `isolated` — carry no `repair` field,
+The other flags — `low_signal`, `stale`, `no_provenance`, `unchecked`, `isolated`, `repeated_lesson` — carry no `repair` field,
 because what to do about them is a judgement rather than a move: read the episode and decide.
 
 **Two things the scan cannot do at all,** and it is honest about not doing them: it does not spot

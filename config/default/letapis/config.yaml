@@ -59,7 +59,8 @@ reranker:
 search:
   # A ceiling on results when a request does not ask for a number; the engine's default is 5.
   # The tail is also cut after reranking by the shape of the score curve, so an answer is often
-  # shorter than this. Raise it if your questions have list-shaped answers.
+  # shorter than this; a shaky top score is the exception, and then the whole set comes back.
+  # Raise it if your questions have list-shaped answers.
   default_limit: 3
   rrf_k: 60                     # [default] rank-fusion constant; how sharply top ranks outweigh the tail
   # One similarity floor applies to every query, whatever its length. Candidates from the

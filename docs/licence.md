@@ -52,6 +52,33 @@ letapis license activate lt_...          # hands over the string, exits 0
 cat string.txt | letapis license activate   # same, without the shell history keeping it
 ```
 
+**Logging in with a string from another key moves this machine onto that licence.** The check
+and the write happen under one lock, so a renewal that started earlier cannot write its older
+licence over the one you just brought. A renewal at start or before an update is different: it
+never moves the machine to another key, and a licence for someone else's key is refused there.
+
+**A refused login says why, in a sentence of its own, on stderr, and exits `1`.** After the
+sentence comes a line with the state and a short fingerprint of the string, never the string
+itself. Whatever licence was on disk stays exactly as it was.
+
+| State | What the sentence says | What it asks of you |
+|---|---|---|
+| `token_rejected` | the string was not accepted; a string works once, and a second machine using the same one looks exactly like this | log in again for a fresh string |
+| `token_expired` | the term of the token on this machine ran out | log in again with a fresh string |
+| `expired` | the licence has run out | renew it, then log in again |
+| `revoked` | the licence has been stopped | contact us |
+| `unknown_license` | the service does not know this licence | contact us |
+| `disabled` | the licence is switched off for this machine; nothing was saved | contact us |
+| `signature_invalid` | the licence document handed over is not one of ours; nothing was saved | contact us |
+| `unknown_key_id` | the licence is signed by a key this build does not know; nothing was saved | contact us |
+| `malformed` | the licence document the service answered with is not readable; nothing was saved | contact us |
+| `malformed`, the answer accepted but the disk refused it | the licence could not be saved on this machine | check the licence directory's permissions and free space, then log in again |
+| `server_error` | the service could not be reached, or answered badly; nothing was saved | check the connection and try again |
+| `no_license` | there is no licence on this machine and the service gave none to store; nothing was saved | the sentence names no next step |
+
+A state this list does not name gets one general sentence: logging in did not work, nothing was
+saved, try again, then contact us.
+
 ## Checking that it took
 
 In the engine's data directory there is a `license/` folder with a `current` pointer, and in the

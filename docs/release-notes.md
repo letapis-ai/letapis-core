@@ -9,6 +9,98 @@ versions. A key the engine does not recognise is dropped without a word, so a se
 was renamed simply stops having an effect. Diff your `config.yaml` against the one shipped
 at the top of the kit, beside `run.sh`, and carry over what is new.
 
+## 26.1127.1
+
+**If your Qdrant is older than 1.20, update it to the latest 1.20 patch (1.20.2 at the time of this
+release).** The engine's Qdrant client is now 1.20, and at start the engine warns about a server
+older than 1.20.0. Qdrant 1.20.0 fixes `must_not` conditions being ignored when they equal an
+indexed `must` condition, and datetime filters with microseconds behaving differently with and
+without a payload index ([1.20.0 release notes](https://github.com/qdrant/qdrant/releases/tag/v1.20.0)).
+On the way, go through the latest patch of each minor version, in the order `docs/updating.md`
+describes.
+
+### Memory asks about a lesson before it writes it
+
+`ena_add_episode` takes a new argument, `lesson`: what was learned, in one sentence. The line is
+kept beside the record, recall finds the lesson by it, and it does not show up as an episode of its
+own in newest-first lists, conflict checks or the hygiene scan.
+
+Before writing, the engine compares the line with the lessons memory already holds. If close
+lessons exist and the call carries no `verdict`, **nothing is written**. The answer has
+`status: "decide"`, `code: "similar_lessons"` and the lessons (`id`, `event`, `rerank_score`,
+`source_file`, `lesson`), and you write again with one of four verdicts:
+
+- `repeat:<id>`, the same lesson again; the case is kept as a record linked to that lesson and
+  counted on it;
+- `extend:<id>`, another case of that lesson, in your own words;
+- `new`, a different lesson. Beside close lessons it needs a non-empty `difference`, otherwise it is
+  refused with `code: "difference_required"` and nothing is written; `differs_from` and
+  `difference` are stored in the record;
+- `unchecked`, when you cannot compare. It needs a `reason`.
+
+A recall that matches a case answers with the lesson itself and carries `found_by_case`, as long as
+the lesson passes the same `projects` and date window. A record written without `lesson` is
+written whatever it resembles, and the close records the engine finds come back in `similar`. `checked` in the answer and
+in the record says whether the comparison happened; it is `false` when the reranker or the search
+did not answer, and the record is then written with `check_reason`.
+
+`ena_hygiene_scan` flags records written `unchecked` or with `checked: false` as `unchecked`, and
+with `with_graph=true` it flags a lesson with `repeat_threshold` cases or more (default `3`) as
+`repeated_lesson`.
+
+### A date window and a newest-first recall answer through the reranker
+
+`ena_get_context` with `date_from` / `date_to`, or with `order: "t_valid_desc"` and a query, now
+judges its candidates with the same cross-encoder barrier as an ordinary recall. A record with no
+date still competes with the dated ones on meaning and words, and is admitted only if the barrier
+admits it.
+
+The answer's `order` block now holds `by`, `candidates` and `undated_not_placed`. `similarity_floor`
+and `floor_set_by` are gone, because there is no separate cosine floor any more. The barrier judges
+by the cross-encoder score alone: the keys `memory.ena.confident_threshold` and
+`memory.ena.uncertain_threshold` no longer exist. A configuration that still names them loads, and
+they change nothing. The keys that set the bar are `rerank_confident_threshold` and
+`rerank_uncertain_threshold`.
+
+### Search no longer cuts its tail on a shaky leader
+
+`autocut` cuts the tail of an answer at the biggest drop in cross-encoder score. It now does that
+only when the drop can be trusted. If the best score is `0.5` or more and below `0.95`, the whole set
+comes back, and with `verbose` the answer's `advanced_metrics.autocut.signal` is `unconfirmed`. A
+needed row is no longer lost to a cut made behind an uncertain leader.
+
+### The engine names the Qdrant it runs on
+
+At start the engine asks its store for the version and writes it to its log with the transport and
+the port. `/api/v1/health` carries the same in `dependencies.storage`: `qdrant_version`,
+`qdrant_commit`, `transport` and `port`. A Qdrant older than `qdrant.recommended_version` (default
+`1.20.0`) draws a warning at start and a `note` in that row; the engine keeps running. A store that
+does not answer within about two and a half seconds is reported as `unknown`, and the start does
+not wait longer for it.
+
+The engine's Qdrant client is now 1.20.
+
+### A large write goes in parts
+
+A write to Qdrant that would exceed the server's request limit is cut into parts under it, for
+nodes, vectors and edges alike. The limit is `qdrant.max_request_bytes` (default 32 MB, the
+server's `service.max_request_size_mb`). A part that is refused is named by its number and size, in
+the result of the pass and in the log.
+
+A research file that was only partly written no longer looks finished. Its content hash is set last,
+and a resumed run compares the number of chunks and their chain with what the file should have; if
+they disagree, the file is cut again.
+
+### Logging in with another key replaces the licence
+
+`letapis license activate` with a string issued for another key now puts that licence in place of
+the one on the machine. The check and the write happen together under one lock, so a renewal that
+began earlier cannot write an older licence over it. A renewal at start or before an update still
+never moves the machine to another key.
+
+Every refused login has its own sentence on stderr, a line with the state and a fingerprint of the
+string, and exit code `1`. What was on disk is left as it was. The table is in `docs/licence.md`.
+
 ## 26.1125.2
 
 ### A file that fails to parse is not parsed again on every pass

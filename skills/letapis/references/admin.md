@@ -32,7 +32,7 @@ completion will search a half-built index and conclude the material is not there
 Episodes have their own failure modes, and they do not look like search failures.
 
 **An empty recall is walked cause by cause in [memory](memory.md) § When recall comes back empty** —
-five of them, ordered by likelihood. That list is not repeated here. What belongs on this page is
+six of them, ordered by likelihood. That list is not repeated here. What belongs on this page is
 the repair side of it:
 
 | Symptom | What to do | Why |

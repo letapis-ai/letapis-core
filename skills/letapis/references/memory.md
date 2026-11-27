@@ -78,37 +78,37 @@ mcp__<engine>__ena_get_context(order="t_valid_desc", projects=["my-project"], li
 mcp__<engine>__ena_get_context(query="the release pipeline", order="t_valid_desc", limit=3)
 ```
 
-Without a query the answer is simply the newest records the filters admit. With one, it is the
-newest among the records at or above the memory's confident threshold — the line recall already
-draws between a confident match and a doubtful one — and every record above it is weighed, not
-only the nearest few. An explicit `min_similarity` replaces that floor.
-`projects` and `date_from`/`date_to` narrow either way, and `limit` applies after ordering. The
-default, `order="similarity"`, is unchanged.
+Without a query the answer is simply the newest records the filters admit. With one, the
+candidates are the ones ordinary recall would rank, judged by the same cross-encoder barrier, and
+the answer is those the barrier admits, newest first — every candidate is weighed, not only the
+nearest few. `min_similarity` sets the floor of the meaning half of the search; the barrier still
+decides what is admitted. `projects` and `date_from`/`date_to` narrow either way, and `limit`
+applies after ordering. The default, `order="similarity"`, is unchanged.
 
-**A broad query clears the floor for a large share of memory,** and then the answer is little
-more than the newest records overall. For a topic, use the words that set it apart from its
-neighbours, or raise `min_similarity`.
+**A broad query admits a large share of memory,** and then the answer is little more than the
+newest records overall. For a topic, use the words that set it apart from its neighbours, or
+raise `min_similarity`.
 
 **For what a project did last, name it in `projects`, not in the query.** By meaning, one
 project's summary barely differs from another's, so the newest match for such a query is easily
 someone else's. The projects axis draws that line exactly; a query is for a topic that meaning can
 tell apart.
 
-The answer says which floor made a match:
+The answer says what the order did:
 
 ```
 order.by                  t_valid_desc
-order.similarity_floor    0.5
-order.floor_set_by        confident_threshold
 order.candidates          412
 order.undated_not_placed  0
 ```
 
-`floor_set_by` names where the floor came from: `confident_threshold` from the memory
-configuration by default, `min_similarity` when you passed one. Passed below the barrier's own
-floor, it is the barrier that decides, and the answer says `barrier`. `undated_not_placed` counts records
+`candidates` is how many records the barrier judged. `undated_not_placed` counts admitted records
 with no readable date — a newest-first order has no position for them, so they are named here
 rather than dropped in silence. Without a query only `by` and `undated_not_placed` appear.
+
+**A date window and a newest-first order answer through the same barrier as ordinary recall.** A
+record with no date still competes with the dated ones on meaning and words, and is admitted only
+if the cross-encoder admits it.
 
 ### The recall settings in the engine's configuration
 
@@ -288,6 +288,45 @@ time. The engine keeps the stronger of the two instead. The ranking is `user_con
 0.5, 0.3. Raising still happens, because a file may genuinely carry a stronger claim than the
 stored episode does. What you read on an episode is therefore the best-grounded claim anyone has
 made about it, not the most recent one.
+
+### The door compares before it writes
+
+Before an episode is written, memory is searched the way recall searches it, and the records it
+holds that are near-certainly close come back in the answer under `similar` (`id`, `event`,
+`rerank_score`, `source_file`). A record without a `lesson` is written whatever `similar` holds;
+it is there so you can say whether yours is another case of one of them.
+
+**Give the lesson as its own line.** `lesson` takes what was learned, in one sentence. It is kept
+beside the record as a short record of its own (the answer names it in `lesson_line`), recall finds
+the lesson by it, and it is not listed as an episode in newest-first lists, conflict checks or the
+hygiene scan. The door compares that line with the lesson lines memory already holds, and here it
+**stops**: if close lessons are found and no `verdict` was given, **nothing is written**. The answer
+is
+
+```
+status    decide
+code      similar_lessons
+lessons   [{id, event, rerank_score, source_file, lesson}, …]
+```
+
+Memory cannot tell the same lesson from the same subject, so you decide and write again with one of
+four verdicts:
+
+| `verdict` | Say it when | What is written |
+|---|---|---|
+| `repeat:<id>` | it is the same lesson again | a case linked to that lesson, counted on it |
+| `extend:<id>` | it is another case of that lesson | the same, with your own words kept as the case, so recall finds the lesson by them |
+| `new` | it is a different lesson | the record, with `differs_from` and `difference` stored in it. Beside close lessons, an empty `difference` is refused with `code: difference_required`, and nothing is written |
+| `unchecked` | you cannot compare | the record, with `reason` (required) stored in it |
+
+An unknown verdict is refused, and so is `repeat` or `extend` naming an id that is not a live
+episode; nothing is written either time. A recall that matches a case answers with the lesson
+itself, carrying `found_by_case`, when the lesson passes the same `projects` and date window.
+
+**`checked` says whether the comparison happened.** It is in the answer and in the record, and it
+is `false` when the reranker or the search did not answer; the record is then written anyway, with
+`check_reason`. A hygiene scan counts the records written `unchecked` or with `checked: false`, and
+with `with_graph=True` it flags a lesson that has collected many cases ([hygiene](hygiene.md)).
 
 Then, before you trust it as new, check whether it already exists:
 

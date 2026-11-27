@@ -314,6 +314,10 @@ leaves the screen by itself a few minutes after it appears; copy it while it is 
 curl -s 127.0.0.1:3131/api/v1/health
 ```
 
+The answer names the Qdrant the engine runs on (`dependencies.storage`: version, transport, port).
+A Qdrant older than 1.20.0 carries a note there; [updating.md](docs/updating.md) says how to
+replace it.
+
 Every refusal this step can produce, and what each one asks you to do: [licence.md](docs/licence.md).
 
 ---
