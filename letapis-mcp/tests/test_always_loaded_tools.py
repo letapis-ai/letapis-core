@@ -20,6 +20,7 @@ import httpx
 import pytest
 
 import letapis_mcp.server as srv
+from tests import handlers
 from letapis_mcp.client import ToolList
 
 ALWAYS_LOAD_KEY = "anthropic/alwaysLoad"
@@ -66,7 +67,7 @@ def wire_meta(tool) -> dict | None:
 async def test_named_tools_carry_the_mark(monkeypatch):
     """Positive half: every name in the list crosses the wire marked."""
     monkeypatch.setattr(srv, "_client", FakeClientUp())
-    tools = {t.name: t for t in await srv.list_tools()}
+    tools = {t.name: t for t in await handlers.list_tools()}
 
     for name in ("search", "blast_radius", "ena_get_context"):
         assert wire_meta(tools[name]) == {ALWAYS_LOAD_KEY: True}, (
@@ -83,7 +84,7 @@ async def test_unnamed_tools_carry_no_meta_at_all(monkeypatch):
     merely false, because a client reading `_meta` for the key would find it.
     """
     monkeypatch.setattr(srv, "_client", FakeClientUp())
-    tools = {t.name: t for t in await srv.list_tools()}
+    tools = {t.name: t for t in await handlers.list_tools()}
 
     for name in ("list_folders", "ena_add_episode", "forget_document"):
         assert wire_meta(tools[name]) is None, (
@@ -96,7 +97,7 @@ async def test_unnamed_tools_carry_no_meta_at_all(monkeypatch):
 async def test_exactly_the_named_ones_are_marked(monkeypatch):
     """Counts, not spot checks: the marked set equals the named set."""
     monkeypatch.setattr(srv, "_client", FakeClientUp())
-    tools = await srv.list_tools()
+    tools = await handlers.list_tools()
 
     marked = {t.name for t in tools if wire_meta(t)}
     assert marked == {"search", "blast_radius", "ena_get_context"}
@@ -126,7 +127,7 @@ async def test_a_name_the_engine_does_not_serve_is_reported(monkeypatch, capsys)
     monkeypatch.setattr(srv, "ALWAYS_LOADED", ("search", "blast_radius", "no_such_tool"))
     monkeypatch.setattr(srv, "_client", FakeClientUp())
 
-    await srv.list_tools()
+    await handlers.list_tools()
 
     err = capsys.readouterr().err
     assert "no_such_tool" in err, f"the missing name must be named; stderr was: {err!r}"
@@ -142,7 +143,7 @@ async def test_nothing_is_reported_when_every_name_is_served(monkeypatch, capsys
     """
     monkeypatch.setattr(srv, "_client", FakeClientUp())
 
-    await srv.list_tools()
+    await handlers.list_tools()
 
     err = capsys.readouterr().err
     assert "WARNING" not in err, f"unexpected warning: {err!r}"
@@ -155,9 +156,9 @@ async def test_nothing_is_reported_when_every_name_is_served(monkeypatch, capsys
 async def test_the_mark_survives_the_cache(monkeypatch):
     """Second call is served from the client's tool list; the mark must still be there."""
     monkeypatch.setattr(srv, "_client", FakeClientUp())
-    await srv.list_tools()
+    await handlers.list_tools()
 
-    cached = {t.name: t for t in await srv.list_tools()}
+    cached = {t.name: t for t in await handlers.list_tools()}
     assert wire_meta(cached["search"]) == {ALWAYS_LOAD_KEY: True}
     assert wire_meta(cached["list_folders"]) is None
 
@@ -170,7 +171,7 @@ async def test_the_outage_message_is_pinned(monkeypatch):
     confused, and one more call to learn why is how an agent gives up on the tool.
     """
     monkeypatch.setattr(srv, "_client", FakeClientDown())
-    degraded = {t.name: t for t in await srv.list_tools()}
+    degraded = {t.name: t for t in await handlers.list_tools()}
 
     assert set(degraded) == {"letapis_status", "fetch_file"}
     assert wire_meta(degraded["letapis_status"]) == {ALWAYS_LOAD_KEY: True}
@@ -186,7 +187,7 @@ async def test_the_outage_message_is_pinned_even_when_the_list_is_empty(monkeypa
     """
     monkeypatch.setattr(srv, "ALWAYS_LOADED", ())
     monkeypatch.setattr(srv, "_client", FakeClientDown())
-    degraded = {t.name: t for t in await srv.list_tools()}
+    degraded = {t.name: t for t in await handlers.list_tools()}
 
     assert wire_meta(degraded["letapis_status"]) == {ALWAYS_LOAD_KEY: True}
 
@@ -201,7 +202,7 @@ async def test_fetch_file_is_never_pinned(monkeypatch, client):
     would spend a window slot on a tool nobody needs told about in advance.
     """
     monkeypatch.setattr(srv, "_client", client)
-    tools = {t.name: t for t in await srv.list_tools()}
+    tools = {t.name: t for t in await handlers.list_tools()}
 
     assert wire_meta(tools["fetch_file"]) is None
 
@@ -215,7 +216,7 @@ async def test_an_empty_list_marks_nothing(monkeypatch):
     monkeypatch.setattr(srv, "ALWAYS_LOADED", ())
     monkeypatch.setattr(srv, "_client", FakeClientUp())
 
-    tools = await srv.list_tools()
+    tools = await handlers.list_tools()
     assert {t.name for t in tools if wire_meta(t)} == set()
 
 
@@ -229,7 +230,7 @@ async def test_a_different_list_pins_a_different_tool(monkeypatch):
     monkeypatch.setattr(srv, "ALWAYS_LOADED", ("list_folders",))
     monkeypatch.setattr(srv, "_client", FakeClientUp())
 
-    tools = await srv.list_tools()
+    tools = await handlers.list_tools()
     assert {t.name for t in tools if wire_meta(t)} == {"list_folders"}
 
 
@@ -245,7 +246,7 @@ async def test_the_startup_line_says_what_is_pinned(monkeypatch, capsys):
     both move without this file being read. The line is where the result is visible.
     """
     monkeypatch.setattr(srv, "_client", FakeClientUp())
-    await srv.list_tools()
+    await handlers.list_tools()
 
     assert (
         "always-loaded: blast_radius, ena_get_context, search"
@@ -258,6 +259,6 @@ async def test_the_startup_line_says_none_when_nothing_is_pinned(monkeypatch, ca
     """Negative half: 'none' is printed, rather than the line going quiet."""
     monkeypatch.setattr(srv, "ALWAYS_LOADED", ())
     monkeypatch.setattr(srv, "_client", FakeClientUp())
-    await srv.list_tools()
+    await handlers.list_tools()
 
     assert "always-loaded: none" in capsys.readouterr().err

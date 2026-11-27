@@ -281,6 +281,7 @@ Options:
 | `LETAPIS_SERVER_URL` | letapis-core server URL | `http://localhost:3131` |
 | `LETAPIS_API_KEY` | API key for authentication | None |
 | `LETAPIS_TIMEOUT` | Request timeout in seconds | `60` |
+| `LETAPIS_ENGINE_POLL_SECONDS` | How often to ask letapis-core again while it is down, in seconds (positive number); once it answers, the proxy tells the host to list the tools again | `5` |
 | `LETAPIS_CONFIG` | Path to config file | None |
 | `LETAPIS_CACHE_DIR` | Cache directory for fetched files | `~/.letapis_cache` |
 | `LETAPIS_FETCH_ENABLED` | Enable file fetching | `false` |

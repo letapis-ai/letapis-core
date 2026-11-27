@@ -6,14 +6,17 @@ Uses low-level Server API for dynamic tool registration.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
 from typing import Any
 
 import mcp.server.stdio
 from mcp import types
+from mcp.server import ServerRequestContext
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
+from mcp.server.session import ServerSession
 
 from letapis_mcp import journal
 from letapis_mcp.answers import (
@@ -32,6 +35,8 @@ _paths: PathHandler | None = None
 _config: Config | None = None
 _shown: list[types.Tool] | None = None
 """The tool surface the host was last given or told about; a surface unlike it is announced."""
+_session: ServerSession | None = None
+"""The host's session, kept from its latest request: a notification sent outside a request needs it."""
 
 
 # The key a client reads to keep one tool's description loaded while the rest of the
@@ -102,19 +107,23 @@ def get_paths() -> PathHandler:
     return _paths
 
 
-server = Server("letapis")
-
-
 def _url() -> str:
     return _config.server.url if _config else "unknown"
 
 
-@server.list_tools()
-async def list_tools() -> list[types.Tool]:
+def _keep_session(ctx: ServerRequestContext) -> None:
+    global _session
+    _session = ctx.session
+
+
+async def list_tools(
+    ctx: ServerRequestContext, params: types.PaginatedRequestParams | None
+) -> types.ListToolsResult:
     """List available tools, from the same tool list the calls are routed by."""
     global _shown
+    _keep_session(ctx)
     _shown = await tool_surface(get_client(), _url())
-    return _shown
+    return types.ListToolsResult(tools=_shown)
 
 
 def surface_of(tools: tuple[dict[str, Any], ...]) -> list[types.Tool]:
@@ -213,9 +222,12 @@ async def tool_surface(client: Any, url: str) -> list[types.Tool]:
         ]
 
 
-@server.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResult:
+async def call_tool(
+    ctx: ServerRequestContext, params: types.CallToolRequestParams
+) -> types.CallToolResult:
     """Handle tool calls by proxying to letapis-core REST API."""
+    _keep_session(ctx)
+    name, arguments = params.name, params.arguments or {}
 
     # Status probe tool (returned when letapis-core is down).
     # Success-shaped: an expected/recoverable state must not be
@@ -232,6 +244,9 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResul
     return _to_call_result(result)
 
 
+server = Server("letapis", on_list_tools=list_tools, on_call_tool=call_tool)
+
+
 async def announce_if_changed() -> None:
     """Tell the host to list the tools again when the kept list shows it something new.
 
@@ -245,8 +260,38 @@ async def announce_if_changed() -> None:
     surface = surface_of(kept.tools)
     if surface == _shown:
         return
-    _shown = surface
-    await server.request_context.session.send_tool_list_changed()
+    if _session is None:
+        return
+    # Marked before the write so two concurrent callers send once; unmarked if the write
+    # fails, because a surface the host was never told about is still unshown.
+    previous, _shown = _shown, surface
+    try:
+        await _session.send_tool_list_changed()
+    except BaseException:
+        _shown = previous
+        raise
+
+
+def _outage_surface_shown() -> bool:
+    return _shown is not None and any(t.name == "letapis_status" for t in _shown)
+
+
+async def watch_engine(period: float) -> None:
+    """While the host is shown the outage surface, ask the engine every `period` seconds.
+
+    The engine answering is the host's cue to list again: without this, a host that started
+    before the engine gets its tools only after it calls `letapis_status` itself. A failed
+    ask or a failed notification is the next period's business, never the proxy's end.
+    """
+    while True:
+        await asyncio.sleep(period)
+        if _session is None or not _outage_surface_shown():
+            continue
+        try:
+            await get_client().tool_list_now()
+            await announce_if_changed()
+        except Exception:
+            continue
 
 
 async def engine_status(client: Any, url: str) -> dict[str, Any]:
@@ -538,6 +583,7 @@ async def _async_main(config_path: str | None = None) -> None:
         )
     sys.stderr.flush()
 
+    watcher = asyncio.create_task(watch_engine(_config.server.engine_poll_seconds))
     try:
         # Run MCP server with stdio transport
         async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
@@ -547,6 +593,7 @@ async def _async_main(config_path: str | None = None) -> None:
                 build_initialization_options(probe.get("instructions")),
             )
     finally:
+        watcher.cancel()
         await _client.stop()
 
 

@@ -55,9 +55,7 @@ class Host:
         self.list_changed = 0
 
     async def __call__(self, message) -> None:
-        if isinstance(message, types.ServerNotification) and isinstance(
-            message.root, types.ToolListChangedNotification
-        ):
+        if isinstance(getattr(message, "root", message), types.ToolListChangedNotification):
             self.list_changed += 1
 
     async def heard(self, session) -> int:

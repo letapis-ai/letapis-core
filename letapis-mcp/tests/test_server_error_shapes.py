@@ -12,6 +12,7 @@ import httpx
 import pytest
 
 import letapis_mcp.server as srv
+from tests import handlers
 from letapis_mcp.client import ToolList
 
 
@@ -57,14 +58,14 @@ class FakeClientTimeout:
 async def test_list_tools_degraded_fallback_is_not_cached(monkeypatch):
     """F1: core down at first list_tools must NOT poison the cache forever."""
     monkeypatch.setattr(srv, "_client", FakeClientDown())
-    degraded = await srv.list_tools()
+    degraded = await handlers.list_tools()
     names = {t.name for t in degraded}
     assert "letapis_status" in names
     assert "fetch_file" in names
 
     # core comes back up — the next list_tools must return the real surface
     monkeypatch.setattr(srv, "_client", FakeClientUp())
-    recovered = await srv.list_tools()
+    recovered = await handlers.list_tools()
     names = {t.name for t in recovered}
     assert "search" in names
     assert "letapis_status" not in names
@@ -74,8 +75,8 @@ async def test_list_tools_degraded_fallback_is_not_cached(monkeypatch):
 async def test_connect_error_on_call_is_success_shaped(monkeypatch):
     """F2: core down during a call → guidance, never isError."""
     monkeypatch.setattr(srv, "_client", FakeClientDown())
-    result = await srv.call_tool("search", {"query": "x"})
-    assert not result.isError
+    result = await handlers.call_tool("search", {"query": "x"})
+    assert not result.model_dump(by_alias=True).get("isError")
     text = result.content[0].text
     assert "unavailable" in text.lower()
     # guidance, not a bare error: tells the agent the path to recovery
@@ -86,8 +87,8 @@ async def test_connect_error_on_call_is_success_shaped(monkeypatch):
 async def test_timeout_is_success_shaped_with_progress_hint(monkeypatch):
     """F2: timeout on long ops (index_folder/deep_index) is expected."""
     monkeypatch.setattr(srv, "_client", FakeClientTimeout())
-    result = await srv.call_tool("deep_index", {"path": "/x"})
-    assert not result.isError
+    result = await handlers.call_tool("deep_index", {"path": "/x"})
+    assert not result.model_dump(by_alias=True).get("isError")
     text = result.content[0].text
     assert "get_indexing_progress" in text
 
@@ -102,8 +103,8 @@ async def test_generic_exception_is_success_shaped(monkeypatch):
             return None
 
     monkeypatch.setattr(srv, "_client", FakeBoom())
-    result = await srv.call_tool("search", {"query": "x"})
-    assert not result.isError
+    result = await handlers.call_tool("search", {"query": "x"})
+    assert not result.model_dump(by_alias=True).get("isError")
     assert "boom" in result.content[0].text
 
 
@@ -111,8 +112,8 @@ async def test_generic_exception_is_success_shaped(monkeypatch):
 async def test_letapis_status_probe_is_success_shaped(monkeypatch):
     monkeypatch.setattr(srv, "_config", None)
     monkeypatch.setattr(srv, "_client", FakeClientDown())
-    result = await srv.call_tool("letapis_status", {})
-    assert not result.isError
+    result = await handlers.call_tool("letapis_status", {})
+    assert not result.model_dump(by_alias=True).get("isError")
     assert "letapis-core" in result.content[0].text
     assert "connection refused" in result.content[0].text
 

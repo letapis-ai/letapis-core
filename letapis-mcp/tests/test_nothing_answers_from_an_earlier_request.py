@@ -37,6 +37,9 @@ REVIEWED_SERVER_STATE = {
     # of this proxy's key; a call reads it only to decide whether to tell the host to
     # list the tools again, never what to run or what to return.
     "_shown": "the surface the host holds, compared to announce a change",
+    # The host's connection, kept so a notification can leave outside a request. One
+    # proxy serves one host; the session carries no caller's data, only where to write.
+    "_session": "the host's connection, written to when the tool list changed",
 }
 
 #: The same, one layer down. `_tool_list` is one answer of `GET /api/v1/tools`: the

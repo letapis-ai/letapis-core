@@ -40,6 +40,8 @@ class ServerConfig:
     url: str = "http://localhost:3131"
     api_key: str | None = None
     timeout: int = 60
+    engine_poll_seconds: float = 5.0
+    """How often the proxy asks the engine again while the agent is shown the outage surface."""
 
 
 @dataclass
@@ -180,6 +182,17 @@ class Config:
 
         if timeout := os.environ.get("LETAPIS_TIMEOUT"):
             config.server.timeout = int(timeout)
+
+        if poll := os.environ.get("LETAPIS_ENGINE_POLL_SECONDS"):
+            try:
+                period = float(poll)
+            except ValueError:
+                period = 0.0
+            if not (0 < period < float("inf")):
+                raise ValueError(
+                    f"LETAPIS_ENGINE_POLL_SECONDS must be a positive finite number, got {poll!r}"
+                )
+            config.server.engine_poll_seconds = period
 
         if cache_dir := os.environ.get("LETAPIS_CACHE_DIR"):
             config.paths.fetch.cache_dir = Path(os.path.expanduser(cache_dir))

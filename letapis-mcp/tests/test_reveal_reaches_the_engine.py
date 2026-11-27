@@ -37,12 +37,12 @@ REMOTE = "/w/copy_a/notes.md"
 
 def test_the_tool_declares_reveal():
     """Declared here or nowhere: this tool's schema is not the engine's."""
-    props = srv.FETCH_FILE_TOOL.inputSchema["properties"]
+    props = srv.FETCH_FILE_TOOL.model_dump(by_alias=True)["inputSchema"]["properties"]
 
     assert "reveal" in props
     assert props["reveal"]["type"] == "array"
     assert props["reveal"]["items"]["type"] == "string"
-    assert "reveal" not in srv.FETCH_FILE_TOOL.inputSchema["required"], (
+    assert "reveal" not in srv.FETCH_FILE_TOOL.model_dump(by_alias=True)["inputSchema"]["required"], (
         "a request without it must stay legal — that is the default the mark exists for"
     )
 

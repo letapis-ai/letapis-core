@@ -189,3 +189,22 @@ class TestFailureLog:
     def test_the_log_can_be_switched_off(self) -> None:
         config = Config._from_dict({"log": {"enabled": False}})
         assert config.log.enabled is False
+
+
+class TestEnginePollPeriod:
+    """The period the proxy asks a down engine again: a positive finite number of seconds."""
+
+    def test_the_default_is_five_seconds(self) -> None:
+        assert Config().server.engine_poll_seconds == 5.0
+
+    def test_a_positive_number_is_taken(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("LETAPIS_ENGINE_POLL_SECONDS", "0.25")
+        assert Config._apply_env_overrides(Config()).server.engine_poll_seconds == 0.25
+
+    @pytest.mark.parametrize("bad", ["0", "-1", "-0.5", "nan", "inf", "soon"])
+    def test_a_period_that_cannot_be_one_is_refused(
+        self, monkeypatch: pytest.MonkeyPatch, bad: str
+    ) -> None:
+        monkeypatch.setenv("LETAPIS_ENGINE_POLL_SECONDS", bad)
+        with pytest.raises(ValueError, match="LETAPIS_ENGINE_POLL_SECONDS"):
+            Config._apply_env_overrides(Config())

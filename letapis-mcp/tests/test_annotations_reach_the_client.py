@@ -18,6 +18,7 @@ from __future__ import annotations
 import pytest
 
 import letapis_mcp.server as srv
+from tests import handlers
 from letapis_mcp.client import ToolList
 
 DESTRUCTIVE_HINTS = {"destructiveHint": True, "readOnlyHint": False, "idempotentHint": False}
@@ -50,7 +51,7 @@ def wire_annotations(tool) -> dict | None:
 @pytest.mark.asyncio
 async def test_a_declared_hint_crosses_the_proxy(monkeypatch):
     monkeypatch.setattr(srv, "_client", FakeClientUp())
-    tools = {t.name: t for t in await srv.list_tools()}
+    tools = {t.name: t for t in await handlers.list_tools()}
 
     for name in ("force_reindex", "remove_folder"):
         assert wire_annotations(tools[name]) == DESTRUCTIVE_HINTS, (
@@ -62,7 +63,7 @@ async def test_a_declared_hint_crosses_the_proxy(monkeypatch):
 async def test_a_tool_without_the_field_carries_none(monkeypatch):
     """Absent, not false: a client reading the key would find an answer either way."""
     monkeypatch.setattr(srv, "_client", FakeClientUp())
-    tools = {t.name: t for t in await srv.list_tools()}
+    tools = {t.name: t for t in await handlers.list_tools()}
 
     for name in ("search", "list_folders"):
         assert wire_annotations(tools[name]) is None, (
@@ -75,7 +76,7 @@ async def test_a_tool_without_the_field_carries_none(monkeypatch):
 async def test_exactly_the_declaring_tools_are_annotated(monkeypatch):
     """Counts rather than spot checks, so stamping everything fails here."""
     monkeypatch.setattr(srv, "_client", FakeClientUp())
-    tools = await srv.list_tools()
+    tools = await handlers.list_tools()
 
     annotated = {t.name for t in tools if wire_annotations(t)}
     assert annotated == {"force_reindex", "remove_folder"}
